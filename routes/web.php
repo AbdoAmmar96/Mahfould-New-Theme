@@ -1,0 +1,67 @@
+<?php
+
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\BookingController;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\CarController;
+use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\WishlistController;
+use App\Http\Controllers\HotelController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\RestaurantController;
+use App\Http\Controllers\SahbController;
+use App\Http\Controllers\TourController;
+use Illuminate\Support\Facades\Route;
+
+Route::get('/', [HomeController::class, 'index'])->name('home');
+
+// الرحلات
+Route::get('/tours', [TourController::class, 'index'])->name('tours.index');
+Route::get('/tours/{tour:slug}', [TourController::class, 'show'])->name('tours.show');
+
+// الفنادق
+Route::get('/hotels', [HotelController::class, 'index'])->name('hotels.index');
+Route::get('/hotels/{hotel:slug}', [HotelController::class, 'show'])->name('hotels.show');
+
+// المطاعم
+Route::get('/restaurants', [RestaurantController::class, 'index'])->name('restaurants.index');
+Route::get('/restaurants/{restaurant:slug}', [RestaurantController::class, 'show'])->name('restaurants.show');
+
+// صاحب السعادة
+Route::get('/sahb-elsaada', [SahbController::class, 'index'])->name('sahb.index');
+
+// السيارات
+Route::get('/cars', [CarController::class, 'index'])->name('cars.index');
+Route::get('/cars/{car:slug}', [CarController::class, 'show'])->name('cars.show');
+
+// الحجز
+Route::get('/checkout/{type}/{id}', [BookingController::class, 'create'])->name('booking.create');
+Route::post('/checkout', [BookingController::class, 'store'])->name('booking.store');
+Route::get('/booking/{booking:code}', [BookingController::class, 'confirmation'])->name('booking.confirmation');
+
+// دفع Paymob (callback من صفحة الدفع + webhook موثوق)
+Route::match(['get', 'post'], '/payment/callback', [PaymentController::class, 'callback'])->name('payment.callback');
+Route::post('/payment/webhook', [PaymentController::class, 'webhook'])->name('payment.webhook');
+
+// دفع Fawry (callback + server callback موثوق)
+Route::match(['get', 'post'], '/payment/fawry/callback', [PaymentController::class, 'fawryCallback'])->name('payment.fawry.callback');
+Route::post('/payment/fawry/webhook', [PaymentController::class, 'fawryWebhook'])->name('payment.fawry.webhook');
+
+// المصادقة
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [LoginController::class, 'create'])->name('login');
+    Route::post('/login', [LoginController::class, 'store']);
+    Route::get('/register', [RegisterController::class, 'create'])->name('register');
+    Route::post('/register', [RegisterController::class, 'store']);
+});
+
+Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')->name('logout');
+
+// حساب المستخدم
+Route::middleware('auth')->group(function () {
+    Route::get('/account', [BookingController::class, 'account'])->name('account.index');
+    Route::post('/reviews', [ReviewController::class, 'store'])->name('reviews.store');
+    Route::post('/wishlist/toggle', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
+    Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
+});
