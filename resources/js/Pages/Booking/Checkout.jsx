@@ -1,8 +1,9 @@
 import SiteLayout from '@/Layouts/SiteLayout';
 import { money } from '@/Components/UI';
 import { Button } from '@/Components/ui/button';
-import { Input, Field } from '@/Components/ui/input';
+import { Input, Select, Field } from '@/Components/ui/input';
 import { PartySizeField } from '@/Components/ui/party-size';
+import { ymd } from '@/lib/useAvailability';
 import { cn } from '@/lib/utils';
 import { Head, useForm } from '@inertiajs/react';
 import { useMemo } from 'react';
@@ -15,16 +16,25 @@ const PAY = [
 ];
 
 export default function Checkout({ item, prefill = {}, pricing = {} }) {
+    const pooled = !!item.pooled; // فندق بمخزون (تسعير ليلة×غرف + دفع عند الوصول)
     const { data, setData, post, processing, errors } = useForm({
         type: item.type, id: item.id,
-        start_date: prefill.start_date || '', guests: Number(prefill.guests) || 2, slot: prefill.slot || '',
+        start_date: prefill.start_date || '',
+        guests: Number(prefill.guests) || 2,
+        nights: Number(prefill.nights) || 2,
+        units: Number(prefill.units) || 1,
+        slot: prefill.slot || '',
         customer_name: '', customer_phone: '', customer_email: '', customer_national_id: '',
-        payment_method: 'card',
+        payment_method: pooled ? 'on_arrival' : 'card',
     });
 
+    const today = ymd(new Date());
     const fee = pricing.fee ?? 200;
     const discount = pricing.discount ?? 0;
-    const subtotal = useMemo(() => item.price * data.guests, [item.price, data.guests]);
+    const subtotal = useMemo(
+        () => (pooled ? item.price * data.nights * data.units : item.price * data.guests),
+        [pooled, item.price, data.nights, data.units, data.guests],
+    );
     const total = Math.max(0, subtotal + fee - discount);
 
     const submit = (e) => { e.preventDefault(); post('/checkout'); };
@@ -74,18 +84,41 @@ export default function Checkout({ item, prefill = {}, pricing = {} }) {
                                         <Field label={<>الرقم القومي <small className="text-muted">(اختياري)</small></>}>
                                             <Input value={data.customer_national_id} onChange={(e) => setData('customer_national_id', e.target.value)} placeholder="14 رقم" />
                                         </Field>
-                                        <Field label={item.type === 'hotel' ? 'تاريخ الوصول' : item.type === 'car' ? 'تاريخ الاستلام' : 'التاريخ'}>
-                                            <Input type="date" value={data.start_date} onChange={(e) => setData('start_date', e.target.value)} />
+                                        <Field label={pooled ? 'تاريخ الوصول' : item.type === 'car' ? 'تاريخ الاستلام' : 'التاريخ'}>
+                                            <Input type="date" min={pooled ? today : undefined} value={data.start_date} onChange={(e) => setData('start_date', e.target.value)} />
                                         </Field>
-                                        <Field label={item.type === 'hotel' ? 'عدد الليالي' : item.type === 'car' ? 'عدد الأيام' : 'عدد الأفراد'}>
-                                            <PartySizeField
-                                                value={data.guests}
-                                                onChange={(n) => setData('guests', n || 1)}
-                                                singular={item.type === 'hotel' ? 'ليلة' : item.type === 'car' ? 'يوم' : 'فرد'}
-                                                plural={item.type === 'hotel' ? 'ليالي' : item.type === 'car' ? 'أيام' : 'أفراد'}
-                                                options={[1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({ value: n, label: String(n) }))}
-                                            />
-                                        </Field>
+                                        {pooled ? (
+                                            <>
+                                                <Field label="عدد الليالي">
+                                                    <Select value={data.nights} onChange={(e) => setData('nights', +e.target.value)}>
+                                                        {[1, 2, 3, 4, 5, 6, 7, 10, 14].map((n) => <option key={n} value={n}>{n} ليالي</option>)}
+                                                    </Select>
+                                                </Field>
+                                                <Field label="عدد الغرف">
+                                                    <Select value={data.units} onChange={(e) => setData('units', +e.target.value)}>
+                                                        {Array.from({ length: item.units_total || 1 }, (_, i) => i + 1).map((n) => <option key={n} value={n}>{n} غرفة</option>)}
+                                                    </Select>
+                                                </Field>
+                                                <Field label="عدد الضيوف">
+                                                    <PartySizeField
+                                                        value={data.guests}
+                                                        onChange={(n) => setData('guests', n || 1)}
+                                                        singular="ضيف" plural="ضيوف"
+                                                        options={[1, 2, 3, 4].map((n) => ({ value: n, label: `${n} ضيوف` }))}
+                                                    />
+                                                </Field>
+                                            </>
+                                        ) : (
+                                            <Field label={item.type === 'car' ? 'عدد الأيام' : 'عدد الأفراد'}>
+                                                <PartySizeField
+                                                    value={data.guests}
+                                                    onChange={(n) => setData('guests', n || 1)}
+                                                    singular={item.type === 'car' ? 'يوم' : 'فرد'}
+                                                    plural={item.type === 'car' ? 'أيام' : 'أفراد'}
+                                                    options={[1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({ value: n, label: String(n) }))}
+                                                />
+                                            </Field>
+                                        )}
                                     </div>
                                 </div>
 
@@ -118,10 +151,15 @@ export default function Checkout({ item, prefill = {}, pricing = {} }) {
                                         <img src={item.image_url} className="h-16 w-16 rounded-xl object-cover" alt="" />
                                         <div>
                                             <b className="font-head text-navy">{item.title}</b>
-                                            <div className="text-[13px] font-semibold text-muted">{data.guests} {item.unit}</div>
+                                            <div className="text-[13px] font-semibold text-muted">
+                                                {pooled ? `${data.nights} ليالي · ${data.units} غرفة · ${data.guests} ضيوف` : `${data.guests} ${item.unit}`}
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="flex justify-between py-[9px] text-sm"><span>السعر ({data.guests} {item.unit})</span><span>{money(subtotal)} ج.م</span></div>
+                                    <div className="flex justify-between py-[9px] text-sm">
+                                        <span>{pooled ? `السعر (${data.nights}×${data.units})` : `السعر (${data.guests} ${item.unit})`}</span>
+                                        <span>{money(subtotal)} ج.م</span>
+                                    </div>
                                     <div className="flex justify-between py-[9px] text-sm"><span>رسوم الخدمة</span><span>{money(fee)} ج.م</span></div>
                                     {discount > 0 && (
                                         <div className="flex justify-between py-[9px] text-sm"><span>خصم مكفول</span><span className="text-makfol">−{money(discount)} ج.م</span></div>

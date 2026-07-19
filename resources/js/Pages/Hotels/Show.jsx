@@ -2,11 +2,13 @@ import SiteLayout from '@/Layouts/SiteLayout';
 import Reviews from '@/Components/Reviews';
 import { Head, Link } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
-import { MapPin, Star, Check, Waves, UtensilsCrossed, Umbrella, Sparkles, Wifi, Car } from 'lucide-react';
+import { MapPin, Star, Check, Waves, UtensilsCrossed, Umbrella, Sparkles, Wifi, Car, Banknote, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 import { Badge } from '@/Components/ui/badge';
 import { Input, Select, Field } from '@/Components/ui/input';
+import { PartySizeField } from '@/Components/ui/party-size';
 import { money } from '@/Components/ui/service-card';
+import { useAvailability, remainingForRange, ymd } from '@/lib/useAvailability';
 
 const AMENITIES = [
     [Waves, 'حمام سباحة'],
@@ -19,14 +21,32 @@ const AMENITIES = [
 
 export default function Show({ hotel, reviews, review_type, review_id }) {
     const [nights, setNights] = useState(2);
+    const [rooms, setRooms] = useState(1);
+    const [guests, setGuests] = useState(2);
     const [date, setDate] = useState('');
     const unit = hotel.sale_price || hotel.price;
     const fee = 200;
-    const total = useMemo(() => unit * nights + fee, [unit, nights]);
+    const total = useMemo(() => unit * nights * rooms + fee, [unit, nights, rooms]);
+
+    const today = ymd(new Date());
+    const unitsTotal = hotel.units_total ?? 1;
+
+    // إتاحة حيّة: خريطة تاريخ→غرف متبقّية
+    const availability = useAvailability(hotel.availability_url);
+    const rangeRemaining = useMemo(
+        () => remainingForRange(availability, date, nights),
+        [availability, date, nights],
+    );
+    const soldOut = date && rangeRemaining === 0;
+    const notEnough = date && rangeRemaining !== null && rooms > rangeRemaining && rangeRemaining > 0;
+    const canBook = date && rangeRemaining !== null && rooms <= rangeRemaining && rangeRemaining > 0;
+
     const checkoutUrl = () => {
         const q = new URLSearchParams();
-        if (date) q.set('start_date', date);
-        q.set('guests', nights);
+        q.set('start_date', date);
+        q.set('nights', nights);
+        q.set('units', rooms);
+        q.set('guests', guests);
         return `${hotel.checkout_url}?${q.toString()}`;
     };
     const gallery = hotel.gallery.length ? hotel.gallery : [
@@ -94,22 +114,72 @@ export default function Show({ hotel, reviews, review_type, review_id }) {
                                     {hotel.sale_price && <s className="text-base text-muted">{money(hotel.price)}</s>}
                                 </div>
                                 <div className="mb-[18px] text-[13px] text-muted">/ الليلة · شامل الإفطار</div>
+
+                                {/* دفع عند الوصول — أساسي للفنادق */}
+                                <div className="mb-3.5 flex items-center gap-2 rounded-input bg-makfol/[.08] px-3 py-2 text-[13px] font-bold text-makfol">
+                                    <Banknote className="h-4 w-4" /> ادفع في الفندق عند الوصول — من غير مقدّم
+                                </div>
+
                                 <Field label="تاريخ الوصول" className="mb-3.5">
-                                    <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                                    <Input type="date" min={today} value={date} onChange={(e) => setDate(e.target.value)} />
                                 </Field>
-                                <Field label="عدد الليالي" className="mb-3.5">
-                                    <Select value={nights} onChange={(e) => setNights(+e.target.value)}>
-                                        {[1, 2, 3, 4, 5, 7].map((n) => <option key={n} value={n}>{n} ليالي</option>)}
-                                    </Select>
+                                <div className="mb-3.5 grid grid-cols-2 gap-3">
+                                    <Field label="عدد الليالي">
+                                        <Select value={nights} onChange={(e) => setNights(+e.target.value)}>
+                                            {[1, 2, 3, 4, 5, 6, 7, 10, 14].map((n) => <option key={n} value={n}>{n} ليالي</option>)}
+                                        </Select>
+                                    </Field>
+                                    <Field label="عدد الغرف">
+                                        <Select value={rooms} onChange={(e) => setRooms(+e.target.value)}>
+                                            {Array.from({ length: unitsTotal }, (_, i) => i + 1).map((n) => (
+                                                <option key={n} value={n}>{n} غرفة</option>
+                                            ))}
+                                        </Select>
+                                    </Field>
+                                </div>
+                                <Field label="عدد الضيوف" className="mb-3.5">
+                                    <PartySizeField
+                                        value={guests}
+                                        onChange={(n) => setGuests(n || 1)}
+                                        singular="ضيف"
+                                        plural="ضيوف"
+                                        options={[1, 2, 3, 4].map((n) => ({ value: n, label: `${n} ضيوف` }))}
+                                    />
                                 </Field>
+
+                                {/* حالة الإتاحة الحيّة */}
+                                {date && rangeRemaining !== null && (
+                                    soldOut ? (
+                                        <div className="mb-3 flex items-center gap-1.5 rounded-input bg-danger/[.08] px-3 py-2 text-[13px] font-bold text-danger">
+                                            <TriangleAlert className="h-4 w-4" /> مفيش غرف متاحة للتواريخ دي — جرّب تواريخ تانية
+                                        </div>
+                                    ) : (
+                                        <div className={`mb-3 flex items-center gap-1.5 rounded-input px-3 py-2 text-[13px] font-bold ${notEnough ? 'bg-danger/[.08] text-danger' : 'bg-makfol/[.08] text-makfol'}`}>
+                                            {notEnough
+                                                ? <><TriangleAlert className="h-4 w-4" /> متبقّي {rangeRemaining} غرفة بس — قلّل عدد الغرف</>
+                                                : <><Check className="h-4 w-4" /> متاح · متبقّي {rangeRemaining} غرفة للتواريخ دي</>}
+                                        </div>
+                                    )
+                                )}
+
                                 <div className="mb-1.5 mt-4">
-                                    <div className="flex justify-between py-[9px] text-sm"><span>{money(unit)} × {nights}</span><span>{money(unit * nights)} ج.م</span></div>
+                                    <div className="flex justify-between py-[9px] text-sm"><span>{money(unit)} × {nights} ليالي × {rooms} غرفة</span><span>{money(unit * nights * rooms)} ج.م</span></div>
                                     <div className="flex justify-between py-[9px] text-sm"><span>رسوم الخدمة</span><span>{fee} ج.م</span></div>
                                     <div className="mt-2 flex justify-between border-t border-black/[.06] pt-3.5 text-base font-extrabold"><span>الإجمالي</span><b className="font-head text-xl text-coral-deep">{money(total)} ج.م</b></div>
                                 </div>
-                                <Button asChild size="lg" block>
-                                    <Link href={checkoutUrl()}>احجز دلوقتي</Link>
-                                </Button>
+
+                                {canBook ? (
+                                    <Button asChild size="lg" block>
+                                        <Link href={checkoutUrl()}>احجز دلوقتي</Link>
+                                    </Button>
+                                ) : (
+                                    <Button size="lg" block disabled>
+                                        {date ? 'غير متاح للتواريخ دي' : 'اختَر تاريخ الوصول'}
+                                    </Button>
+                                )}
+                                <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-[12.5px] text-muted">
+                                    <ShieldCheck className="h-4 w-4" /> تأكيد فوري · إلغاء مجاني
+                                </p>
                             </div>
                         </div>
                     </div>
