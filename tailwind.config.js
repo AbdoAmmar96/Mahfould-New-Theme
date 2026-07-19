@@ -1,4 +1,5 @@
 import forms from '@tailwindcss/forms';
+import animate from 'tailwindcss-animate';
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -8,10 +9,10 @@ export default {
     ],
     theme: {
         extend: {
-            // ألوان محفول مكفول — من دليل الهوية
+            // ألوان محفول مكفول — مستخرجة من اللوجو (logo.png)
             colors: {
-                navy:      { DEFAULT: '#303070', light: '#4A4680', deep: '#24245A' },
-                coral:     { DEFAULT: '#F5764E', deep: '#E2492B' },
+                navy:      { DEFAULT: '#363677', light: '#4C4C90', deep: '#28285C' },
+                coral:     { DEFAULT: '#FC7660', light: '#FD9683', deep: '#EA4B3B' },
                 cream:     '#FBF7F0',
                 beige:     '#F1EADF',
                 sandline:  '#EADFC9',
@@ -31,10 +32,10 @@ export default {
                 section: '20px',
             },
             boxShadow: {
-                mk:    '0 8px 28px rgba(48,48,112,.09)',
-                'mk-lg': '0 18px 50px rgba(48,48,112,.14)',
+                mk:    '0 8px 28px rgba(54,54,119,.09)',
+                'mk-lg': '0 18px 50px rgba(54,54,119,.14)',
             },
         },
     },
-    plugins: [forms],
+    plugins: [forms, animate],
 };

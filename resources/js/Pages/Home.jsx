@@ -1,55 +1,92 @@
 import SiteLayout from '@/Layouts/SiteLayout';
-import { Badge, Btn, SectionHead, ServiceCard, money } from '@/Components/UI';
 import Modal from '@/Components/Modal';
 import { TRUST } from '@/data/trust';
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
+import {
+    Plane, BedDouble, UtensilsCrossed, Car, Crown,
+    Search, FileText, ShieldCheck, MapPin, Star, ArrowLeft,
+} from 'lucide-react';
+import { Button } from '@/Components/ui/button';
+import { Badge } from '@/Components/ui/badge';
+import { Card, CardMedia, CardBody, CardTitle, CardMeta, CardFooter } from '@/Components/ui/card';
+import { Input, Select, Field } from '@/Components/ui/input';
+import { Tabs, TabsList, TabsTrigger } from '@/Components/ui/tabs';
+import { ServiceCard, money } from '@/Components/ui/service-card';
+import { cn } from '@/lib/utils';
 
 const TABS = [
-    { icon: '🧳', label: 'رحلات', route: '/tours', ph: 'شرم الشيخ، الغردقة، سيوة…' },
-    { icon: '🏨', label: 'فنادق', route: '/hotels', ph: 'مدينة أو منطقة…' },
-    { icon: '🍽️', label: 'مطاعم', route: '/restaurants', ph: 'مطعم أو نوع مطبخ…' },
-    { icon: '🚗', label: 'سيارات', route: '/cars', ph: 'مكان الاستلام…' },
-    { icon: '👑', label: 'صاحب السعادة', route: '/sahb-elsaada', ph: 'المناسبة…' },
+    { Icon: Plane, label: 'رحلات', route: '/tours', ph: 'شرم الشيخ، الغردقة، سيوة…' },
+    { Icon: BedDouble, label: 'فنادق', route: '/hotels', ph: 'مدينة أو منطقة…' },
+    { Icon: UtensilsCrossed, label: 'مطاعم', route: '/restaurants', ph: 'مطعم أو نوع مطبخ…' },
+    { Icon: Car, label: 'سيارات', route: '/cars', ph: 'مكان الاستلام…' },
+    { Icon: Crown, label: 'صاحب السعادة', route: '/sahb-elsaada', ph: 'المناسبة…' },
 ];
 const SERVICES = [
-    ['🧳', 'رحلات وبرامج', 'داخلي وخارجي بأسعار مكفولة', '/tours'],
-    ['🏨', 'فنادق ومنتجعات', 'حجز فوري وتأكيد لحظي', '/hotels'],
-    ['🍽️', 'مطاعم وكافيهات', 'احجز ترابيزتك جنبك دلوقتي', '/restaurants'],
-    ['🚗', 'سيارات وسواقين', 'تنقّل مريح طول الرحلة', '/cars'],
+    [Plane, 'رحلات وبرامج', 'داخلي وخارجي بأسعار مكفولة', '/tours'],
+    [BedDouble, 'فنادق ومنتجعات', 'حجز فوري وتأكيد لحظي', '/hotels'],
+    [UtensilsCrossed, 'مطاعم وكافيهات', 'احجز ترابيزتك جنبك دلوقتي', '/restaurants'],
+    [Car, 'سيارات وسواقين', 'تنقّل مريح طول الرحلة', '/cars'],
 ];
 const STEPS = [
-    ['🔎', 'اختار خدمتك', 'رحلة، فندق، مطعم، أو عربية — كله في مكان واحد بسعر واضح.'],
-    ['📝', 'احجز في دقايق', 'حدّد التاريخ والعدد، اكمل بياناتك، وخلاص.'],
-    ['🛡️', 'ادفع بأمان', 'كارت، محفظة، أو عند الوصول — وتأكيد لحظي بضمان استرداد.'],
+    [Search, 'اختار خدمتك', 'رحلة، فندق، مطعم، أو عربية — كله في مكان واحد بسعر واضح.'],
+    [FileText, 'احجز في دقايق', 'حدّد التاريخ والعدد، اكمل بياناتك، وخلاص.'],
+    [ShieldCheck, 'ادفع بأمان', 'كارت، محفظة، أو عند الوصول — وتأكيد لحظي بضمان استرداد.'],
 ];
 
-// بطاقة مطعم (نفس ستايل صفحة المطاعم)
+// حاوية بعرض ثابت
+const Wrap = ({ className, children }) => (
+    <div className={cn('mx-auto w-full max-w-[1200px] px-5', className)}>{children}</div>
+);
+
+// عنوان قسم
+function SectionHead({ title, sub, center, action }) {
+    return (
+        <div className={cn('mb-8 flex flex-wrap items-end gap-4', action && 'justify-between', center && 'flex-col items-center text-center')}>
+            <div>
+                <div className={cn('mb-3 h-1 w-12 rounded-full bg-gradient-to-br from-coral to-coral-deep', center && 'mx-auto')} />
+                <h2 className="font-head text-[26px] font-bold text-navy md:text-[30px]">{title}</h2>
+                {sub && <p className="mt-1.5 text-base text-muted">{sub}</p>}
+            </div>
+            {action}
+        </div>
+    );
+}
+
+const MoreBtn = ({ href, children }) => (
+    <Button asChild variant="secondary" size="sm">
+        <Link href={href}>{children} <ArrowLeft className="h-4 w-4" /></Link>
+    </Button>
+);
+
+// بطاقة مطعم
 function RestaurantCard({ r }) {
     return (
-        <article className="mk-card">
-            <div className="mk-card-media">
-                <div className="mk-card-tags">
-                    {r.instant && <Badge type="best">حجز فوري</Badge>}
-                    {r.is_guaranteed && <Badge type="makfol">مكفول</Badge>}
+        <Card>
+            <CardMedia>
+                <div className="absolute top-3 start-3 z-10 flex flex-col gap-1.5">
+                    {r.instant && <Badge variant="best">حجز فوري</Badge>}
+                    {r.is_guaranteed && <Badge variant="makfol">مكفول</Badge>}
                 </div>
-                <Link href={r.url}><img src={r.image_url} alt={r.title} loading="lazy" /></Link>
-            </div>
-            <div className="mk-card-body">
-                <h3 className="mk-card-title"><Link href={r.url}>{r.title}</Link></h3>
-                <div className="mk-card-meta">📍 {r.address || r.location}</div>
-                <div className="mk-rest-tags">
-                    {r.cuisines.map((c, i) => <span key={i} className="mk-chip">{c}</span>)}
-                    {r.price_range && <span className="mk-chip">{r.price_range}</span>}
+                <Link href={r.url}>
+                    <img src={r.image_url} alt={r.title} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                </Link>
+            </CardMedia>
+            <CardBody>
+                <CardTitle className="mb-1.5"><Link href={r.url} className="transition-colors hover:text-coral-deep">{r.title}</Link></CardTitle>
+                <CardMeta className="mb-2.5 flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {r.address || r.location}</CardMeta>
+                <div className="mb-3 flex flex-wrap gap-1.5">
+                    {r.cuisines.map((c, i) => <span key={i} className="rounded-full bg-beige px-2.5 py-1 text-xs font-semibold text-navy">{c}</span>)}
+                    {r.price_range && <span className="rounded-full bg-beige px-2.5 py-1 text-xs font-semibold text-navy">{r.price_range}</span>}
                 </div>
-                <div className="mk-card-foot" style={{ marginTop: 14 }}>
+                <CardFooter>
                     {r.review_score > 0
-                        ? <span className="mk-rate">★ {r.review_score.toFixed(1)} ({r.review_count})</span>
-                        : <span className="mk-card-meta">مطعم مميّز</span>}
-                    <Link href={r.url} className="mk-btn mk-btn-primary">احجز ترابيزة</Link>
-                </div>
-            </div>
-        </article>
+                        ? <span className="inline-flex items-center gap-1 text-[13px] font-bold text-navy"><Star className="h-3.5 w-3.5 fill-vip text-vip" /> {r.review_score.toFixed(1)} <span className="text-muted">({r.review_count})</span></span>
+                        : <span className="text-[13px] font-semibold text-muted">مطعم مميّز</span>}
+                    <Button asChild size="sm"><Link href={r.url}>احجز ترابيزة</Link></Button>
+                </CardFooter>
+            </CardBody>
+        </Card>
     );
 }
 
@@ -81,52 +118,60 @@ export default function Home({ locations, featured, hotels, restaurants, cars, p
             <Head title="رحلتك محفولة مكفولة" />
 
             {/* الهيرو */}
-            <section className="mk-hero">
-                <div className="mk-wrap">
-                    <div className="mk-reveal">
-                        <Badge type="makfol">✓ كل حجز مكفول 100%</Badge>
-                        <h1 style={{ marginTop: 16 }}>قوللنا مزاجك…<br />واحنا نرتّبلك <span className="mk-hl">الرحلة كلها</span> من غير تعب</h1>
-                        <p className="mk-hero-sub">رحلات، فنادق، مطاعم، وتجارب — كلها في مكان واحد، بسعر مضمون وضمان استرداد.</p>
+            <section className="relative overflow-hidden bg-gradient-to-br from-navy to-navy-light pt-16 pb-28 md:pt-20">
+                <div className="pointer-events-none absolute -top-40 -start-28 h-[460px] w-[460px] rounded-full bg-coral opacity-30 blur-[90px]" />
+                <div className="pointer-events-none absolute -bottom-44 -end-24 h-[380px] w-[380px] rounded-full bg-royal opacity-30 blur-[90px]" />
+                <Wrap className="relative z-10">
+                    <div className="duration-700 animate-in fade-in slide-in-from-bottom-3">
+                        <Badge variant="makfol"><ShieldCheck className="h-3.5 w-3.5" /> كل حجز مكفول 100%</Badge>
+                        <h1 className="mt-4 max-w-3xl font-head text-4xl font-bold leading-[1.2] text-white md:text-5xl">
+                            قوللنا مزاجك…<br />واحنا نرتّبلك{' '}
+                            <span className="bg-gradient-to-br from-coral to-coral-deep bg-clip-text text-transparent">الرحلة كلها</span>{' '}
+                            من غير تعب
+                        </h1>
+                        <p className="mt-4 max-w-xl text-lg text-white/80">رحلات، فنادق، مطاعم، وتجارب — كلها في مكان واحد، بسعر مضمون وضمان استرداد.</p>
                     </div>
-                    <div className="mk-reveal" style={{ animationDelay: '.12s' }}>
-                        <div className="mk-tabs">
-                            {TABS.map((t, i) => (
-                                <button key={i} type="button" className={`mk-tab ${tab === i ? 'is-active' : ''}`} onClick={() => setTab(i)}>
-                                    {t.icon} {t.label}
-                                </button>
-                            ))}
-                        </div>
-                        <form className="mk-search" onSubmit={search}>
-                            <label className="mk-field"><span className="mk-label">فين حابب تروح؟</span>
-                                <input className="mk-input" value={loc} onChange={(e) => setLoc(e.target.value)} placeholder={TABS[tab].ph} /></label>
-                            <label className="mk-field"><span className="mk-label">التاريخ</span>
-                                <input className="mk-input" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></label>
-                            <label className="mk-field"><span className="mk-label">عدد الأفراد</span>
-                                <select className="mk-select" value={guests} onChange={(e) => setGuests(e.target.value)}>
+
+                    <div className="mt-8 max-w-[920px] delay-150 duration-700 animate-in fade-in slide-in-from-bottom-3">
+                        <Tabs value={String(tab)} onValueChange={(v) => setTab(Number(v))}>
+                            <TabsList>
+                                {TABS.map((t, i) => (
+                                    <TabsTrigger key={i} value={String(i)}><t.Icon className="h-4 w-4" /> {t.label}</TabsTrigger>
+                                ))}
+                            </TabsList>
+                        </Tabs>
+                        <form onSubmit={search} className="grid grid-cols-1 items-end gap-3 rounded-section rounded-ss-none bg-white p-4 shadow-mk-lg sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto]">
+                            <Field label="فين حابب تروح؟"><Input value={loc} onChange={(e) => setLoc(e.target.value)} placeholder={TABS[tab].ph} /></Field>
+                            <Field label="التاريخ"><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
+                            <Field label="عدد الأفراد">
+                                <Select value={guests} onChange={(e) => setGuests(e.target.value)}>
                                     <option value="">أي عدد</option>
                                     <option value="2">فردين</option>
                                     <option value="3">3 أفراد</option>
                                     <option value="4">عائلة (4+)</option>
-                                </select></label>
-                            <button type="submit" className="mk-btn mk-btn-primary mk-btn-lg">🔍 دوّر</button>
+                                </Select>
+                            </Field>
+                            <Button type="submit" className="h-11 px-6"><Search className="h-4 w-4" /> دوّر</Button>
                         </form>
                     </div>
-                </div>
+                </Wrap>
             </section>
 
             {/* شريط الثقة */}
-            <div className="mk-wrap">
-                <div className="mk-trust mk-reveal" style={{ animationDelay: '.2s' }}>
+            <Wrap>
+                <div className="relative z-[5] -mt-16 grid grid-cols-2 gap-4 rounded-section border border-black/[.06] bg-white p-6 shadow-mk md:grid-cols-4">
                     {TRUST.map((t, i) => (
-                        <div key={i} className="mk-trust-item" role="button" tabIndex={0}
-                            onClick={() => setTrustOpen(i)}
-                            onKeyDown={(e) => { if (e.key === 'Enter') setTrustOpen(i); }}>
-                            <div className="mk-trust-ico">{t.icon}</div>
-                            <div><strong>{t.title}</strong><span>{t.short}</span></div>
-                        </div>
+                        <button key={i} type="button" onClick={() => setTrustOpen(i)}
+                            className="flex items-center gap-3 rounded-card p-2 text-start transition hover:-translate-y-0.5 hover:shadow-mk">
+                            <span className="flex h-11 w-11 flex-none items-center justify-center rounded-[14px] bg-beige text-xl">{t.icon}</span>
+                            <span>
+                                <strong className="block text-[15px] font-extrabold text-navy">{t.title}</strong>
+                                <span className="text-[13px] text-muted">{t.short}</span>
+                            </span>
+                        </button>
                     ))}
                 </div>
-            </div>
+            </Wrap>
 
             <Modal open={trustOpen !== null} onClose={() => setTrustOpen(null)}
                 icon={trustOpen !== null ? TRUST[trustOpen].icon : null}
@@ -135,175 +180,182 @@ export default function Home({ locations, featured, hotels, restaurants, cars, p
             </Modal>
 
             {/* الوجهات */}
-            <section className="mk-sec">
-                <div className="mk-wrap">
+            <section className="py-14 md:py-[72px]">
+                <Wrap>
                     <SectionHead title="وجهات تستاهل تجربتها" sub="أكتر الأماكن اللي المصريين بيحجزوها دلوقتي" />
-                    <div className="mk-grid mk-grid-4">
+                    <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
                         {locations.map((l) => (
-                            <Link key={l.slug} className="mk-dest" href={l.url}>
-                                <img src={l.image_url} alt={l.name} loading="lazy" />
-                                <div className="mk-dest-cap"><strong>{l.name}</strong><span>{l.tours_count} رحلة متاحة</span></div>
+                            <Link key={l.slug} href={l.url} className="group relative aspect-[4/3] overflow-hidden rounded-card shadow-mk transition-all hover:-translate-y-1.5 hover:shadow-mk-lg">
+                                <img src={l.image_url} alt={l.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-navy-deep/90 via-navy-deep/20 to-transparent" />
+                                <div className="absolute inset-x-4 bottom-4 z-[2] text-white">
+                                    <strong className="block font-head text-xl font-bold">{l.name}</strong>
+                                    <span className="text-[13px] font-semibold text-white/80">{l.tours_count} رحلة متاحة</span>
+                                </div>
                             </Link>
                         ))}
                     </div>
-                </div>
+                </Wrap>
             </section>
 
             {/* رحلات مختارة */}
-            <section className="mk-sec" style={{ paddingTop: 0 }}>
-                <div className="mk-wrap">
-                    <SectionHead title="عروض مكفولة النهاردة" sub="أسعار ثابتة — مفيش مفاجآت في الآخر"
-                        action={<Btn href="/tours" variant="secondary">كل الرحلات ←</Btn>} />
-                    <div className="mk-grid mk-grid-4">
+            <section className="pb-14 md:pb-[72px]">
+                <Wrap>
+                    <SectionHead title="عروض مكفولة النهاردة" sub="أسعار ثابتة — مفيش مفاجآت في الآخر" action={<MoreBtn href="/tours">كل الرحلات</MoreBtn>} />
+                    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
                         {featured.map((t) => <ServiceCard key={t.id} item={t} type="tour" />)}
                     </div>
-                </div>
+                </Wrap>
             </section>
 
             {/* فنادق مختارة */}
             {hotels.length > 0 && (
-                <section className="mk-sec" style={{ paddingTop: 0 }}>
-                    <div className="mk-wrap">
-                        <SectionHead title="فنادق ومنتجعات مختارة" sub="إقامة مكفولة بأحسن الأسعار وتأكيد لحظي"
-                            action={<Btn href="/hotels" variant="secondary">كل الفنادق ←</Btn>} />
-                        <div className="mk-grid mk-grid-4">
+                <section className="pb-14 md:pb-[72px]">
+                    <Wrap>
+                        <SectionHead title="فنادق ومنتجعات مختارة" sub="إقامة مكفولة بأحسن الأسعار وتأكيد لحظي" action={<MoreBtn href="/hotels">كل الفنادق</MoreBtn>} />
+                        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
                             {hotels.map((h) => <ServiceCard key={h.id} item={h} type="hotel" unit="الليلة" />)}
                         </div>
-                    </div>
+                    </Wrap>
                 </section>
             )}
 
             {/* الخدمات */}
-            <section className="mk-sec" style={{ background: 'var(--mk-beige)' }}>
-                <div className="mk-wrap">
+            <section className="bg-beige py-14 md:py-[72px]">
+                <Wrap>
                     <SectionHead center title="كل خدماتك في مكان واحد" sub="من أول التذكرة لحد آخر أكلة — احنا معاك" />
-                    <div className="mk-grid mk-grid-4">
-                        {SERVICES.map(([ico, t, d, href], i) => (
-                            <Link key={i} className="mk-service" href={href}>
-                                <div className="mk-service-ico">{ico}</div><h3>{t}</h3><p>{d}</p>
+                    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                        {SERVICES.map(([Icon, t, d, href], i) => (
+                            <Link key={i} href={href} className="group rounded-card border border-black/[.06] bg-white p-6 text-center transition-all hover:-translate-y-1 hover:border-coral/40 hover:shadow-mk">
+                                <span className="mx-auto mb-3.5 flex h-14 w-14 items-center justify-center rounded-[18px] bg-beige text-navy transition-colors group-hover:bg-gradient-to-br group-hover:from-coral group-hover:to-coral-deep group-hover:text-white">
+                                    <Icon className="h-6 w-6" />
+                                </span>
+                                <h3 className="font-head text-[17px] font-semibold text-navy">{t}</h3>
+                                <p className="mt-1 text-sm text-muted">{d}</p>
                             </Link>
                         ))}
                     </div>
-                </div>
+                </Wrap>
             </section>
 
             {/* مطاعم */}
             {restaurants.length > 0 && (
-                <section className="mk-sec">
-                    <div className="mk-wrap">
-                        <SectionHead title="مطاعم وكافيهات يوصّى بيها" sub="احجز ترابيزتك في أحسن الأماكن جنبك"
-                            action={<Btn href="/restaurants" variant="secondary">كل المطاعم ←</Btn>} />
-                        <div className="mk-grid mk-grid-3">
+                <section className="py-14 md:py-[72px]">
+                    <Wrap>
+                        <SectionHead title="مطاعم وكافيهات يوصّى بيها" sub="احجز ترابيزتك في أحسن الأماكن جنبك" action={<MoreBtn href="/restaurants">كل المطاعم</MoreBtn>} />
+                        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                             {restaurants.map((r) => <RestaurantCard key={r.id} r={r} />)}
                         </div>
-                    </div>
+                    </Wrap>
                 </section>
             )}
 
             {/* سيارات */}
             {cars.length > 0 && (
-                <section className="mk-sec" style={{ paddingTop: 0 }}>
-                    <div className="mk-wrap">
-                        <SectionHead title="عربيات جاهزة لرحلتك" sub="تنقّل مريح — بسائق أو بدون، تسليم في مكانك"
-                            action={<Btn href="/cars" variant="secondary">كل السيارات ←</Btn>} />
-                        <div className="mk-grid mk-grid-4">
+                <section className="pb-14 md:pb-[72px]">
+                    <Wrap>
+                        <SectionHead title="عربيات جاهزة لرحلتك" sub="تنقّل مريح — بسائق أو بدون، تسليم في مكانك" action={<MoreBtn href="/cars">كل السيارات</MoreBtn>} />
+                        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
                             {cars.map((c) => <ServiceCard key={c.id} item={c} type="car" unit="اليوم" />)}
                         </div>
-                    </div>
+                    </Wrap>
                 </section>
             )}
 
             {/* إزاي بتحجز */}
-            <section className="mk-sec" style={{ background: 'var(--mk-beige)' }}>
-                <div className="mk-wrap">
+            <section className="bg-beige py-14 md:py-[72px]">
+                <Wrap>
                     <SectionHead center title="إزاي بتحجز؟" sub="3 خطوات وانت خلّصت" />
-                    <div className="mk-grid mk-grid-3">
-                        {STEPS.map(([ico, t, d], i) => (
-                            <div key={i} className="mk-howto">
-                                <div className="mk-howto-num">{i + 1}</div>
-                                <div className="mk-howto-ico">{ico}</div>
-                                <h3>{t}</h3>
-                                <p>{d}</p>
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                        {STEPS.map(([Icon, t, d], i) => (
+                            <div key={i} className="relative rounded-card border border-black/[.06] bg-white p-8 pt-9 text-center shadow-mk transition-all hover:-translate-y-1">
+                                <div className="absolute -top-4 left-1/2 flex h-[34px] w-[34px] -translate-x-1/2 items-center justify-center rounded-full bg-gradient-to-br from-coral to-coral-deep font-head font-extrabold text-white shadow-[0_10px_26px_rgba(234,75,59,.28)]">{i + 1}</div>
+                                <Icon className="mx-auto mb-2.5 mt-1.5 h-9 w-9 text-coral" />
+                                <h3 className="font-head text-[19px] font-semibold text-navy">{t}</h3>
+                                <p className="mt-2 text-[14.5px] leading-relaxed text-muted">{d}</p>
                             </div>
                         ))}
                     </div>
-                </div>
+                </Wrap>
             </section>
 
             {/* أرقام المنصة */}
-            <section className="mk-numbers">
-                <div className="mk-wrap">
-                    <div className="mk-numbers-grid">
+            <section className="bg-gradient-to-br from-navy to-navy-light py-12">
+                <Wrap>
+                    <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
                         {NUMBERS.map(([v, l], i) => (
-                            <div key={i} className="mk-number">
-                                <div className="v">{v}</div>
-                                <div className="l">{l}</div>
+                            <div key={i} className="text-center text-white">
+                                <div className="font-head text-[32px] font-bold leading-none md:text-[40px]">{v}</div>
+                                <div className="mt-2 text-[15px] text-white/70">{l}</div>
                             </div>
                         ))}
                     </div>
-                </div>
+                </Wrap>
             </section>
 
             {/* آراء العملاء */}
             {testimonials.length > 0 && (
-                <section className="mk-sec">
-                    <div className="mk-wrap">
+                <section className="py-14 md:py-[72px]">
+                    <Wrap>
                         <SectionHead center title="عملاؤنا بيقولوا إيه" sub="تقييمات حقيقية من ناس جرّبت محفول مكفول" />
-                        <div className="mk-grid mk-grid-3">
+                        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                             {testimonials.map((t, i) => (
-                                <div key={i} className="mk-testi">
-                                    <div className="mk-testi-stars">{'★'.repeat(t.rating)}<span>{'★'.repeat(5 - t.rating)}</span></div>
-                                    {t.title && <h4>{t.title}</h4>}
-                                    <p>{t.content}</p>
-                                    <div className="mk-testi-foot">
-                                        <div className="mk-avatar">{t.name.slice(0, 1)}</div>
+                                <div key={i} className="flex flex-col rounded-card border border-black/[.06] bg-white p-6 shadow-mk">
+                                    <div className="mb-2.5 text-[16px] tracking-[2px] text-[#F5A623]">{'★'.repeat(t.rating)}<span className="text-sandline">{'★'.repeat(5 - t.rating)}</span></div>
+                                    {t.title && <h4 className="mb-2 font-head text-[17px] font-semibold text-navy">{t.title}</h4>}
+                                    <p className="mb-4 flex-1 text-[15px] leading-relaxed text-[#555]">{t.content}</p>
+                                    <div className="flex items-center gap-3 border-t border-black/[.06] pt-3.5">
+                                        <div className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-gradient-to-br from-coral to-coral-deep font-head font-bold text-white">{t.name.slice(0, 1)}</div>
                                         <div>
-                                            <strong>{t.name}</strong>
-                                            {t.service && <span>{t.service}</span>}
+                                            <strong className="block text-[14.5px] text-navy">{t.name}</strong>
+                                            {t.service && <span className="text-[12.5px] text-muted">{t.service}</span>}
                                         </div>
                                     </div>
                                 </div>
                             ))}
                         </div>
-                    </div>
+                    </Wrap>
                 </section>
             )}
 
             {/* صاحب السعادة */}
-            <section className="mk-sec">
-                <div className="mk-wrap">
-                    <div className="mk-panel-dark">
-                        <div className="mk-between" style={{ alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: 32 }}>
-                            <div style={{ maxWidth: 520 }}>
-                                <Badge type="vip">👑 تجربة مميزة</Badge>
-                                <h2 style={{ marginTop: 14 }}>اصنع لحظة سعادة…<br />أو سيبها علينا نرتّبها لك</h2>
-                                <p className="mk-mt-0">مش لاقي هدية؟ اختار الباكدج، واحنا نظبّط كل حاجة — من الورد لحد الكاميرا.</p>
+            <section className="py-14 md:py-[72px]">
+                <Wrap>
+                    <div className="relative overflow-hidden rounded-section bg-gradient-to-br from-[#2A2450] to-royal p-8 text-white md:p-[52px]">
+                        <div className="pointer-events-none absolute -top-28 -end-20 h-[340px] w-[340px] rounded-full bg-vip opacity-30 blur-[110px]" />
+                        <div className="relative z-[1]">
+                            <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+                                <div className="max-w-[520px]">
+                                    <Badge variant="vip"><Crown className="h-3.5 w-3.5" /> تجربة مميزة</Badge>
+                                    <h2 className="mt-3.5 font-head text-[28px] font-bold text-white md:text-[32px]">اصنع لحظة سعادة…<br />أو سيبها علينا نرتّبها لك</h2>
+                                    <p className="mt-2 text-white/75">مش لاقي هدية؟ اختار الباكدج، واحنا نظبّط كل حاجة — من الورد لحد الكاميرا.</p>
+                                </div>
+                                <Button asChild variant="ghost" size="lg"><Link href="/sahb-elsaada">اطلب مفاجأة مكفولة</Link></Button>
                             </div>
-                            <Btn href="/sahb-elsaada" variant="ghost" lg>اطلب مفاجأة مكفولة</Btn>
-                        </div>
-                        <div className="mk-grid mk-grid-3">
-                            {packages.map((p, i) => (
-                                <Link key={i} className="mk-pkg" href="/sahb-elsaada">
-                                    <h3>{p.title}</h3>
-                                    <p style={{ fontSize: 14 }}>{p.short_desc}</p>
-                                    <div className="mk-price">{p.price > 0 ? money(p.price) : 'حسب الطلب'} {p.price > 0 && <small style={{ color: 'rgba(255,255,255,.6)' }}>ج.م</small>}</div>
-                                </Link>
-                            ))}
+                            <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+                                {packages.map((p, i) => (
+                                    <Link key={i} href="/sahb-elsaada" className="rounded-card border border-white/15 bg-white/[.08] p-5 transition hover:-translate-y-1 hover:bg-white/[.15]">
+                                        <h3 className="font-head text-lg font-semibold text-white">{p.title}</h3>
+                                        <p className="mt-1 text-sm text-white/75">{p.short_desc}</p>
+                                        <div className="mt-3 font-head text-[22px] font-bold text-vip">{p.price > 0 ? money(p.price) : 'حسب الطلب'} {p.price > 0 && <small className="text-sm text-white/60">ج.م</small>}</div>
+                                    </Link>
+                                ))}
+                            </div>
                         </div>
                     </div>
-                </div>
+                </Wrap>
             </section>
 
             {/* دعوة أخيرة */}
-            <section className="mk-cta">
-                <div className="mk-wrap">
-                    <h2>جاهز تبدأ رحلتك؟</h2>
-                    <p>آلاف الخدمات المكفولة في انتظارك — احجز دلوقتي وادفع وانت مطمّن.</p>
-                    <div className="mk-cta-btns">
-                        <Btn href="/tours" variant="primary" lg>ابدأ الحجز</Btn>
-                        <Btn href="/p/partner" variant="ghost" lg>كن شريكاً معنا</Btn>
+            <section className="bg-gradient-to-br from-coral to-coral-deep py-[60px] text-center text-white">
+                <Wrap>
+                    <h2 className="font-head text-[32px] font-bold text-white">جاهز تبدأ رحلتك؟</h2>
+                    <p className="mx-auto mt-2.5 max-w-[520px] text-[17px] text-white/90">آلاف الخدمات المكفولة في انتظارك — احجز دلوقتي وادفع وانت مطمّن.</p>
+                    <div className="mt-6 flex flex-wrap justify-center gap-3">
+                        <Button asChild variant="light" size="lg"><Link href="/tours">ابدأ الحجز</Link></Button>
+                        <Button asChild variant="ghost" size="lg"><Link href="/p/partner">كن شريكاً معنا</Link></Button>
                     </div>
-                </div>
+                </Wrap>
             </section>
         </SiteLayout>
     );
