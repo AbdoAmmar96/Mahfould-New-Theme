@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { MapPin, Star, Check } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 import { Input, Select, Field } from '@/Components/ui/input';
+import { PartySizeField } from '@/Components/ui/party-size';
 
 export default function Show({ restaurant, reviews, review_type, review_id }) {
     const [guests, setGuests] = useState(2);
@@ -75,9 +76,13 @@ export default function Show({ restaurant, reviews, review_type, review_id }) {
                                         </Select>
                                     </Field>
                                     <Field label="عدد الأشخاص">
-                                        <Select value={guests} onChange={(e) => setGuests(+e.target.value)}>
-                                            {[2, 3, 4, 5, 6, 8].map((n) => <option key={n} value={n}>{n} أشخاص</option>)}
-                                        </Select>
+                                        <PartySizeField
+                                            value={guests}
+                                            onChange={(n) => setGuests(n || 1)}
+                                            singular="شخص"
+                                            plural="أشخاص"
+                                            options={[2, 3, 4, 5, 6, 8].map((n) => ({ value: n, label: `${n} أشخاص` }))}
+                                        />
                                     </Field>
                                 </div>
                                 <div className="mt-3.5">

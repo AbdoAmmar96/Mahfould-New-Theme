@@ -10,7 +10,8 @@ import {
 import { Button } from '@/Components/ui/button';
 import { Badge } from '@/Components/ui/badge';
 import { Card, CardMedia, CardBody, CardTitle, CardMeta, CardFooter } from '@/Components/ui/card';
-import { Input, Select, Field } from '@/Components/ui/input';
+import { Input, Field } from '@/Components/ui/input';
+import { PartySizeField } from '@/Components/ui/party-size';
 import { Tabs, TabsList, TabsTrigger } from '@/Components/ui/tabs';
 import { ServiceCard, money } from '@/Components/ui/service-card';
 import { cn } from '@/lib/utils';
@@ -137,13 +138,18 @@ export default function Home({ locations, featured, hotels, restaurants, cars, p
                             <Field label="فين حابب تروح؟"><Input className="h-[52px]" value={loc} onChange={(e) => setLoc(e.target.value)} placeholder={TABS[tab].ph} /></Field>
                             <Field label="التاريخ"><Input className="h-[52px]" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
                             <Field label="عدد الأفراد">
-                                <Select className="h-[52px]" value={guests} onChange={(e) => setGuests(e.target.value)}>
-                                    <option value="" disabled hidden>حدّد العدد</option>
-                                    <option value="1">فرد واحد</option>
-                                    <option value="2">فردين</option>
-                                    <option value="3">3 أفراد</option>
-                                    <option value="4">عائلة (4+)</option>
-                                </Select>
+                                <PartySizeField
+                                    value={guests}
+                                    onChange={setGuests}
+                                    selectClassName="h-[52px]"
+                                    placeholder="حدّد العدد"
+                                    options={[
+                                        { value: 1, label: 'فرد واحد' },
+                                        { value: 2, label: 'فردين' },
+                                        { value: 3, label: '3 أفراد' },
+                                        { value: 4, label: 'عائلة (4+)' },
+                                    ]}
+                                />
                             </Field>
                             <Button type="submit" className="h-[52px] px-9 text-base"><Search className="h-[18px] w-[18px]" /> بحث</Button>
                         </form>

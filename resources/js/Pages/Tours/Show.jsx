@@ -5,7 +5,8 @@ import { useMemo, useState } from 'react';
 import { MapPin, Star, Heart, Check, ShieldCheck } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 import { Badge } from '@/Components/ui/badge';
-import { Input, Select, Field } from '@/Components/ui/input';
+import { Input, Field } from '@/Components/ui/input';
+import { PartySizeField } from '@/Components/ui/party-size';
 import { money } from '@/Components/ui/service-card';
 
 export default function Show({ tour, reviews, review_type, review_id }) {
@@ -127,9 +128,11 @@ export default function Show({ tour, reviews, review_type, review_id }) {
                                         <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
                                     </Field>
                                     <Field label="عدد المسافرين">
-                                        <Select value={guests} onChange={(e) => setGuests(+e.target.value)}>
-                                            {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n} فرد</option>)}
-                                        </Select>
+                                        <PartySizeField
+                                            value={guests}
+                                            onChange={(n) => setGuests(n || 1)}
+                                            options={[1, 2, 3, 4, 5, 6].map((n) => ({ value: n, label: `${n} فرد` }))}
+                                        />
                                     </Field>
                                 </div>
 

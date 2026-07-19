@@ -1,7 +1,8 @@
 import SiteLayout from '@/Layouts/SiteLayout';
 import { money } from '@/Components/UI';
 import { Button } from '@/Components/ui/button';
-import { Input, Select, Field } from '@/Components/ui/input';
+import { Input, Field } from '@/Components/ui/input';
+import { PartySizeField } from '@/Components/ui/party-size';
 import { cn } from '@/lib/utils';
 import { Head, useForm } from '@inertiajs/react';
 import { useMemo } from 'react';
@@ -16,7 +17,7 @@ const PAY = [
 export default function Checkout({ item, prefill = {}, pricing = {} }) {
     const { data, setData, post, processing, errors } = useForm({
         type: item.type, id: item.id,
-        start_date: prefill.start_date || '', guests: prefill.guests || 2, slot: prefill.slot || '',
+        start_date: prefill.start_date || '', guests: Number(prefill.guests) || 2, slot: prefill.slot || '',
         customer_name: '', customer_phone: '', customer_email: '', customer_national_id: '',
         payment_method: 'card',
     });
@@ -77,9 +78,13 @@ export default function Checkout({ item, prefill = {}, pricing = {} }) {
                                             <Input type="date" value={data.start_date} onChange={(e) => setData('start_date', e.target.value)} />
                                         </Field>
                                         <Field label={item.type === 'hotel' ? 'عدد الليالي' : item.type === 'car' ? 'عدد الأيام' : 'عدد الأفراد'}>
-                                            <Select value={data.guests} onChange={(e) => setData('guests', +e.target.value)}>
-                                                {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => <option key={n} value={n}>{n}</option>)}
-                                            </Select>
+                                            <PartySizeField
+                                                value={data.guests}
+                                                onChange={(n) => setData('guests', n || 1)}
+                                                singular={item.type === 'hotel' ? 'ليلة' : item.type === 'car' ? 'يوم' : 'فرد'}
+                                                plural={item.type === 'hotel' ? 'ليالي' : item.type === 'car' ? 'أيام' : 'أفراد'}
+                                                options={[1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({ value: n, label: String(n) }))}
+                                            />
                                         </Field>
                                     </div>
                                 </div>
