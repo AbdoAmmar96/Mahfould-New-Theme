@@ -59,6 +59,10 @@ class Tour extends Model
 
     public function getImageUrlAttribute(): string
     {
+        if ($this->image && str_starts_with($this->image, 'http')) {
+            return $this->image;
+        }
+
         return $this->image
             ? asset('storage/' . $this->image)
             : "https://picsum.photos/seed/tour{$this->id}/600/450";

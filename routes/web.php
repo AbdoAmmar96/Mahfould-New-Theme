@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Controllers\Admin;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\CarController;
 use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\Vendor;
 use App\Http\Controllers\WishlistController;
 use App\Http\Controllers\HotelController;
 use App\Http\Controllers\PaymentController;
@@ -13,6 +15,16 @@ use App\Http\Controllers\RestaurantController;
 use App\Http\Controllers\SahbController;
 use App\Http\Controllers\TourController;
 use Illuminate\Support\Facades\Route;
+
+/** يسجّل مسارات CRUD لمورد (كلها أو جزء منها عبر $only) */
+$crud = function (string $name, string $controller, array $only = ['index', 'create', 'store', 'edit', 'update', 'destroy']) {
+    if (in_array('index', $only))   Route::get($name, [$controller, 'index'])->name("{$name}.index");
+    if (in_array('create', $only))  Route::get("{$name}/create", [$controller, 'create'])->name("{$name}.create");
+    if (in_array('store', $only))   Route::post($name, [$controller, 'store'])->name("{$name}.store");
+    if (in_array('edit', $only))    Route::get("{$name}/{id}/edit", [$controller, 'edit'])->name("{$name}.edit");
+    if (in_array('update', $only))  Route::put("{$name}/{id}", [$controller, 'update'])->name("{$name}.update");
+    if (in_array('destroy', $only)) Route::delete("{$name}/{id}", [$controller, 'destroy'])->name("{$name}.destroy");
+};
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
@@ -64,4 +76,43 @@ Route::middleware('auth')->group(function () {
     Route::post('/reviews', [ReviewController::class, 'store'])->name('reviews.store');
     Route::post('/wishlist/toggle', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
     Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
+});
+
+// ── لوحة الأدمن ──────────────────────────────────────────────
+Route::prefix('admin')->name('admin.')->group(function () use ($crud) {
+    Route::get('login', [Admin\AuthController::class, 'create'])->name('login');
+    Route::post('login', [Admin\AuthController::class, 'store']);
+
+    Route::middleware('role:admin')->group(function () use ($crud) {
+        Route::post('logout', [Admin\AuthController::class, 'destroy'])->name('logout');
+        Route::get('/', [Admin\DashboardController::class, 'index'])->name('dashboard');
+
+        $crud('tours', Admin\TourController::class);
+        $crud('hotels', Admin\HotelController::class);
+        $crud('restaurants', Admin\RestaurantController::class);
+        $crud('cars', Admin\CarController::class);
+        $crud('locations', Admin\LocationController::class);
+        $crud('sahb', Admin\SahbPackageController::class);
+
+        $crud('bookings', Admin\BookingController::class, ['index', 'edit', 'update', 'destroy']);
+        Route::post('bookings/{id}/refund', [Admin\BookingController::class, 'refund'])->name('bookings.refund');
+    });
+});
+
+// ── بوابة الشركاء (البائع) ───────────────────────────────────
+Route::prefix('vendor')->name('vendor.')->group(function () use ($crud) {
+    Route::get('login', [Admin\AuthController::class, 'create'])->name('login');
+    Route::post('login', [Admin\AuthController::class, 'store']);
+
+    Route::middleware('role:vendor,admin')->group(function () use ($crud) {
+        Route::post('logout', [Admin\AuthController::class, 'destroy'])->name('logout');
+        Route::get('/', [Vendor\DashboardController::class, 'index'])->name('dashboard');
+
+        $crud('tours', Vendor\TourController::class);
+        $crud('hotels', Vendor\HotelController::class);
+        $crud('restaurants', Vendor\RestaurantController::class);
+        $crud('cars', Vendor\CarController::class);
+
+        $crud('bookings', Vendor\BookingController::class, ['index']);
+    });
 });

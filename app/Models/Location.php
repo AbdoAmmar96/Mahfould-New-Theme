@@ -52,6 +52,10 @@ class Location extends Model
 
     public function getImageUrlAttribute(): string
     {
+        if ($this->image && str_starts_with($this->image, 'http')) {
+            return $this->image;
+        }
+
         return $this->image
             ? asset('storage/' . $this->image)
             : "https://picsum.photos/seed/loc{$this->id}/500/660";

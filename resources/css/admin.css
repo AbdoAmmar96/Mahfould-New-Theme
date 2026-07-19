@@ -1,0 +1,257 @@
+/* ============================================================
+   محفول مكفول — لوحة التحكم (Admin + Vendor)
+   RTL · بنفس Design Tokens بتاعة المنصة
+   ============================================================ */
+
+.mkad {
+  --sb: 264px;
+  display: flex;
+  flex-direction: row-reverse;
+  min-height: 100vh;
+  background: var(--mk-cream);
+  color: var(--mk-navy);
+  font-family: var(--mk-font-body);
+}
+
+/* ---------- الشريط الجانبي ---------- */
+.mkad-sidebar {
+  width: var(--sb);
+  flex-shrink: 0;
+  background: var(--mk-grad-navy);
+  color: #fff;
+  padding: 22px 16px;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+.mkad-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px 20px;
+  font-family: var(--mk-font-head);
+  font-size: 20px;
+  font-weight: 700;
+}
+.mkad-brand img { height: 38px; }
+.mkad-brand small {
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(255,255,255,.6);
+}
+.mkad-nav { display: flex; flex-direction: column; gap: 3px; margin-top: 8px; }
+.mkad-nav a {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 13px;
+  border-radius: var(--mk-r-input);
+  color: rgba(255,255,255,.82);
+  font-size: 15px;
+  font-weight: 600;
+  transition: background .15s, color .15s;
+}
+.mkad-nav a .ic { font-size: 18px; width: 22px; text-align: center; }
+.mkad-nav a:hover { background: rgba(255,255,255,.08); color: #fff; }
+.mkad-nav a.is-active { background: var(--mk-grad-coral); color: #fff; box-shadow: var(--mk-shadow-coral); }
+.mkad-nav .sep { height: 1px; background: rgba(255,255,255,.12); margin: 12px 6px; }
+.mkad-side-foot { margin-top: auto; padding-top: 16px; }
+.mkad-side-foot .who { font-size: 13px; color: rgba(255,255,255,.6); padding: 0 8px 8px; }
+
+/* ---------- المحتوى ---------- */
+.mkad-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mkad-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 28px;
+  background: #fff;
+  border-bottom: 1px solid var(--mk-border);
+  position: sticky; top: 0; z-index: 10;
+}
+.mkad-topbar h1 { font-family: var(--mk-font-head); font-size: 22px; font-weight: 700; margin: 0; }
+.mkad-topbar .crumb { font-size: 13px; color: var(--mk-muted); }
+.mkad-body { padding: 26px 28px; flex: 1; }
+
+/* ---------- بطاقات الإحصائيات ---------- */
+.mkad-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; }
+.mkad-stat {
+  background: #fff;
+  border: 1px solid var(--mk-border);
+  border-radius: var(--mk-r-card);
+  padding: 20px;
+  box-shadow: var(--mk-shadow-sm);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.mkad-stat .ic { font-size: 26px; }
+.mkad-stat .val { font-family: var(--mk-font-head); font-size: 30px; font-weight: 700; line-height: 1; }
+.mkad-stat .lbl { color: var(--mk-muted); font-size: 14px; font-weight: 600; }
+.mkad-stat .note { color: var(--mk-muted); font-size: 12.5px; }
+.mkad-stat.tone-good .val { color: var(--mk-makfol); }
+.mkad-stat.tone-primary .val { color: var(--mk-coral-deep); }
+.mkad-stat.tone-info .val { color: var(--mk-navy); }
+
+/* ---------- البانل / الجدول ---------- */
+.mkad-panel {
+  background: #fff;
+  border: 1px solid var(--mk-border);
+  border-radius: var(--mk-r-card);
+  box-shadow: var(--mk-shadow-sm);
+  overflow: hidden;
+}
+.mkad-toolbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--mk-border);
+}
+.mkad-toolbar .grow { flex: 1; }
+.mkad-search {
+  min-width: 220px;
+  padding: 9px 13px;
+  border: 1px solid var(--mk-border);
+  border-radius: var(--mk-r-input);
+  font-family: inherit; font-size: 14px;
+  background: var(--mk-cream);
+}
+.mkad-select {
+  padding: 9px 12px;
+  border: 1px solid var(--mk-border);
+  border-radius: var(--mk-r-input);
+  background: #fff; font-family: inherit; font-size: 14px; color: var(--mk-navy);
+}
+
+.mkad-table { width: 100%; border-collapse: collapse; }
+.mkad-table th {
+  text-align: right;
+  font-size: 12.5px; font-weight: 700; color: var(--mk-muted);
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--mk-border);
+  background: var(--mk-cream);
+  white-space: nowrap;
+}
+.mkad-table td { padding: 11px 14px; border-bottom: 1px solid var(--mk-border); font-size: 14px; vertical-align: middle; }
+.mkad-table tr:last-child td { border-bottom: 0; }
+.mkad-table tr:hover td { background: #FCFAF6; }
+.mkad-table .thumb { width: 48px; height: 48px; border-radius: 10px; object-fit: cover; display: block; }
+.mkad-td-strong { font-weight: 800; }
+.mkad-money-muted { color: var(--mk-muted); }
+.mkad-money-good { color: var(--mk-makfol); font-weight: 800; }
+.mkad-row-actions { display: flex; gap: 6px; justify-content: flex-start; }
+
+.mkad-iconbtn {
+  border: 1px solid var(--mk-border);
+  background: #fff;
+  border-radius: 9px;
+  padding: 6px 10px;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+  color: var(--mk-navy); transition: .15s;
+}
+.mkad-iconbtn:hover { background: var(--mk-beige); }
+.mkad-iconbtn.danger { color: var(--mk-danger); border-color: #F0D2CC; }
+.mkad-iconbtn.danger:hover { background: #FBEBE8; }
+
+.mkad-empty { padding: 60px 20px; text-align: center; color: var(--mk-muted); }
+.mkad-empty .big { font-size: 40px; margin-bottom: 8px; }
+
+/* ---------- الترقيم ---------- */
+.mkad-pager { display: flex; gap: 6px; justify-content: center; padding: 16px; flex-wrap: wrap; }
+.mkad-pager a, .mkad-pager span {
+  min-width: 36px; text-align: center;
+  padding: 7px 11px; border-radius: 9px;
+  border: 1px solid var(--mk-border); background: #fff;
+  font-size: 14px; font-weight: 600; color: var(--mk-navy);
+}
+.mkad-pager a:hover { background: var(--mk-beige); }
+.mkad-pager .is-active { background: var(--mk-navy); color: #fff; border-color: var(--mk-navy); }
+.mkad-pager .disabled { opacity: .4; }
+
+/* ---------- الفورم ---------- */
+.mkad-form { max-width: 920px; }
+.mkad-section {
+  background: #fff; border: 1px solid var(--mk-border);
+  border-radius: var(--mk-r-card); box-shadow: var(--mk-shadow-sm);
+  padding: 20px 22px; margin-bottom: 18px;
+}
+.mkad-section h3 { font-family: var(--mk-font-head); font-size: 17px; font-weight: 700; margin: 0 0 16px; }
+.mkad-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.mkad-field { display: flex; flex-direction: column; gap: 6px; }
+.mkad-field.full { grid-column: 1 / -1; }
+.mkad-field label { font-size: 13.5px; font-weight: 700; color: var(--mk-navy); }
+.mkad-field label .req { color: var(--mk-danger); }
+.mkad-input, .mkad-textarea {
+  width: 100%;
+  padding: 10px 13px;
+  border: 1px solid var(--mk-border);
+  border-radius: var(--mk-r-input);
+  font-family: inherit; font-size: 14.5px; background: var(--mk-cream); color: var(--mk-navy);
+  transition: border-color .15s, box-shadow .15s;
+}
+.mkad-input:focus, .mkad-textarea:focus {
+  outline: none; border-color: var(--mk-coral);
+  box-shadow: 0 0 0 3px rgba(245,118,78,.14); background: #fff;
+}
+.mkad-input:disabled { background: var(--mk-beige); color: var(--mk-muted); cursor: not-allowed; }
+.mkad-input.is-error { border-color: var(--mk-danger); }
+.mkad-err { color: var(--mk-danger); font-size: 12.5px; }
+.mkad-prefixed { position: relative; }
+.mkad-prefixed .pfx { position: absolute; inset-inline-start: 12px; top: 50%; transform: translateY(-50%); font-size: 13px; color: var(--mk-muted); pointer-events: none; }
+.mkad-prefixed .mkad-input { padding-inline-start: 42px; }
+
+/* toggle */
+.mkad-toggle { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+.mkad-toggle input { display: none; }
+.mkad-toggle .track { width: 44px; height: 25px; border-radius: 999px; background: #D8CFC0; position: relative; transition: background .18s; flex-shrink: 0; }
+.mkad-toggle .track::after { content: ''; position: absolute; top: 3px; inset-inline-start: 3px; width: 19px; height: 19px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.2); transition: transform .18s; }
+.mkad-toggle input:checked + .track { background: var(--mk-makfol); }
+.mkad-toggle input:checked + .track::after { transform: translateX(-19px); }
+.mkad-toggle .tlabel { font-size: 14px; font-weight: 600; }
+
+/* tags */
+.mkad-tags { display: flex; flex-wrap: wrap; gap: 7px; padding: 8px; border: 1px solid var(--mk-border); border-radius: var(--mk-r-input); background: var(--mk-cream); }
+.mkad-tags .tag { display: inline-flex; align-items: center; gap: 6px; background: var(--mk-navy); color: #fff; padding: 4px 10px; border-radius: 999px; font-size: 13px; }
+.mkad-tags .tag button { background: none; border: 0; color: rgba(255,255,255,.75); cursor: pointer; font-size: 14px; line-height: 1; }
+.mkad-tags input { border: 0; background: transparent; outline: none; flex: 1; min-width: 120px; font-family: inherit; font-size: 14px; padding: 4px; }
+
+.mkad-form-actions { display: flex; gap: 10px; margin-top: 4px; }
+
+/* ---------- شارات ---------- */
+.mkad-badge { display: inline-block; padding: 3px 11px; border-radius: 999px; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+.mkad-badge.t-green { background: #E3F2EA; color: var(--mk-makfol); }
+.mkad-badge.t-amber { background: #FBF0DA; color: var(--mk-vip); }
+.mkad-badge.t-red { background: #FBE6E3; color: var(--mk-danger); }
+.mkad-badge.t-gray { background: var(--mk-beige); color: var(--mk-muted); }
+.mkad-badge.t-navy { background: #E5E5F2; color: var(--mk-navy); }
+.mkad-bool-y { color: var(--mk-makfol); font-weight: 800; }
+.mkad-bool-n { color: #C9BEA9; }
+
+/* ---------- توست ---------- */
+.mkad-toast {
+  position: fixed; top: 18px; inset-inline-start: 50%; transform: translateX(-50%);
+  z-index: 100; padding: 12px 22px; border-radius: 12px;
+  font-weight: 700; font-size: 14.5px; box-shadow: var(--mk-shadow-lg);
+}
+.mkad-toast.success { background: var(--mk-makfol); color: #fff; }
+.mkad-toast.error { background: var(--mk-danger); color: #fff; }
+
+/* ---------- شاشة دخول اللوحة ---------- */
+.mkad-login { min-height: 100vh; display: grid; place-items: center; background: var(--mk-grad-navy); padding: 24px; }
+.mkad-login-card { background: #fff; border-radius: var(--mk-r-section); box-shadow: var(--mk-shadow-lg); padding: 38px 34px; width: 100%; max-width: 400px; }
+.mkad-login-card img { height: 46px; display: block; margin: 0 auto 18px; }
+.mkad-login-card h2 { font-family: var(--mk-font-head); text-align: center; font-size: 23px; margin: 0 0 4px; }
+.mkad-login-card .sub { text-align: center; color: var(--mk-muted); font-size: 14px; margin-bottom: 24px; }
+
+/* ---------- موبايل ---------- */
+@media (max-width: 860px) {
+  .mkad { flex-direction: column; }
+  .mkad-sidebar { width: 100%; height: auto; position: static; flex-direction: column; }
+  .mkad-nav { flex-direction: row; flex-wrap: wrap; }
+  .mkad-nav a { flex: 0 0 auto; }
+  .mkad-grid { grid-template-columns: 1fr; }
+  .mkad-body { padding: 18px 14px; }
+  .mkad-table-wrap { overflow-x: auto; }
+}

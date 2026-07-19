@@ -2,14 +2,12 @@
 
 namespace App\Models;
 
-use Filament\Models\Contracts\FilamentUser;
-use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable implements FilamentUser
+class User extends Authenticatable
 {
     use HasFactory, Notifiable;
 
@@ -41,20 +39,6 @@ class User extends Authenticatable implements FilamentUser
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class);
-    }
-
-    // دخول لوحات Filament: الأدمن للوحة الأدمن، البائع للوحة البائعين
-    public function canAccessPanel(Panel $panel): bool
-    {
-        if (! $this->is_active) {
-            return false;
-        }
-
-        return match ($panel->getId()) {
-            'admin'  => $this->role === 'admin',
-            'vendor' => in_array($this->role, ['vendor', 'admin'], true),
-            default  => false,
-        };
     }
 
     public function getInitialsAttribute(): string
