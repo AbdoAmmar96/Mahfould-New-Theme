@@ -54,8 +54,9 @@ export function money(n) {
     return new Intl.NumberFormat('en-US').format(Math.round(n));
 }
 
-// بطاقة عرض (رحلة / فندق)
-export function ServiceCard({ item, type = 'tour', currency = 'ج.م' }) {
+// بطاقة عرض (رحلة / فندق / سيارة)
+export function ServiceCard({ item, type = 'tour', currency = 'ج.م', unit, cta }) {
+    const meta = item.meta ?? `${item.location ?? ''}${item.duration_days ? ` · ${item.duration_days} أيام` : ''}`;
     return (
         <article className="mk-card">
             <div className="mk-card-media">
@@ -69,15 +70,15 @@ export function ServiceCard({ item, type = 'tour', currency = 'ج.م' }) {
             </div>
             <div className="mk-card-body">
                 <h3 className="mk-card-title"><Link href={item.url}>{item.title}</Link></h3>
-                <div className="mk-card-meta">
-                    {item.location}{item.duration_days ? ` · ${item.duration_days} أيام` : ''}
-                </div>
+                <div className="mk-card-meta">{meta}</div>
                 <div className="mk-card-foot">
                     <div>
                         {item.sale_price && <span className="mk-price-was">{money(item.price)}</span>}
-                        <span className="mk-price">{money(item.sale_price || item.price)} <small>{currency}</small></span>
+                        <span className="mk-price">{money(item.sale_price || item.price)} <small>{currency}{unit ? ` / ${unit}` : ''}</small></span>
                     </div>
-                    {item.review_score > 0 && <span className="mk-rate">★ {item.review_score.toFixed(1)}</span>}
+                    {item.review_score > 0
+                        ? <span className="mk-rate">★ {item.review_score.toFixed(1)}</span>
+                        : (cta && <Link href={item.url} className="mk-btn mk-btn-secondary" style={{ padding: '7px 14px', fontSize: 13 }}>{cta}</Link>)}
                 </div>
             </div>
         </article>

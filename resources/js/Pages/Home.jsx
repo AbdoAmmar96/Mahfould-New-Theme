@@ -1,5 +1,5 @@
 import SiteLayout from '@/Layouts/SiteLayout';
-import { Badge, Btn, Rule, SectionHead, ServiceCard, money } from '@/Components/UI';
+import { Badge, Btn, SectionHead, ServiceCard, money } from '@/Components/UI';
 import Modal from '@/Components/Modal';
 import { TRUST } from '@/data/trust';
 import { Head, Link, router } from '@inertiajs/react';
@@ -18,8 +18,42 @@ const SERVICES = [
     ['🍽️', 'مطاعم وكافيهات', 'احجز ترابيزتك جنبك دلوقتي', '/restaurants'],
     ['🚗', 'سيارات وسواقين', 'تنقّل مريح طول الرحلة', '/cars'],
 ];
+const STEPS = [
+    ['🔎', 'اختار خدمتك', 'رحلة، فندق، مطعم، أو عربية — كله في مكان واحد بسعر واضح.'],
+    ['📝', 'احجز في دقايق', 'حدّد التاريخ والعدد، اكمل بياناتك، وخلاص.'],
+    ['🛡️', 'ادفع بأمان', 'كارت، محفظة، أو عند الوصول — وتأكيد لحظي بضمان استرداد.'],
+];
 
-export default function Home({ locations, featured, packages }) {
+// بطاقة مطعم (نفس ستايل صفحة المطاعم)
+function RestaurantCard({ r }) {
+    return (
+        <article className="mk-card">
+            <div className="mk-card-media">
+                <div className="mk-card-tags">
+                    {r.instant && <Badge type="best">حجز فوري</Badge>}
+                    {r.is_guaranteed && <Badge type="makfol">مكفول</Badge>}
+                </div>
+                <Link href={r.url}><img src={r.image_url} alt={r.title} loading="lazy" /></Link>
+            </div>
+            <div className="mk-card-body">
+                <h3 className="mk-card-title"><Link href={r.url}>{r.title}</Link></h3>
+                <div className="mk-card-meta">📍 {r.address || r.location}</div>
+                <div className="mk-rest-tags">
+                    {r.cuisines.map((c, i) => <span key={i} className="mk-chip">{c}</span>)}
+                    {r.price_range && <span className="mk-chip">{r.price_range}</span>}
+                </div>
+                <div className="mk-card-foot" style={{ marginTop: 14 }}>
+                    {r.review_score > 0
+                        ? <span className="mk-rate">★ {r.review_score.toFixed(1)} ({r.review_count})</span>
+                        : <span className="mk-card-meta">مطعم مميّز</span>}
+                    <Link href={r.url} className="mk-btn mk-btn-primary">احجز ترابيزة</Link>
+                </div>
+            </div>
+        </article>
+    );
+}
+
+export default function Home({ locations, featured, hotels, restaurants, cars, packages, testimonials, stats }) {
     const [tab, setTab] = useState(0);
     const [loc, setLoc] = useState('');
     const [date, setDate] = useState('');
@@ -34,6 +68,13 @@ export default function Home({ locations, featured, packages }) {
         if (guests) q.guests = guests;
         router.get(TABS[tab].route, q);
     };
+
+    const NUMBERS = [
+        [`+${stats.services}`, 'خدمة متاحة'],
+        [stats.destinations, 'وجهة سياحية'],
+        ['24/7', 'دعم مصري'],
+        ['100%', 'حجز مكفول'],
+    ];
 
     return (
         <SiteLayout active="home">
@@ -108,16 +149,29 @@ export default function Home({ locations, featured, packages }) {
                 </div>
             </section>
 
-            {/* العروض */}
+            {/* رحلات مختارة */}
             <section className="mk-sec" style={{ paddingTop: 0 }}>
                 <div className="mk-wrap">
                     <SectionHead title="عروض مكفولة النهاردة" sub="أسعار ثابتة — مفيش مفاجآت في الآخر"
-                        action={<Btn href="/tours" variant="secondary">شوف الكل ←</Btn>} />
+                        action={<Btn href="/tours" variant="secondary">كل الرحلات ←</Btn>} />
                     <div className="mk-grid mk-grid-4">
                         {featured.map((t) => <ServiceCard key={t.id} item={t} type="tour" />)}
                     </div>
                 </div>
             </section>
+
+            {/* فنادق مختارة */}
+            {hotels.length > 0 && (
+                <section className="mk-sec" style={{ paddingTop: 0 }}>
+                    <div className="mk-wrap">
+                        <SectionHead title="فنادق ومنتجعات مختارة" sub="إقامة مكفولة بأحسن الأسعار وتأكيد لحظي"
+                            action={<Btn href="/hotels" variant="secondary">كل الفنادق ←</Btn>} />
+                        <div className="mk-grid mk-grid-4">
+                            {hotels.map((h) => <ServiceCard key={h.id} item={h} type="hotel" unit="الليلة" />)}
+                        </div>
+                    </div>
+                </section>
+            )}
 
             {/* الخدمات */}
             <section className="mk-sec" style={{ background: 'var(--mk-beige)' }}>
@@ -132,6 +186,88 @@ export default function Home({ locations, featured, packages }) {
                     </div>
                 </div>
             </section>
+
+            {/* مطاعم */}
+            {restaurants.length > 0 && (
+                <section className="mk-sec">
+                    <div className="mk-wrap">
+                        <SectionHead title="مطاعم وكافيهات يوصّى بيها" sub="احجز ترابيزتك في أحسن الأماكن جنبك"
+                            action={<Btn href="/restaurants" variant="secondary">كل المطاعم ←</Btn>} />
+                        <div className="mk-grid mk-grid-3">
+                            {restaurants.map((r) => <RestaurantCard key={r.id} r={r} />)}
+                        </div>
+                    </div>
+                </section>
+            )}
+
+            {/* سيارات */}
+            {cars.length > 0 && (
+                <section className="mk-sec" style={{ paddingTop: 0 }}>
+                    <div className="mk-wrap">
+                        <SectionHead title="عربيات جاهزة لرحلتك" sub="تنقّل مريح — بسائق أو بدون، تسليم في مكانك"
+                            action={<Btn href="/cars" variant="secondary">كل السيارات ←</Btn>} />
+                        <div className="mk-grid mk-grid-4">
+                            {cars.map((c) => <ServiceCard key={c.id} item={c} type="car" unit="اليوم" />)}
+                        </div>
+                    </div>
+                </section>
+            )}
+
+            {/* إزاي بتحجز */}
+            <section className="mk-sec" style={{ background: 'var(--mk-beige)' }}>
+                <div className="mk-wrap">
+                    <SectionHead center title="إزاي بتحجز؟" sub="3 خطوات وانت خلّصت" />
+                    <div className="mk-grid mk-grid-3">
+                        {STEPS.map(([ico, t, d], i) => (
+                            <div key={i} className="mk-howto">
+                                <div className="mk-howto-num">{i + 1}</div>
+                                <div className="mk-howto-ico">{ico}</div>
+                                <h3>{t}</h3>
+                                <p>{d}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* أرقام المنصة */}
+            <section className="mk-numbers">
+                <div className="mk-wrap">
+                    <div className="mk-numbers-grid">
+                        {NUMBERS.map(([v, l], i) => (
+                            <div key={i} className="mk-number">
+                                <div className="v">{v}</div>
+                                <div className="l">{l}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* آراء العملاء */}
+            {testimonials.length > 0 && (
+                <section className="mk-sec">
+                    <div className="mk-wrap">
+                        <SectionHead center title="عملاؤنا بيقولوا إيه" sub="تقييمات حقيقية من ناس جرّبت محفول مكفول" />
+                        <div className="mk-grid mk-grid-3">
+                            {testimonials.map((t, i) => (
+                                <div key={i} className="mk-testi">
+                                    <div className="mk-testi-stars">{'★'.repeat(t.rating)}<span>{'★'.repeat(5 - t.rating)}</span></div>
+                                    {t.title && <h4>{t.title}</h4>}
+                                    <p>{t.content}</p>
+                                    <div className="mk-testi-foot">
+                                        <div className="mk-avatar">{t.name.slice(0, 1)}</div>
+                                        <div>
+                                            <strong>{t.name}</strong>
+                                            {t.service && <span>{t.service}</span>}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            )}
 
             {/* صاحب السعادة */}
             <section className="mk-sec">
@@ -154,6 +290,18 @@ export default function Home({ locations, featured, packages }) {
                                 </Link>
                             ))}
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* دعوة أخيرة */}
+            <section className="mk-cta">
+                <div className="mk-wrap">
+                    <h2>جاهز تبدأ رحلتك؟</h2>
+                    <p>آلاف الخدمات المكفولة في انتظارك — احجز دلوقتي وادفع وانت مطمّن.</p>
+                    <div className="mk-cta-btns">
+                        <Btn href="/tours" variant="primary" lg>ابدأ الحجز</Btn>
+                        <Btn href="/p/partner" variant="ghost" lg>كن شريكاً معنا</Btn>
                     </div>
                 </div>
             </section>

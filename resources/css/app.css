@@ -26,6 +26,7 @@
 
   --mk-white:       #FFFFFF;
   --mk-navy-deep:   #24245A;   /* مشتق: عمق الفوتر والبانلات الداكنة */
+  --mk-sandline:    #E4DAC8;   /* رملي فاتح — النجوم الفارغة والحدود الناعمة */
 
   /* ---------- التدرجات ---------- */
   --mk-grad-coral: linear-gradient(135deg, var(--mk-coral) 0%, var(--mk-coral-deep) 100%);
@@ -667,3 +668,54 @@
 .mk-content .mk-content-body li { margin-bottom: 8px; }
 .mk-content .mk-content-body p { margin: 0 0 14px; }
 .mk-content .mk-content-body a { color: var(--mk-coral-deep); font-weight: 700; }
+
+/* ---------- إزاي بتحجز (خطوات) ---------- */
+.mk-howto {
+  position: relative; background: #fff; border: 1px solid var(--mk-border);
+  border-radius: var(--mk-r-card); padding: 32px 24px 26px; text-align: center;
+  box-shadow: var(--mk-shadow-sm); transition: transform .2s ease, box-shadow .2s ease;
+}
+.mk-howto:hover { transform: translateY(-4px); box-shadow: var(--mk-shadow); }
+.mk-howto-num {
+  position: absolute; top: -16px; left: 50%; transform: translateX(-50%);
+  width: 34px; height: 34px; border-radius: 50%; background: var(--mk-grad-coral); color: #fff;
+  display: grid; place-items: center; font-weight: 800; font-family: var(--mk-font-head);
+  box-shadow: var(--mk-shadow-coral);
+}
+.mk-howto-ico { font-size: 38px; margin: 6px 0 10px; }
+.mk-howto h3 { font-family: var(--mk-font-head); font-size: 19px; color: var(--mk-navy); margin: 0 0 8px; }
+.mk-howto p { color: var(--mk-muted); font-size: 14.5px; margin: 0; line-height: 1.8; }
+
+/* ---------- أرقام المنصة ---------- */
+.mk-numbers { background: var(--mk-grad-navy); padding: 48px 0; margin: 8px 0; }
+.mk-numbers-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.mk-number { text-align: center; color: #fff; }
+.mk-number .v { font-family: var(--mk-font-head); font-size: 40px; font-weight: 700; line-height: 1; }
+.mk-number .l { color: rgba(255,255,255,.72); font-size: 15px; margin-top: 8px; }
+
+/* ---------- آراء العملاء ---------- */
+.mk-testi {
+  background: #fff; border: 1px solid var(--mk-border); border-radius: var(--mk-r-card);
+  padding: 24px 22px; box-shadow: var(--mk-shadow-sm); display: flex; flex-direction: column;
+}
+.mk-testi-stars { color: #F5A623; font-size: 16px; letter-spacing: 2px; margin-bottom: 10px; }
+.mk-testi-stars span { color: var(--mk-sandline); }
+.mk-testi h4 { font-family: var(--mk-font-head); font-size: 17px; color: var(--mk-navy); margin: 0 0 8px; }
+.mk-testi p { color: #555; font-size: 15px; line-height: 1.9; margin: 0 0 18px; flex: 1; }
+.mk-testi-foot { display: flex; align-items: center; gap: 12px; padding-top: 14px; border-top: 1px solid var(--mk-border); }
+.mk-testi-foot .mk-avatar { width: 42px; height: 42px; font-size: 16px; }
+.mk-testi-foot strong { display: block; color: var(--mk-navy); font-size: 14.5px; }
+.mk-testi-foot span { color: var(--mk-muted); font-size: 12.5px; }
+
+/* ---------- دعوة أخيرة ---------- */
+.mk-cta { background: var(--mk-grad-coral); padding: 60px 0; text-align: center; color: #fff; }
+.mk-cta h2 { color: #fff; font-size: 32px; margin: 0 0 10px; }
+.mk-cta p { color: rgba(255,255,255,.9); font-size: 17px; max-width: 520px; margin: 0 auto 24px; }
+.mk-cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.mk-cta .mk-btn-primary { background: #fff; color: var(--mk-coral-deep); }
+.mk-cta .mk-btn-ghost { border-color: rgba(255,255,255,.6); color: #fff; }
+
+@media (max-width: 760px) {
+  .mk-numbers-grid { grid-template-columns: repeat(2, 1fr); gap: 28px; }
+  .mk-number .v { font-size: 32px; }
+}
