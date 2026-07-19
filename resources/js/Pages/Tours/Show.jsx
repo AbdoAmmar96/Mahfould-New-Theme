@@ -1,14 +1,30 @@
 import SiteLayout from '@/Layouts/SiteLayout';
 import { Badge, money } from '@/Components/UI';
 import Reviews from '@/Components/Reviews';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 
 export default function Show({ tour, reviews, review_type, review_id }) {
     const [guests, setGuests] = useState(2);
+    const [date, setDate] = useState('');
     const unit = tour.sale_price || tour.price;
     const fee = 200;
     const total = useMemo(() => unit * guests + fee, [unit, guests]);
+
+    const page = usePage();
+    const authed = !!page.props.auth?.user;
+    const saved = (page.props.wishlist || []).includes(`tour:${tour.id}`);
+    const toggleSave = () => {
+        if (!authed) { router.visit('/login'); return; }
+        router.post('/wishlist/toggle', { type: 'tour', id: tour.id }, { preserveScroll: true, preserveState: true });
+    };
+
+    const checkoutUrl = () => {
+        const q = new URLSearchParams();
+        if (date) q.set('start_date', date);
+        q.set('guests', guests);
+        return `${tour.checkout_url}?${q.toString()}`;
+    };
 
     const gallery = tour.gallery.length ? tour.gallery : [
         tour.image_url, ...[2, 3, 4, 5].map((n) => `https://picsum.photos/seed/g${tour.id}${n}/400/400`),
@@ -37,7 +53,7 @@ export default function Show({ tour, reviews, review_type, review_id }) {
                                 {tour.review_score > 0 && <span className="mk-rate">★ {tour.review_score.toFixed(1)} ({tour.review_count} تقييم)</span>}
                             </div>
                         </div>
-                        <button className="mk-btn mk-btn-secondary">♡ حفظ</button>
+                        <button className="mk-btn mk-btn-secondary" onClick={toggleSave}>{saved ? '♥ محفوظة' : '♡ حفظ'}</button>
                     </div>
 
                     <div className="mk-gallery">
@@ -84,7 +100,8 @@ export default function Show({ tour, reviews, review_type, review_id }) {
                                 </div>
                                 <div className="mk-book-sub">للفرد · شامل كل الخدمات</div>
 
-                                <label className="mk-field"><span className="mk-label">تاريخ الرحلة</span><input className="mk-input" type="date" /></label>
+                                <label className="mk-field"><span className="mk-label">تاريخ الرحلة</span>
+                                    <input className="mk-input" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></label>
                                 <label className="mk-field"><span className="mk-label">عدد المسافرين</span>
                                     <select className="mk-select" value={guests} onChange={(e) => setGuests(+e.target.value)}>
                                         {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n} فرد</option>)}
@@ -97,7 +114,7 @@ export default function Show({ tour, reviews, review_type, review_id }) {
                                     <div className="mk-summary-row total"><span>الإجمالي</span><b>{money(total)} ج.م</b></div>
                                 </div>
 
-                                <Link href={tour.checkout_url} className="mk-btn mk-btn-primary mk-btn-block mk-btn-lg">احجز دلوقتي</Link>
+                                <Link href={checkoutUrl()} className="mk-btn mk-btn-primary mk-btn-block mk-btn-lg">احجز دلوقتي</Link>
                                 <p style={{ textAlign: 'center', fontSize: '12.5px', color: 'var(--mk-muted)', margin: '12px 0 0' }}>🛡️ حجز مكفول — إلغاء مجاني حتى 48 ساعة</p>
                             </div>
                         </div>

@@ -1,18 +1,16 @@
 import SiteLayout from '@/Layouts/SiteLayout';
 import { Badge, Btn, Rule, SectionHead, ServiceCard, money } from '@/Components/UI';
+import Modal from '@/Components/Modal';
+import { TRUST } from '@/data/trust';
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 
 const TABS = [
-    { icon: '🧳', label: 'رحلات' }, { icon: '🏨', label: 'فنادق' },
-    { icon: '🍽️', label: 'مطاعم' }, { icon: '🚗', label: 'سيارات' },
-    { icon: '👑', label: 'صاحب السعادة' },
-];
-const TRUST = [
-    ['🛡️', 'ضمان مكفول', 'استرداد كامل لو حصل أي تغيير'],
-    ['💳', 'ادفع بأمان', 'دفع مقدّم أو عند الوصول'],
-    ['📞', 'دعم 24/7', 'فريق مصري معاك طول الرحلة'],
-    ['⭐', 'أفضل سعر', 'لقيت أرخص؟ نرجّعلك الفرق'],
+    { icon: '🧳', label: 'رحلات', route: '/tours', ph: 'شرم الشيخ، الغردقة، سيوة…' },
+    { icon: '🏨', label: 'فنادق', route: '/hotels', ph: 'مدينة أو منطقة…' },
+    { icon: '🍽️', label: 'مطاعم', route: '/restaurants', ph: 'مطعم أو نوع مطبخ…' },
+    { icon: '🚗', label: 'سيارات', route: '/cars', ph: 'مكان الاستلام…' },
+    { icon: '👑', label: 'صاحب السعادة', route: '/sahb-elsaada', ph: 'المناسبة…' },
 ];
 const SERVICES = [
     ['🧳', 'رحلات وبرامج', 'داخلي وخارجي بأسعار مكفولة', '/tours'],
@@ -24,8 +22,18 @@ const SERVICES = [
 export default function Home({ locations, featured, packages }) {
     const [tab, setTab] = useState(0);
     const [loc, setLoc] = useState('');
+    const [date, setDate] = useState('');
+    const [guests, setGuests] = useState('');
+    const [trustOpen, setTrustOpen] = useState(null);
 
-    const search = (e) => { e.preventDefault(); router.get('/tours', loc ? { location: loc } : {}); };
+    const search = (e) => {
+        e.preventDefault();
+        const q = {};
+        if (loc) q.location = loc;
+        if (date) q.start_date = date;
+        if (guests) q.guests = guests;
+        router.get(TABS[tab].route, q);
+    };
 
     return (
         <SiteLayout active="home">
@@ -42,17 +50,23 @@ export default function Home({ locations, featured, packages }) {
                     <div className="mk-reveal" style={{ animationDelay: '.12s' }}>
                         <div className="mk-tabs">
                             {TABS.map((t, i) => (
-                                <button key={i} className={`mk-tab ${tab === i ? 'is-active' : ''}`} onClick={() => setTab(i)}>
+                                <button key={i} type="button" className={`mk-tab ${tab === i ? 'is-active' : ''}`} onClick={() => setTab(i)}>
                                     {t.icon} {t.label}
                                 </button>
                             ))}
                         </div>
                         <form className="mk-search" onSubmit={search}>
                             <label className="mk-field"><span className="mk-label">فين حابب تروح؟</span>
-                                <input className="mk-input" value={loc} onChange={(e) => setLoc(e.target.value)} placeholder="شرم الشيخ، الغردقة، سيوة…" /></label>
-                            <label className="mk-field"><span className="mk-label">تاريخ الرحلة</span><input className="mk-input" type="date" /></label>
+                                <input className="mk-input" value={loc} onChange={(e) => setLoc(e.target.value)} placeholder={TABS[tab].ph} /></label>
+                            <label className="mk-field"><span className="mk-label">التاريخ</span>
+                                <input className="mk-input" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></label>
                             <label className="mk-field"><span className="mk-label">عدد الأفراد</span>
-                                <select className="mk-select"><option>فردين</option><option>3 أفراد</option><option>عائلة (4+)</option></select></label>
+                                <select className="mk-select" value={guests} onChange={(e) => setGuests(e.target.value)}>
+                                    <option value="">أي عدد</option>
+                                    <option value="2">فردين</option>
+                                    <option value="3">3 أفراد</option>
+                                    <option value="4">عائلة (4+)</option>
+                                </select></label>
                             <button type="submit" className="mk-btn mk-btn-primary mk-btn-lg">🔍 دوّر</button>
                         </form>
                     </div>
@@ -62,14 +76,22 @@ export default function Home({ locations, featured, packages }) {
             {/* شريط الثقة */}
             <div className="mk-wrap">
                 <div className="mk-trust mk-reveal" style={{ animationDelay: '.2s' }}>
-                    {TRUST.map(([ico, t, d], i) => (
-                        <div key={i} className="mk-trust-item">
-                            <div className="mk-trust-ico">{ico}</div>
-                            <div><strong>{t}</strong><span>{d}</span></div>
+                    {TRUST.map((t, i) => (
+                        <div key={i} className="mk-trust-item" role="button" tabIndex={0}
+                            onClick={() => setTrustOpen(i)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') setTrustOpen(i); }}>
+                            <div className="mk-trust-ico">{t.icon}</div>
+                            <div><strong>{t.title}</strong><span>{t.short}</span></div>
                         </div>
                     ))}
                 </div>
             </div>
+
+            <Modal open={trustOpen !== null} onClose={() => setTrustOpen(null)}
+                icon={trustOpen !== null ? TRUST[trustOpen].icon : null}
+                title={trustOpen !== null ? TRUST[trustOpen].title : ''}>
+                {trustOpen !== null && TRUST[trustOpen].body}
+            </Modal>
 
             {/* الوجهات */}
             <section className="mk-sec">

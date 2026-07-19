@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\HomeController;
@@ -10,6 +11,7 @@ use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\Vendor;
 use App\Http\Controllers\WishlistController;
 use App\Http\Controllers\HotelController;
+use App\Http\Controllers\PageController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\RestaurantController;
 use App\Http\Controllers\SahbController;
@@ -43,6 +45,9 @@ Route::get('/restaurants/{restaurant:slug}', [RestaurantController::class, 'show
 // صاحب السعادة
 Route::get('/sahb-elsaada', [SahbController::class, 'index'])->name('sahb.index');
 
+// صفحات المحتوى الثابت (شروط، خصوصية، من احنا...)
+Route::get('/p/{page:slug}', [PageController::class, 'show'])->name('pages.show');
+
 // السيارات
 Route::get('/cars', [CarController::class, 'index'])->name('cars.index');
 Route::get('/cars/{car:slug}', [CarController::class, 'show'])->name('cars.show');
@@ -66,6 +71,12 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [LoginController::class, 'store']);
     Route::get('/register', [RegisterController::class, 'create'])->name('register');
     Route::post('/register', [RegisterController::class, 'store']);
+
+    // استرجاع كلمة المرور
+    Route::get('/forgot-password', [PasswordResetController::class, 'create'])->name('password.request');
+    Route::post('/forgot-password', [PasswordResetController::class, 'store'])->name('password.email');
+    Route::get('/reset-password/{token}', [PasswordResetController::class, 'edit'])->name('password.reset');
+    Route::post('/reset-password', [PasswordResetController::class, 'update'])->name('password.update');
 });
 
 Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')->name('logout');
@@ -93,6 +104,7 @@ Route::prefix('admin')->name('admin.')->group(function () use ($crud) {
         $crud('cars', Admin\CarController::class);
         $crud('locations', Admin\LocationController::class);
         $crud('sahb', Admin\SahbPackageController::class);
+        $crud('pages', Admin\PageController::class);
 
         $crud('bookings', Admin\BookingController::class, ['index', 'edit', 'update', 'destroy']);
         Route::post('bookings/{id}/refund', [Admin\BookingController::class, 'refund'])->name('bookings.refund');

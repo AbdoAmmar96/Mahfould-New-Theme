@@ -29,7 +29,7 @@ export default function Login() {
                             <input className="mk-input" type="password" value={data.password} onChange={(e) => setData('password', e.target.value)} placeholder="••••••••" /></label>
                         <div className="mk-between" style={{ marginBottom: 18 }}>
                             <label className="mk-check" style={{ fontSize: 13 }}><input type="checkbox" checked={data.remember} onChange={(e) => setData('remember', e.target.checked)} /> تذكرني</label>
-                            <a href="#" style={{ color: 'var(--mk-coral-deep)', fontSize: 13, fontWeight: 700 }}>نسيت كلمة المرور؟</a>
+                            <Link href="/forgot-password" style={{ color: 'var(--mk-coral-deep)', fontSize: 13, fontWeight: 700 }}>نسيت كلمة المرور؟</Link>
                         </div>
                         <button type="submit" disabled={processing} className="mk-btn mk-btn-primary mk-btn-block mk-btn-lg">{processing ? 'جاري الدخول…' : 'دخول'}</button>
                         <p style={{ textAlign: 'center', marginTop: 22, fontSize: 14 }}>لسه معندكش حساب؟ <Link href="/register" style={{ color: 'var(--mk-coral-deep)', fontWeight: 800 }}>سجّل مجاناً</Link></p>

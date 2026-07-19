@@ -6,9 +6,16 @@ import { useMemo, useState } from 'react';
 
 export default function Show({ car, reviews, review_type, review_id }) {
     const [days, setDays] = useState(3);
+    const [date, setDate] = useState('');
     const unit = car.sale_price || car.price;
     const fee = 200;
     const total = useMemo(() => unit * days + fee, [unit, days]);
+    const checkoutUrl = () => {
+        const q = new URLSearchParams();
+        if (date) q.set('start_date', date);
+        q.set('guests', days);
+        return `${car.checkout_url}?${q.toString()}`;
+    };
     const gallery = car.gallery.length ? car.gallery : [
         car.image_url, ...[2, 3, 4, 5].map((n) => `https://picsum.photos/seed/cg${car.id}${n}/400/400`),
     ];
@@ -57,7 +64,8 @@ export default function Show({ car, reviews, review_type, review_id }) {
                             <div className="mk-book">
                                 <div className="mk-book-price"><span className="p">{money(unit)}</span><span>ج.م</span>{car.sale_price && <s>{money(car.price)}</s>}</div>
                                 <div className="mk-book-sub">/ اليوم{car.with_driver ? ' · شامل السائق' : ''}</div>
-                                <label className="mk-field"><span className="mk-label">تاريخ الاستلام</span><input className="mk-input" type="date" /></label>
+                                <label className="mk-field"><span className="mk-label">تاريخ الاستلام</span>
+                                    <input className="mk-input" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></label>
                                 <label className="mk-field"><span className="mk-label">عدد الأيام</span>
                                     <select className="mk-select" value={days} onChange={(e) => setDays(+e.target.value)}>
                                         {[1, 2, 3, 5, 7, 14].map((n) => <option key={n} value={n}>{n} أيام</option>)}
@@ -67,7 +75,7 @@ export default function Show({ car, reviews, review_type, review_id }) {
                                     <div className="mk-summary-row"><span>رسوم الخدمة</span><span>{fee} ج.م</span></div>
                                     <div className="mk-summary-row total"><span>الإجمالي</span><b>{money(total)} ج.م</b></div>
                                 </div>
-                                <Link href={car.checkout_url} className="mk-btn mk-btn-primary mk-btn-block mk-btn-lg">احجز دلوقتي</Link>
+                                <Link href={checkoutUrl()} className="mk-btn mk-btn-primary mk-btn-block mk-btn-lg">احجز دلوقتي</Link>
                             </div>
                         </div>
                     </div>

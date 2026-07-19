@@ -9,15 +9,17 @@ const PAY = [
     { key: 'on_arrival', label: '💵 دفع عند الوصول' },
 ];
 
-export default function Checkout({ item }) {
+export default function Checkout({ item, prefill = {}, pricing = {} }) {
     const { data, setData, post, processing, errors } = useForm({
-        type: item.type, id: item.id, start_date: '', guests: 2,
+        type: item.type, id: item.id,
+        start_date: prefill.start_date || '', guests: prefill.guests || 2, slot: prefill.slot || '',
         customer_name: '', customer_phone: '', customer_email: '', customer_national_id: '',
         payment_method: 'card',
     });
 
+    const fee = pricing.fee ?? 200;
+    const discount = pricing.discount ?? 0;
     const subtotal = useMemo(() => item.price * data.guests, [item.price, data.guests]);
-    const fee = 200, discount = 400;
     const total = Math.max(0, subtotal + fee - discount);
 
     const submit = (e) => { e.preventDefault(); post('/checkout'); };
@@ -30,11 +32,11 @@ export default function Checkout({ item }) {
                     <h1 style={{ marginBottom: 22 }}>إتمام الحجز</h1>
 
                     <div className="mk-steps">
-                        <div className="mk-step done"><span className="num">✓</span><span>الموعد</span></div>
+                        <div className="mk-step done"><span className="num">✓</span><span>اختيار الخدمة</span></div>
                         <div className="mk-step-line" />
-                        <div className="mk-step active"><span className="num">2</span><span>بيانات المسافرين</span></div>
+                        <div className="mk-step active"><span className="num">2</span><span>البيانات والمراجعة</span></div>
                         <div className="mk-step-line" />
-                        <div className="mk-step"><span className="num">3</span><span>الدفع</span></div>
+                        <div className="mk-step"><span className="num">3</span><span>الدفع الآمن</span></div>
                     </div>
 
                     <form onSubmit={submit}>
@@ -49,11 +51,13 @@ export default function Checkout({ item }) {
                                             <input className={`mk-input ${errors.customer_phone ? 'is-error' : ''}`} value={data.customer_phone} onChange={(e) => setData('customer_phone', e.target.value)} placeholder="010xxxxxxxx" /></label>
                                         <label className="mk-field"><span className="mk-label">البريد الإلكتروني</span>
                                             <input className="mk-input" type="email" value={data.customer_email} onChange={(e) => setData('customer_email', e.target.value)} placeholder="you@email.com" /></label>
-                                        <label className="mk-field"><span className="mk-label">تاريخ الرحلة</span>
+                                        <label className="mk-field"><span className="mk-label">الرقم القومي <small style={{ color: 'var(--mk-muted)' }}>(اختياري)</small></span>
+                                            <input className="mk-input" value={data.customer_national_id} onChange={(e) => setData('customer_national_id', e.target.value)} placeholder="14 رقم" /></label>
+                                        <label className="mk-field"><span className="mk-label">{item.type === 'hotel' ? 'تاريخ الوصول' : item.type === 'car' ? 'تاريخ الاستلام' : 'التاريخ'}</span>
                                             <input className="mk-input" type="date" value={data.start_date} onChange={(e) => setData('start_date', e.target.value)} /></label>
-                                        <label className="mk-field"><span className="mk-label">عدد الأفراد</span>
+                                        <label className="mk-field"><span className="mk-label">{item.type === 'hotel' ? 'عدد الليالي' : item.type === 'car' ? 'عدد الأيام' : 'عدد الأفراد'}</span>
                                             <select className="mk-select" value={data.guests} onChange={(e) => setData('guests', +e.target.value)}>
-                                                {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n} فرد</option>)}
+                                                {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => <option key={n} value={n}>{n}</option>)}
                                             </select></label>
                                     </div>
                                 </div>
@@ -78,8 +82,10 @@ export default function Checkout({ item }) {
                                             <div style={{ fontSize: 13, color: 'var(--mk-muted)', fontWeight: 600 }}>{data.guests} {item.unit}</div></div>
                                     </div>
                                     <div className="mk-summary-row"><span>السعر ({data.guests} {item.unit})</span><span>{money(subtotal)} ج.م</span></div>
-                                    <div className="mk-summary-row"><span>رسوم الخدمة</span><span>{fee} ج.م</span></div>
-                                    <div className="mk-summary-row"><span>خصم مكفول</span><span style={{ color: 'var(--mk-makfol)' }}>−{discount} ج.م</span></div>
+                                    <div className="mk-summary-row"><span>رسوم الخدمة</span><span>{money(fee)} ج.م</span></div>
+                                    {discount > 0 && (
+                                        <div className="mk-summary-row"><span>خصم مكفول</span><span style={{ color: 'var(--mk-makfol)' }}>−{money(discount)} ج.م</span></div>
+                                    )}
                                     <div className="mk-summary-row total"><span>الإجمالي</span><b>{money(total)} ج.م</b></div>
                                     <button type="submit" disabled={processing} className="mk-btn mk-btn-primary mk-btn-block mk-btn-lg" style={{ marginTop: 16 }}>
                                         {processing ? 'جاري التأكيد…' : 'أكّد وادفع'}

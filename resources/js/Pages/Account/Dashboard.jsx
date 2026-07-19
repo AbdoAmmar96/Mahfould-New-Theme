@@ -22,10 +22,9 @@ export default function Dashboard({ bookings, stats }) {
                                 <div><b style={{ fontFamily: 'var(--mk-font-head)' }}>{auth.user.name}</b><div style={{ fontSize: '12.5px', color: 'var(--mk-muted)' }}>عضو ⭐</div></div>
                             </div>
                             <nav className="mk-dash-nav">
-                                <a href="#" className="is-active">🗂️ حجوزاتي</a>
+                                <Link href="/account" className="is-active">🗂️ حجوزاتي</Link>
                                 <Link href="/wishlist">♥ المفضلة</Link>
-                                <a href="/sahb-elsaada">👑 صاحب السعادة</a>
-                                <a href="#">⚙️ الإعدادات</a>
+                                <Link href="/sahb-elsaada">👑 صاحب السعادة</Link>
                                 <a href="#" onClick={logout} style={{ color: 'var(--mk-danger)' }}>🚪 خروج</a>
                             </nav>
                         </aside>

@@ -41,6 +41,8 @@ class DatabaseSeeder extends Seeder
         Setting::set('currency_symbol', 'ج.م');
         Setting::set('contact_phone', '01000000000');
         Setting::set('commission_rate', '15'); // عمولة المنصة %
+        Setting::set('service_fee', '200');    // رسوم الخدمة الثابتة
+        Setting::set('makfol_discount', '400'); // خصم مكفول للخدمات المضمونة
 
         // ── الوجهات ──
         $dests = [
@@ -172,5 +174,8 @@ class DatabaseSeeder extends Seeder
             }
             $tour->refreshReviewScore();
         }
+
+        // ── صفحات المحتوى الثابت ──
+        $this->call(PagesSeeder::class);
     }
 }

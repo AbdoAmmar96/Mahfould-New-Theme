@@ -5,8 +5,10 @@ import { useState } from 'react';
 
 export default function Index({ tours, locations, filters }) {
     const [sort, setSort] = useState(filters.sort || '');
+    const [price, setPrice] = useState(filters.max_price || 15000);
     const changeSort = (v) => { setSort(v); router.get('/tours', { ...filters, sort: v }, { preserveState: true, replace: true }); };
     const byLoc = (slug) => router.get('/tours', { ...filters, location: slug }, { preserveState: true });
+    const applyPrice = (v) => router.get('/tours', { ...filters, max_price: v }, { preserveState: true, replace: true });
 
     return (
         <SiteLayout active="tours">
@@ -35,10 +37,14 @@ export default function Index({ tours, locations, filters }) {
                                 ))}
                             </div>
                             <div className="mk-filter-group">
-                                <label>السعر (ج.م)</label>
-                                <input type="range" className="mk-range" min="1000" max="15000" defaultValue="8000" />
+                                <label>أقصى سعر: <b>{Number(price).toLocaleString('en-US')}</b> ج.م</label>
+                                <input type="range" className="mk-range" min="1000" max="15000" step="500"
+                                    value={price}
+                                    onChange={(e) => setPrice(e.target.value)}
+                                    onMouseUp={(e) => applyPrice(e.target.value)}
+                                    onTouchEnd={(e) => applyPrice(e.target.value)} />
                             </div>
-                            {filters.location && (
+                            {(filters.location || filters.max_price) && (
                                 <Link href="/tours" className="mk-btn mk-btn-secondary mk-btn-block" style={{ marginTop: 12 }}>مسح الفلتر</Link>
                             )}
                         </aside>

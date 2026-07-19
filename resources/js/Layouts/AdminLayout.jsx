@@ -13,6 +13,7 @@ const NAV = {
         { href: '/admin/cars', label: 'السيارات', icon: '🚗' },
         { href: '/admin/locations', label: 'الوجهات', icon: '📍' },
         { href: '/admin/sahb', label: 'صاحب السعادة', icon: '🎁' },
+        { href: '/admin/pages', label: 'الصفحات', icon: '📄' },
         { sep: true },
         { href: '/admin/bookings', label: 'الحجوزات', icon: '🎫' },
     ],

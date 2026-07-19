@@ -8,9 +8,16 @@ const stars = (n) => '⭐'.repeat(n);
 
 export default function Show({ hotel, reviews, review_type, review_id }) {
     const [nights, setNights] = useState(2);
+    const [date, setDate] = useState('');
     const unit = hotel.sale_price || hotel.price;
     const fee = 200;
     const total = useMemo(() => unit * nights + fee, [unit, nights]);
+    const checkoutUrl = () => {
+        const q = new URLSearchParams();
+        if (date) q.set('start_date', date);
+        q.set('guests', nights);
+        return `${hotel.checkout_url}?${q.toString()}`;
+    };
     const gallery = hotel.gallery.length ? hotel.gallery : [
         hotel.image_url, ...[2, 3, 4, 5].map((n) => `https://picsum.photos/seed/hg${hotel.id}${n}/400/400`),
     ];
@@ -53,7 +60,8 @@ export default function Show({ hotel, reviews, review_type, review_id }) {
                             <div className="mk-book">
                                 <div className="mk-book-price"><span className="p">{money(unit)}</span><span>ج.م</span>{hotel.sale_price && <s>{money(hotel.price)}</s>}</div>
                                 <div className="mk-book-sub">/ الليلة · شامل الإفطار</div>
-                                <label className="mk-field"><span className="mk-label">تاريخ الوصول</span><input className="mk-input" type="date" /></label>
+                                <label className="mk-field"><span className="mk-label">تاريخ الوصول</span>
+                                    <input className="mk-input" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></label>
                                 <label className="mk-field"><span className="mk-label">عدد الليالي</span>
                                     <select className="mk-select" value={nights} onChange={(e) => setNights(+e.target.value)}>
                                         {[1, 2, 3, 4, 5, 7].map((n) => <option key={n} value={n}>{n} ليالي</option>)}
@@ -63,7 +71,7 @@ export default function Show({ hotel, reviews, review_type, review_id }) {
                                     <div className="mk-summary-row"><span>رسوم الخدمة</span><span>{fee} ج.م</span></div>
                                     <div className="mk-summary-row total"><span>الإجمالي</span><b>{money(total)} ج.م</b></div>
                                 </div>
-                                <Link href={hotel.checkout_url} className="mk-btn mk-btn-primary mk-btn-block mk-btn-lg">احجز دلوقتي</Link>
+                                <Link href={checkoutUrl()} className="mk-btn mk-btn-primary mk-btn-block mk-btn-lg">احجز دلوقتي</Link>
                             </div>
                         </div>
                     </div>

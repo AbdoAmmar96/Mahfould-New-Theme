@@ -21,19 +21,25 @@ class Booking extends Model
     ];
 
     protected $casts = [
-        'start_date'        => 'date',
-        'end_date'          => 'date',
-        'subtotal'          => 'decimal:2',
-        'service_fee'       => 'decimal:2',
-        'discount'          => 'decimal:2',
-        'total'             => 'decimal:2',
+        'start_date' => 'date',
+        'end_date' => 'date',
+        'subtotal' => 'decimal:2',
+        'service_fee' => 'decimal:2',
+        'discount' => 'decimal:2',
+        'total' => 'decimal:2',
         'commission_amount' => 'decimal:2',
     ];
 
     protected static function booted(): void
     {
         static::creating(function (Booking $b) {
-            $b->code ??= 'MM-' . date('Y') . '-' . random_int(1000, 9999);
+            if ($b->code) {
+                return;
+            }
+            do {
+                $code = 'MM-'.date('Y').'-'.str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            } while (static::where('code', $code)->exists());
+            $b->code = $code;
         });
     }
 
@@ -50,12 +56,12 @@ class Booking extends Model
     public function getStatusLabelAttribute(): string
     {
         return match ($this->status) {
-            'confirmed'  => 'مؤكّد',
-            'pending'    => 'في انتظار الدفع',
+            'confirmed' => 'مؤكّد',
+            'pending' => 'في انتظار الدفع',
             'processing' => 'قيد المعالجة',
-            'completed'  => 'مكتمل',
-            'cancelled'  => 'ملغي',
-            default      => $this->status,
+            'completed' => 'مكتمل',
+            'cancelled' => 'ملغي',
+            default => $this->status,
         };
     }
 
