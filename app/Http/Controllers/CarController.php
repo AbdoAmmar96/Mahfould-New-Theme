@@ -40,7 +40,7 @@ class CarController extends Controller
             ]),
             'locations' => Location::orderBy('order')->get()
                 ->map(fn ($l) => ['name' => $l->name, 'slug' => $l->slug]),
-            'filters' => $request->only(['location', 'transmission']),
+            'filters' => (object) $request->only(['location', 'transmission']),
         ]);
     }
 

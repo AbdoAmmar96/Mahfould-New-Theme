@@ -65,7 +65,7 @@ class Tour extends Model
 
         return $this->image
             ? asset('storage/' . $this->image)
-            : "https://picsum.photos/seed/tour{$this->id}/600/450";
+            : "https://loremflickr.com/600/450/egypt,travel?lock={$this->id}";
     }
 
     public function getUrlAttribute(): string

@@ -53,7 +53,7 @@ class Car extends Model
 
         return $this->image
             ? asset('storage/' . $this->image)
-            : "https://picsum.photos/seed/car{$this->id}/600/450";
+            : "https://loremflickr.com/600/450/car?lock={$this->id}";
     }
 
     public function getUrlAttribute(): string

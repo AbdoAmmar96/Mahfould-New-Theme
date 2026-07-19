@@ -25,7 +25,7 @@ class DatabaseSeeder extends Seeder
             'password' => Hash::make('password'),
         ]);
         $customer = User::create([
-            'name' => 'عمرو شلبي', 'email' => 'amr@example.com',
+            'name' => 'أحمد سمير', 'email' => 'amr@example.com',
             'phone' => '01012345678', 'role' => 'customer',
             'password' => Hash::make('password'),
         ]);
@@ -154,16 +154,38 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // ── تقييمات تجريبية على أول رحلتين ──
+        // ── معلّقون بأسماء متنوّعة ──
+        $reviewerData = [
+            ['منى عبد الرحمن', 'mona@example.com'],
+            ['كريم حسّان', 'karim@example.com'],
+            ['سارة الشناوي', 'sara@example.com'],
+            ['أحمد فتحي', 'ahmedf@example.com'],
+            ['نورهان مصطفى', 'nourhan@example.com'],
+            ['محمود عز', 'mahmoud@example.com'],
+        ];
+        $reviewers = [];
+        foreach ($reviewerData as $rIdx => [$rName, $rEmail]) {
+            $reviewers[] = User::create([
+                'name' => $rName, 'email' => $rEmail,
+                'phone' => '0101000'.str_pad((string) $rIdx, 4, '0', STR_PAD_LEFT),
+                'role' => 'customer', 'password' => Hash::make('password'),
+            ]);
+        }
+
+        // ── تقييمات تجريبية على أول رحلتين (بأسماء مختلفة) ──
         $sampleReviews = [
             [5, 'رحلة تحفة', 'كل حاجة كانت متظبطة من الأول للآخر، والسعر زي ما اتفقنا بالظبط. هكرر أكيد.'],
-            [4, 'حلوة جداً', 'التنظيم ممتاز والمرشد محترم. النجمة الناقصة بس عشان الأوتوبيh اتأخر شوية.'],
+            [4, 'حلوة جداً', 'التنظيم ممتاز والمرشد محترم. النجمة الناقصة بس عشان الأتوبيس اتأخر شوية.'],
             [5, 'مكفولة فعلاً', 'أول مرة أحجز أونلاين وأطمن كده. الدعم رد عليّ على طول.'],
+            [5, 'تجربة ممتازة', 'المكان نضيف والموقع قريب من كل حاجة. أنصح بيها بشدة.'],
+            [4, 'قيمة كويسة', 'السعر مناسب جداً مقابل الخدمة اللي اخدناها. هجرّب تاني قريب.'],
+            [5, 'دعم رائع', 'فريق محفول مكفول تابع معايا خطوة بخطوة لحد ما رجعت. تحفة.'],
         ];
+        $rev = 0;
         foreach (Tour::query()->take(2)->get() as $tour) {
             foreach ($sampleReviews as [$rating, $rtitle, $rcontent]) {
                 Review::create([
-                    'user_id'         => $customer->id,
+                    'user_id'         => $reviewers[$rev % count($reviewers)]->id,
                     'reviewable_type' => Tour::class,
                     'reviewable_id'   => $tour->id,
                     'rating'          => $rating,
@@ -171,6 +193,7 @@ class DatabaseSeeder extends Seeder
                     'content'         => $rcontent,
                     'approved'        => true,
                 ]);
+                $rev++;
             }
             $tour->refreshReviewScore();
         }

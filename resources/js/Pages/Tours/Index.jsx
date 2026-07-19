@@ -8,8 +8,8 @@ import { Calendar, BedDouble, Plane } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function Index({ tours, locations, filters }) {
-    const [sort, setSort] = useState(filters.sort || '');
-    const [price, setPrice] = useState(filters.max_price || 15000);
+    const [sort, setSort] = useState(typeof filters?.sort === 'string' ? filters.sort : '');
+    const [price, setPrice] = useState(filters?.max_price || 15000);
     const changeSort = (v) => { setSort(v); router.get('/tours', { ...filters, sort: v }, { preserveState: true, replace: true }); };
     const byLoc = (slug) => router.get('/tours', { ...filters, location: slug }, { preserveState: true });
     const applyPrice = (v) => router.get('/tours', { ...filters, max_price: v }, { preserveState: true, replace: true });

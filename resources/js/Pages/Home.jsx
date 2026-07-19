@@ -140,7 +140,7 @@ export default function Home({ locations, featured, hotels, restaurants, cars, p
                                 ))}
                             </TabsList>
                         </Tabs>
-                        <form onSubmit={search} className="grid grid-cols-1 items-end gap-3 rounded-section rounded-ss-none bg-white p-4 shadow-mk-lg sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto]">
+                        <form onSubmit={search} className="grid grid-cols-1 items-end gap-3 rounded-section rounded-tl-none bg-white p-4 shadow-mk-lg sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto]">
                             <Field label="فين حابب تروح؟"><Input value={loc} onChange={(e) => setLoc(e.target.value)} placeholder={TABS[tab].ph} /></Field>
                             <Field label="التاريخ"><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
                             <Field label="عدد الأفراد">
@@ -262,6 +262,19 @@ export default function Home({ locations, featured, hotels, restaurants, cars, p
                 </section>
             )}
 
+            {/* بوستر صاحب السعادة */}
+            <section className="relative min-h-[340px] overflow-hidden">
+                <img src="https://loremflickr.com/1600/520/celebration,gift,party?lock=77" alt="صاحب السعادة" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-l from-royal/95 via-royal/85 to-navy-deep/75" />
+                <div className="pointer-events-none absolute -top-24 -start-16 h-[280px] w-[280px] rounded-full bg-vip opacity-30 blur-[100px]" />
+                <div className="relative z-10 mx-auto flex min-h-[340px] max-w-[1200px] flex-col items-start justify-center gap-4 px-5 py-16 text-white">
+                    <Badge variant="vip"><Crown className="h-3.5 w-3.5" /> صاحب السعادة</Badge>
+                    <h2 className="max-w-2xl font-head text-3xl font-bold leading-tight text-white md:text-[40px]">لحظة سعادة تفضل في البال…<br />سيبها علينا نرتّبها لك</h2>
+                    <p className="max-w-xl text-lg text-white/85">مفاجآت، احتفالات، هدايا، وتجارب مميزة — نجهّزها لك من الألف للياء بلمسة مكفولة.</p>
+                    <Button asChild variant="light" size="lg" className="mt-2"><Link href="/sahb-elsaada">اكتشف صاحب السعادة</Link></Button>
+                </div>
+            </section>
+
             {/* إزاي بتحجز */}
             <section className="bg-beige py-14 md:py-[72px]">
                 <Wrap>
@@ -353,7 +366,7 @@ export default function Home({ locations, featured, hotels, restaurants, cars, p
                     <p className="mx-auto mt-2.5 max-w-[520px] text-[17px] text-white/90">آلاف الخدمات المكفولة في انتظارك — احجز دلوقتي وادفع وانت مطمّن.</p>
                     <div className="mt-6 flex flex-wrap justify-center gap-3">
                         <Button asChild variant="light" size="lg"><Link href="/tours">ابدأ الحجز</Link></Button>
-                        <Button asChild variant="ghost" size="lg"><Link href="/p/partner">كن شريكاً معنا</Link></Button>
+                        <Button asChild variant="ghost" size="lg"><Link href="/sahb-elsaada">اكتشف صاحب السعادة</Link></Button>
                     </div>
                 </Wrap>
             </section>

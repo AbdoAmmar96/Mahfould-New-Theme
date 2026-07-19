@@ -37,7 +37,7 @@ class HotelController extends Controller
             ]),
             'locations' => Location::withCount('hotels')->orderBy('order')->get()
                 ->map(fn ($l) => ['name' => $l->name, 'slug' => $l->slug, 'count' => $l->hotels_count]),
-            'filters' => $request->only(['location']),
+            'filters' => (object) $request->only(['location']),
         ]);
     }
 

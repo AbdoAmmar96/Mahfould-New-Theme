@@ -53,7 +53,7 @@ class TourController extends Controller
             ]),
             'locations' => Location::withCount('tours')->orderBy('order')->get()
                 ->map(fn ($l) => ['name' => $l->name, 'slug' => $l->slug, 'count' => $l->tours_count]),
-            'filters' => $request->only(['location', 'max_price', 'sort']),
+            'filters' => (object) $request->only(['location', 'max_price', 'sort']),
         ]);
     }
 

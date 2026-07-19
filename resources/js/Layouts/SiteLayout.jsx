@@ -106,7 +106,10 @@ export default function SiteLayout({ children, active = '' }) {
                     </div>
                     <div className="flex flex-wrap items-center justify-between gap-3.5 border-t border-white/10 py-5 text-[13.5px]">
                         <span>© {new Date().getFullYear()} محفول مكفول — كل الحقوق محفوظة</span>
-                        <span>صُنع في مصر 🇪🇬</span>
+                        <span>
+                            بالشراكة مع{' '}
+                            <a href="https://bp-eg.com/" target="_blank" rel="noopener noreferrer" className="font-bold text-coral transition-colors hover:text-white">شركة شريك للأعمال</a>
+                        </span>
                     </div>
                 </div>
             </footer>
