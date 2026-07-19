@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\Bookable;
+use App\Models\Concerns\HasAvailability;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,11 +13,11 @@ use Illuminate\Support\Str;
 
 class Hotel extends Model
 {
-    use HasFactory, Bookable;
+    use HasFactory, Bookable, HasAvailability;
 
     protected $fillable = [
         'user_id', 'location_id', 'title', 'slug', 'short_desc', 'content',
-        'price', 'sale_price', 'star_rating', 'image', 'gallery',
+        'price', 'sale_price', 'star_rating', 'units_total', 'image', 'gallery',
         'is_featured', 'is_guaranteed', 'status', 'review_score', 'review_count',
     ];
 
@@ -27,6 +28,7 @@ class Hotel extends Model
         'price'         => 'decimal:2',
         'sale_price'    => 'decimal:2',
         'review_score'  => 'decimal:2',
+        'units_total'   => 'integer',
     ];
 
     protected static function booted(): void

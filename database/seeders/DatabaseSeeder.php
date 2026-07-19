@@ -90,21 +90,38 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // ── الفنادق ──
+        // ── الفنادق ── (units_total = عدد الغرف المتاحة للحجز)
         $hotels = [
-            ['ريكسوس بريميوم — شرم الشيخ', 'sharm', 2800, null, 5, '4.9', 512, true],
-            ['ستيلا دي ماري — الغردقة', 'hurghada', 2400, 3200, 5, '4.7', 348, false],
-            ['فورسيزونز — القاهرة', 'cairo', 4600, null, 5, '5.0', 204, true],
+            ['ريكسوس بريميوم — شرم الشيخ', 'sharm', 2800, null, 5, '4.9', 512, true, 6],
+            ['ستيلا دي ماري — الغردقة', 'hurghada', 2400, 3200, 5, '4.7', 348, false, 4],
+            ['فورسيزونز — القاهرة', 'cairo', 4600, null, 5, '5.0', 204, true, 3],
         ];
-        foreach ($hotels as [$title, $lslug, $price, $sale, $star, $score, $rc, $feat]) {
-            Hotel::create([
+        $hotelModels = [];
+        foreach ($hotels as [$title, $lslug, $price, $sale, $star, $score, $rc, $feat, $units]) {
+            $hotelModels[] = Hotel::create([
                 'location_id' => $loc[$lslug]->id, 'title' => $title,
                 'short_desc' => 'إقامة فاخرة بأفضل الأسعار المكفولة',
                 'content' => 'منتجع 5 نجوم بخدمة كاملة على البحر مباشرة.',
                 'price' => $price, 'sale_price' => $sale, 'star_rating' => $star,
+                'units_total' => $units,
                 'is_featured' => $feat, 'review_score' => $score, 'review_count' => $rc,
             ]);
         }
+
+        // ── إشغال تجريبي: أول فندق (6 غرف) محجوز منه 4 غرف لـ5 ليالٍ قريبة ──
+        // (يخلّي منتقي التواريخ يوري "متبقّي 2 غرف" فعليًا)
+        $demoHotel = $hotelModels[0];
+        $items = [];
+        for ($room = 0; $room < 4; $room++) {
+            for ($n = 3; $n < 8; $n++) { // بعد 3 أيام من اليوم، لمدة 5 ليالٍ
+                $items[] = [
+                    'unit_type' => 'hotel', 'unit_id' => $demoHotel->id, 'unit_index' => $room,
+                    'date' => now()->addDays($n)->toDateString(), 'slot' => 'STAY',
+                    'state' => 'booked', 'created_at' => now(), 'updated_at' => now(),
+                ];
+            }
+        }
+        \App\Models\BookingItem::insert($items);
 
         // ── المطاعم ──
         $rests = [

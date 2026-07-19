@@ -49,6 +49,7 @@ class HotelController extends Controller
         return Inertia::render('Hotels/Show', [
             'hotel' => [
                 'id'           => $hotel->id,
+                'slug'         => $hotel->slug,
                 'title'        => $hotel->title,
                 'content'      => $hotel->content,
                 'image_url'    => $hotel->image_url,
@@ -57,8 +58,10 @@ class HotelController extends Controller
                 'star_rating'  => $hotel->star_rating,
                 'price'        => (float) $hotel->price,
                 'sale_price'   => $hotel->sale_price ? (float) $hotel->sale_price : null,
+                'units_total'  => $hotel->inventoryCount(),
                 'review_score' => (float) $hotel->review_score,
                 'review_count' => $hotel->review_count,
+                'availability_url' => route('availability.hotel', $hotel->slug),
                 'checkout_url' => route('booking.create', ['type' => 'hotel', 'id' => $hotel->id]),
             ],
             'reviews'     => Review::forReviewable($hotel)->latest()->take(10)->get()

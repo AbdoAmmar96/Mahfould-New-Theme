@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin;
+use App\Http\Controllers\AvailabilityController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\RegisterController;
@@ -51,6 +52,9 @@ Route::get('/p/{page:slug}', [PageController::class, 'show'])->name('pages.show'
 // السيارات
 Route::get('/cars', [CarController::class, 'index'])->name('cars.index');
 Route::get('/cars/{car:slug}', [CarController::class, 'show'])->name('cars.show');
+
+// إتاحة الفنادق (JSON) — لمنتقي التواريخ
+Route::get('/availability/hotel/{hotel:slug}', [AvailabilityController::class, 'hotel'])->name('availability.hotel');
 
 // الحجز
 Route::get('/checkout/{type}/{id}', [BookingController::class, 'create'])->name('booking.create');

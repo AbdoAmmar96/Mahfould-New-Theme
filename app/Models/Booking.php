@@ -12,8 +12,8 @@ class Booking extends Model
     use HasFactory;
 
     protected $fillable = [
-        'code', 'user_id', 'bookable_type', 'bookable_id',
-        'start_date', 'end_date', 'guests',
+        'code', 'hold_token', 'user_id', 'bookable_type', 'bookable_id',
+        'start_date', 'end_date', 'guests', 'units', 'nights',
         'subtotal', 'service_fee', 'discount', 'total', 'commission_amount',
         'status', 'payment_method', 'payment_status', 'payment_gateway', 'payment_ref',
         'customer_name', 'customer_phone', 'customer_email',
@@ -23,6 +23,9 @@ class Booking extends Model
     protected $casts = [
         'start_date' => 'date',
         'end_date' => 'date',
+        'guests' => 'integer',
+        'units' => 'integer',
+        'nights' => 'integer',
         'subtotal' => 'decimal:2',
         'service_fee' => 'decimal:2',
         'discount' => 'decimal:2',
@@ -46,6 +49,12 @@ class Booking extends Model
     public function bookable(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    /** وحدات المخزون المرتبطة بهذا الحجز (محرك الإتاحة) */
+    public function items(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(BookingItem::class);
     }
 
     public function user(): BelongsTo

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
+use App\Services\Availability\HoldService;
 use App\Services\BookingNotifier;
 use App\Services\FawryService;
 use App\Services\PaymobService;
@@ -17,6 +18,7 @@ class PaymentController extends Controller
         private PaymobService $paymob,
         private FawryService $fawry,
         private BookingNotifier $notifier,
+        private HoldService $holds,
     ) {}
 
     /**
@@ -45,6 +47,7 @@ class PaymentController extends Controller
             $this->markPaid($booking);
         } elseif ($valid && ! $success) {
             $booking->update(['payment_status' => 'unpaid', 'status' => 'pending']);
+            $this->releaseHold($booking);
         }
 
         return redirect()->route('booking.confirmation', $booking->code);
@@ -142,6 +145,7 @@ class PaymentController extends Controller
             $this->markPaid($booking);
         } elseif ($booking && in_array($status, ['FAILED', 'CANCELED', 'EXPIRED'], true)) {
             $booking->update(['payment_status' => 'unpaid', 'status' => 'pending']);
+            $this->releaseHold($booking);
         }
 
         return response()->json(['ok' => true]);
@@ -152,9 +156,31 @@ class PaymentController extends Controller
         if ($booking->payment_status === 'paid') {
             return; // idempotent
         }
-        $booking->update(['payment_status' => 'paid', 'status' => 'confirmed']);
 
-        // إشعار العميل (إيميل + واتساب)
-        $this->notifier->confirmed($booking);
+        // ثبّت وحدات المخزون (لو الحجز المؤقّت ضاع بيحاول يعيد الحجز)
+        $secured = $this->holds->confirmBooking($booking);
+
+        if ($secured) {
+            $booking->update(['payment_status' => 'paid', 'status' => 'confirmed']);
+            $this->notifier->confirmed($booking);
+
+            return;
+        }
+
+        // مدفوع لكن الإتاحة اختفت — يتصعّد يدويًا (استرداد/إعادة جدولة)
+        $booking->update([
+            'payment_status' => 'paid',
+            'status' => 'processing',
+            'notes' => trim(($booking->notes ? $booking->notes."\n" : '').'⚠️ تم الدفع لكن التواريخ لم تعد متاحة — مطلوب تدخّل يدوي.'),
+        ]);
+        Log::critical('حجز مدفوع بلا إتاحة', ['code' => $booking->code]);
+    }
+
+    /** يحرّر الحجز المؤقّت عند فشل الدفع */
+    private function releaseHold(Booking $booking): void
+    {
+        if ($booking->hold_token) {
+            $this->holds->release($booking->hold_token);
+        }
     }
 }
