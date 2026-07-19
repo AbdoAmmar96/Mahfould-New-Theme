@@ -1,6 +1,9 @@
-// محفول مكفول — Layout الأساسي (هيدر + فوتر)
+// محفول مكفول — Layout الأساسي (هيدر + فوتر) — Tailwind + Shadcn
 import { Link, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
+import { Check, TriangleAlert } from 'lucide-react';
+import { Button } from '@/Components/ui/button';
+import { cn } from '@/lib/utils';
 
 const NAV = [
     { href: '/', label: 'الرئيسية', key: 'home' },
@@ -32,30 +35,49 @@ export default function SiteLayout({ children, active = '' }) {
     }, [flash]);
 
     return (
-        <div className="mk">
+        <div className="mk min-h-screen bg-cream font-body text-navy">
             {toast && (
-                <div className={`mk-toast mk-toast-${toast.type}`} role="status">
-                    {toast.type === 'success' ? '✓' : '⚠️'} {toast.msg}
+                <div
+                    className={cn(
+                        'fixed inset-x-0 top-4 z-[60] mx-auto flex w-fit max-w-[92%] items-center gap-2 rounded-input px-4 py-3 text-sm font-semibold text-white shadow-mk-lg animate-in fade-in slide-in-from-top-3',
+                        toast.type === 'success' ? 'bg-makfol' : 'bg-danger',
+                    )}
+                    role="status"
+                >
+                    {toast.type === 'success' ? <Check className="h-4 w-4" /> : <TriangleAlert className="h-4 w-4" />} {toast.msg}
                 </div>
             )}
-            <header className="mk-header">
-                <div className="mk-header-in">
-                    <Link href="/" className="mk-logo"><img src="/assets/img/logo.png" alt="محفول مكفول" /></Link>
-                    <nav className="mk-nav">
-                        {NAV.map((n) => (
-                            <Link key={n.key} href={n.href}
-                                className={(active === n.key || url === n.href) ? 'is-active' : ''}>
-                                {n.label}
-                            </Link>
-                        ))}
+
+            <header className="sticky top-0 z-40 border-b border-black/[.07] bg-white/95 backdrop-blur">
+                <div className="mx-auto flex h-[74px] max-w-[1200px] items-center px-5">
+                    <Link href="/" className="shrink-0">
+                        <img src="/assets/img/logo.png" alt="محفول مكفول" className="h-9 w-auto" />
+                    </Link>
+                    <nav className="hidden flex-1 items-center justify-center gap-1 lg:flex">
+                        {NAV.map((n) => {
+                            const isActive = active === n.key || url === n.href;
+                            return (
+                                <Link
+                                    key={n.key}
+                                    href={n.href}
+                                    className={cn(
+                                        'relative rounded-input px-3 py-2 text-[15px] font-semibold transition-colors',
+                                        isActive ? 'text-coral-deep' : 'text-navy/80 hover:text-coral-deep',
+                                        isActive && 'after:absolute after:inset-x-3 after:-bottom-0.5 after:h-0.5 after:rounded-full after:bg-gradient-to-r after:from-coral after:to-coral-deep',
+                                    )}
+                                >
+                                    {n.label}
+                                </Link>
+                            );
+                        })}
                     </nav>
-                    <div className="mk-header-cta">
+                    <div className="ms-auto flex items-center gap-2">
                         {auth?.user ? (
-                            <Link href="/account" className="mk-btn mk-btn-secondary">{auth.user.name}</Link>
+                            <Button asChild variant="secondary" size="sm"><Link href="/account">{auth.user.name}</Link></Button>
                         ) : (
                             <>
-                                <Link href="/login" className="mk-btn mk-btn-secondary">دخول</Link>
-                                <Link href="/register" className="mk-btn mk-btn-primary">سجّل مجاناً</Link>
+                                <Button asChild variant="secondary" size="sm"><Link href="/login">دخول</Link></Button>
+                                <Button asChild size="sm"><Link href="/register">سجّل مجاناً</Link></Button>
                             </>
                         )}
                     </div>
@@ -64,23 +86,25 @@ export default function SiteLayout({ children, active = '' }) {
 
             <main>{children}</main>
 
-            <footer className="mk-footer">
-                <div className="mk-wrap">
-                    <div className="mk-footer-grid">
+            <footer className="mt-10 bg-navy-deep pt-16 text-white/70">
+                <div className="mx-auto max-w-[1200px] px-5">
+                    <div className="grid grid-cols-1 gap-8 pb-10 md:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr]">
                         <div>
-                            <div className="mk-footer-logo"><img src="/assets/img/logo-t.png" alt="محفول مكفول" /></div>
-                            <p style={{ fontSize: '14.5px', maxWidth: '320px' }}>
+                            <img src="/assets/img/logo-t.png" alt="محفول مكفول" className="mb-3.5 h-10 w-auto" />
+                            <p className="max-w-[320px] text-[14.5px] leading-relaxed">
                                 منصة سياحة مصرية — رحلتك محفولة مكفولة، من أول ما تفكر لحد ما ترجع.
                             </p>
                         </div>
                         {Object.entries(FOOTER).map(([title, links]) => (
                             <div key={title}>
-                                <h4>{title}</h4>
-                                {links.map(([href, label], i) => <Link key={i} href={href}>{label}</Link>)}
+                                <h4 className="mb-4 font-head text-[17px] text-white">{title}</h4>
+                                {links.map(([href, label], i) => (
+                                    <Link key={i} href={href} className="block py-1.5 text-[14.5px] transition-colors hover:text-coral">{label}</Link>
+                                ))}
                             </div>
                         ))}
                     </div>
-                    <div className="mk-footer-bar">
+                    <div className="flex flex-wrap items-center justify-between gap-3.5 border-t border-white/10 py-5 text-[13.5px]">
                         <span>© {new Date().getFullYear()} محفول مكفول — كل الحقوق محفوظة</span>
                         <span>صُنع في مصر 🇪🇬</span>
                     </div>

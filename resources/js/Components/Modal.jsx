@@ -1,5 +1,6 @@
-// محفول مكفول — نافذة منبثقة قابلة لإعادة الاستخدام (RTL)
+// محفول مكفول — نافذة منبثقة قابلة لإعادة الاستخدام (RTL) — Tailwind
 import { useEffect } from 'react';
+import { X } from 'lucide-react';
 
 export default function Modal({ open, onClose, icon, title, subtitle, children }) {
     useEffect(() => {
@@ -16,17 +17,33 @@ export default function Modal({ open, onClose, icon, title, subtitle, children }
     if (!open) return null;
 
     return (
-        <div className="mk-modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-            <div className="mk-modal-card" role="dialog" aria-modal="true" aria-label={title}>
-                <button className="mk-modal-close" onClick={onClose} aria-label="إغلاق">×</button>
-                <div className="mk-modal-head">
-                    {icon && <div className="mk-modal-ico">{icon}</div>}
+        <div
+            onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-navy-deep/50 p-4 backdrop-blur-sm animate-in fade-in"
+        >
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-label={title}
+                className="relative max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-section bg-white p-6 shadow-mk-lg animate-in fade-in zoom-in-95"
+            >
+                <button
+                    onClick={onClose}
+                    aria-label="إغلاق"
+                    className="absolute end-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-beige text-navy transition hover:bg-sandline"
+                >
+                    <X className="h-4 w-4" />
+                </button>
+                <div className="mb-4 flex items-center gap-3 pe-10">
+                    {icon && <div className="flex h-12 w-12 flex-none items-center justify-center rounded-[14px] bg-beige text-2xl">{icon}</div>}
                     <div>
-                        <h3>{title}</h3>
-                        {subtitle && <p>{subtitle}</p>}
+                        <h3 className="font-head text-xl font-bold text-navy">{title}</h3>
+                        {subtitle && <p className="text-sm text-muted">{subtitle}</p>}
                     </div>
                 </div>
-                <div className="mk-modal-body">{children}</div>
+                <div className="text-[15px] leading-relaxed text-[#444] [&_a]:font-bold [&_a]:text-coral-deep [&_h2]:mb-2 [&_h2]:mt-4 [&_h2]:font-head [&_h2]:text-lg [&_h2]:text-navy [&_li]:mb-1.5 [&_p]:mb-3 [&_ul]:mb-3 [&_ul]:list-disc [&_ul]:ps-5">
+                    {children}
+                </div>
             </div>
         </div>
     );
