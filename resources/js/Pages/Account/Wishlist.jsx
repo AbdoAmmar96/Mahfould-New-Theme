@@ -1,6 +1,10 @@
 import SiteLayout from '@/Layouts/SiteLayout';
 import { money } from '@/Components/UI';
 import { Head, Link, router } from '@inertiajs/react';
+import { Heart, MapPin, ArrowLeft } from 'lucide-react';
+import { Button } from '@/Components/ui/button';
+import { Badge } from '@/Components/ui/badge';
+import { Card, CardMedia, CardBody, CardTitle, CardMeta, CardFooter } from '@/Components/ui/card';
 
 const typeLabel = { tour: 'رحلة', hotel: 'فندق', restaurant: 'مطعم', car: 'سيارة', sahb: 'صاحب السعادة' };
 
@@ -13,36 +17,59 @@ export default function Wishlist({ items }) {
     return (
         <SiteLayout>
             <Head title="المفضلة" />
-            <section className="mk-pagehead">
-                <div className="mk-wrap"><div className="mk-crumb"><Link href="/">الرئيسية</Link> › <Link href="/account">حسابي</Link> › المفضلة</div><h1>المفضلة ♥</h1></div>
+
+            {/* بانر الصفحة */}
+            <section className="relative overflow-hidden bg-gradient-to-br from-navy to-navy-light py-12 text-white">
+                <div className="pointer-events-none absolute -top-40 -start-20 h-[360px] w-[360px] rounded-full bg-coral opacity-30 blur-[100px]" />
+                <div className="relative z-[1] mx-auto w-full max-w-[1200px] px-5">
+                    <div className="text-[13.5px] font-semibold text-white/70">
+                        <Link href="/" className="transition-colors hover:text-white">الرئيسية</Link> › <Link href="/account" className="transition-colors hover:text-white">حسابي</Link> › المفضلة
+                    </div>
+                    <h1 className="mt-1.5 flex items-center gap-2 font-head text-3xl font-bold text-white">المفضلة <Heart className="h-6 w-6 fill-current" /></h1>
+                </div>
             </section>
 
-            <section className="mk-sec" style={{ paddingTop: 34 }}>
-                <div className="mk-wrap">
+            <section className="pt-[34px] pb-14 md:pb-[72px]">
+                <div className="mx-auto w-full max-w-[1200px] px-5">
                     {items.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--mk-muted)' }}>
-                            <div style={{ fontSize: 48, marginBottom: 12 }}>🤍</div>
+                        <div className="py-[60px] text-center text-muted">
+                            <Heart className="mx-auto mb-3 h-12 w-12 text-coral/40" />
                             <p>لسه مضفتش حاجة للمفضلة.</p>
-                            <Link href="/tours" className="mk-btn mk-btn-primary" style={{ marginTop: 8 }}>اكتشف الرحلات ←</Link>
+                            <Button asChild className="mt-3">
+                                <Link href="/tours">اكتشف الرحلات <ArrowLeft className="h-4 w-4" /></Link>
+                            </Button>
                         </div>
                     ) : (
-                        <div className="mk-grid mk-grid-4">
+                        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
                             {items.map((it, i) => (
-                                <article key={i} className="mk-card">
-                                    <div className="mk-card-media">
-                                        <div className="mk-card-tags"><span className="mk-badge mk-badge-soft">{typeLabel[it.type] || it.type}</span></div>
-                                        <button className="mk-card-fav is-active" type="button" onClick={(e) => remove(it.type, it.id, e)} aria-label="إزالة">♥</button>
-                                        <Link href={it.url}><img src={it.image_url} alt={it.title} loading="lazy" /></Link>
-                                    </div>
-                                    <div className="mk-card-body">
-                                        <h3 className="mk-card-title"><Link href={it.url}>{it.title}</Link></h3>
-                                        <div className="mk-card-meta">{it.location}</div>
-                                        <div className="mk-card-foot">
-                                            {it.price > 0 && <span className="mk-price">{money(it.price)} <small>ج.م</small></span>}
-                                            <Link href={it.url} className="mk-btn mk-btn-secondary">التفاصيل</Link>
+                                <Card key={i}>
+                                    <CardMedia>
+                                        <div className="absolute top-3 start-3 z-10 flex flex-col gap-1.5">
+                                            <Badge variant="soft">{typeLabel[it.type] || it.type}</Badge>
                                         </div>
-                                    </div>
-                                </article>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => remove(it.type, it.id, e)}
+                                            aria-label="إزالة"
+                                            className="absolute top-3 end-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-coral-deep shadow-sm backdrop-blur transition hover:scale-110"
+                                        >
+                                            <Heart className="h-4 w-4" fill="currentColor" />
+                                        </button>
+                                        <Link href={it.url}>
+                                            <img src={it.image_url} alt={it.title} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                        </Link>
+                                    </CardMedia>
+                                    <CardBody>
+                                        <CardTitle className="mb-1.5"><Link href={it.url} className="transition-colors hover:text-coral-deep">{it.title}</Link></CardTitle>
+                                        <CardMeta className="mb-3.5 flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {it.location}</CardMeta>
+                                        <CardFooter>
+                                            {it.price > 0 ? (
+                                                <span className="font-head text-[22px] font-bold text-coral-deep">{money(it.price)} <small className="text-[13px] font-semibold text-muted">ج.م</small></span>
+                                            ) : <span />}
+                                            <Button asChild variant="secondary" size="sm"><Link href={it.url}>التفاصيل</Link></Button>
+                                        </CardFooter>
+                                    </CardBody>
+                                </Card>
                             ))}
                         </div>
                     )}

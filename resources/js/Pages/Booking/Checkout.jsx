@@ -1,12 +1,16 @@
 import SiteLayout from '@/Layouts/SiteLayout';
 import { money } from '@/Components/UI';
+import { Button } from '@/Components/ui/button';
+import { Input, Select, Field } from '@/Components/ui/input';
+import { cn } from '@/lib/utils';
 import { Head, useForm } from '@inertiajs/react';
 import { useMemo } from 'react';
+import { Check, Lock, CreditCard, Wallet, Banknote } from 'lucide-react';
 
 const PAY = [
-    { key: 'card', label: '💳 بطاقة ائتمان' },
-    { key: 'wallet', label: '📱 محفظة إلكترونية' },
-    { key: 'on_arrival', label: '💵 دفع عند الوصول' },
+    { key: 'card', label: 'بطاقة ائتمان', Icon: CreditCard },
+    { key: 'wallet', label: 'محفظة إلكترونية', Icon: Wallet },
+    { key: 'on_arrival', label: 'دفع عند الوصول', Icon: Banknote },
 ];
 
 export default function Checkout({ item, prefill = {}, pricing = {} }) {
@@ -27,70 +31,101 @@ export default function Checkout({ item, prefill = {}, pricing = {} }) {
     return (
         <SiteLayout>
             <Head title="إتمام الحجز" />
-            <section className="mk-sec" style={{ padding: '34px 0' }}>
-                <div className="mk-wrap" style={{ maxWidth: 1080 }}>
-                    <h1 style={{ marginBottom: 22 }}>إتمام الحجز</h1>
+            <section className="py-[34px]">
+                <div className="mx-auto w-full max-w-[1080px] px-5">
+                    <h1 className="mb-[22px] font-head text-[28px] font-bold text-navy md:text-3xl">إتمام الحجز</h1>
 
-                    <div className="mk-steps">
-                        <div className="mk-step done"><span className="num">✓</span><span>اختيار الخدمة</span></div>
-                        <div className="mk-step-line" />
-                        <div className="mk-step active"><span className="num">2</span><span>البيانات والمراجعة</span></div>
-                        <div className="mk-step-line" />
-                        <div className="mk-step"><span className="num">3</span><span>الدفع الآمن</span></div>
+                    {/* الخطوات */}
+                    <div className="mb-[30px] flex items-center">
+                        <div className="flex items-center gap-2.5 text-xs font-bold text-muted sm:text-sm">
+                            <span className="flex h-[30px] w-[30px] items-center justify-center rounded-full border border-transparent bg-gradient-to-br from-coral to-coral-deep text-white">
+                                <Check className="h-4 w-4" />
+                            </span>
+                            <span className="hidden sm:inline">اختيار الخدمة</span>
+                        </div>
+                        <div className="mx-3.5 h-0.5 min-w-[30px] flex-1 bg-coral" />
+                        <div className="flex items-center gap-2.5 text-xs font-bold text-navy sm:text-sm">
+                            <span className="flex h-[30px] w-[30px] items-center justify-center rounded-full border border-transparent bg-gradient-to-br from-coral to-coral-deep text-sm text-white">2</span>
+                            <span className="hidden sm:inline">البيانات والمراجعة</span>
+                        </div>
+                        <div className="mx-3.5 h-0.5 min-w-[30px] flex-1 bg-black/[.06]" />
+                        <div className="flex items-center gap-2.5 text-xs font-bold text-muted sm:text-sm">
+                            <span className="flex h-[30px] w-[30px] items-center justify-center rounded-full border border-black/[.06] bg-beige text-sm text-muted">3</span>
+                            <span className="hidden sm:inline">الدفع الآمن</span>
+                        </div>
                     </div>
 
                     <form onSubmit={submit}>
-                        <div className="mk-checkout">
+                        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[1fr_380px]">
                             <div>
-                                <div className="mk-detail-block">
-                                    <h3>بيانات المسافر الأساسي</h3>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                                        <label className="mk-field"><span className="mk-label">الاسم بالكامل</span>
-                                            <input className={`mk-input ${errors.customer_name ? 'is-error' : ''}`} value={data.customer_name} onChange={(e) => setData('customer_name', e.target.value)} placeholder="عمرو شلبي" /></label>
-                                        <label className="mk-field"><span className="mk-label">رقم الموبايل</span>
-                                            <input className={`mk-input ${errors.customer_phone ? 'is-error' : ''}`} value={data.customer_phone} onChange={(e) => setData('customer_phone', e.target.value)} placeholder="010xxxxxxxx" /></label>
-                                        <label className="mk-field"><span className="mk-label">البريد الإلكتروني</span>
-                                            <input className="mk-input" type="email" value={data.customer_email} onChange={(e) => setData('customer_email', e.target.value)} placeholder="you@email.com" /></label>
-                                        <label className="mk-field"><span className="mk-label">الرقم القومي <small style={{ color: 'var(--mk-muted)' }}>(اختياري)</small></span>
-                                            <input className="mk-input" value={data.customer_national_id} onChange={(e) => setData('customer_national_id', e.target.value)} placeholder="14 رقم" /></label>
-                                        <label className="mk-field"><span className="mk-label">{item.type === 'hotel' ? 'تاريخ الوصول' : item.type === 'car' ? 'تاريخ الاستلام' : 'التاريخ'}</span>
-                                            <input className="mk-input" type="date" value={data.start_date} onChange={(e) => setData('start_date', e.target.value)} /></label>
-                                        <label className="mk-field"><span className="mk-label">{item.type === 'hotel' ? 'عدد الليالي' : item.type === 'car' ? 'عدد الأيام' : 'عدد الأفراد'}</span>
-                                            <select className="mk-select" value={data.guests} onChange={(e) => setData('guests', +e.target.value)}>
+                                <div className="mb-5 rounded-card border border-black/[.06] bg-white p-6">
+                                    <h3 className="mb-3.5 font-head text-[19px] text-navy">بيانات المسافر الأساسي</h3>
+                                    <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+                                        <Field label="الاسم بالكامل">
+                                            <Input className={cn(errors.customer_name && 'border-danger ring-2 ring-danger/20')} value={data.customer_name} onChange={(e) => setData('customer_name', e.target.value)} placeholder="عمرو شلبي" />
+                                        </Field>
+                                        <Field label="رقم الموبايل">
+                                            <Input className={cn(errors.customer_phone && 'border-danger ring-2 ring-danger/20')} value={data.customer_phone} onChange={(e) => setData('customer_phone', e.target.value)} placeholder="010xxxxxxxx" />
+                                        </Field>
+                                        <Field label="البريد الإلكتروني">
+                                            <Input type="email" value={data.customer_email} onChange={(e) => setData('customer_email', e.target.value)} placeholder="you@email.com" />
+                                        </Field>
+                                        <Field label={<>الرقم القومي <small className="text-muted">(اختياري)</small></>}>
+                                            <Input value={data.customer_national_id} onChange={(e) => setData('customer_national_id', e.target.value)} placeholder="14 رقم" />
+                                        </Field>
+                                        <Field label={item.type === 'hotel' ? 'تاريخ الوصول' : item.type === 'car' ? 'تاريخ الاستلام' : 'التاريخ'}>
+                                            <Input type="date" value={data.start_date} onChange={(e) => setData('start_date', e.target.value)} />
+                                        </Field>
+                                        <Field label={item.type === 'hotel' ? 'عدد الليالي' : item.type === 'car' ? 'عدد الأيام' : 'عدد الأفراد'}>
+                                            <Select value={data.guests} onChange={(e) => setData('guests', +e.target.value)}>
                                                 {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => <option key={n} value={n}>{n}</option>)}
-                                            </select></label>
+                                            </Select>
+                                        </Field>
                                     </div>
                                 </div>
 
-                                <div className="mk-detail-block">
-                                    <h3>طريقة الدفع</h3>
-                                    <div className="mk-pay">
-                                        {PAY.map((p) => (
-                                            <div key={p.key} className={`mk-pay-opt ${data.payment_method === p.key ? 'sel' : ''}`}
-                                                onClick={() => setData('payment_method', p.key)}>{p.label}<span className="r" /></div>
-                                        ))}
+                                <div className="mb-5 rounded-card border border-black/[.06] bg-white p-6">
+                                    <h3 className="mb-3.5 font-head text-[19px] text-navy">طريقة الدفع</h3>
+                                    <div className="flex flex-wrap gap-3">
+                                        {PAY.map((p) => {
+                                            const sel = data.payment_method === p.key;
+                                            return (
+                                                <div key={p.key} onClick={() => setData('payment_method', p.key)}
+                                                    className={cn(
+                                                        'flex min-w-[150px] flex-1 cursor-pointer items-center gap-2.5 rounded-input border-[1.5px] p-4 font-bold text-navy transition-colors hover:border-coral',
+                                                        sel ? 'border-coral bg-coral/[.06]' : 'border-black/[.06]',
+                                                    )}>
+                                                    <p.Icon className="h-5 w-5 text-coral-deep" /> {p.label}
+                                                    <span className={cn('ms-auto flex h-[18px] w-[18px] items-center justify-center rounded-full border-2', sel ? 'border-coral' : 'border-black/[.06]')}>
+                                                        {sel && <span className="h-2 w-2 rounded-full bg-coral" />}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>
 
                             {/* ملخص */}
                             <div>
-                                <div className="mk-book">
-                                    <div className="mk-flex" style={{ gap: 12, paddingBottom: 16, borderBottom: '1px solid var(--mk-border)', marginBottom: 16 }}>
-                                        <img src={item.image_url} style={{ width: 64, height: 64, borderRadius: 12, objectFit: 'cover' }} alt="" />
-                                        <div><b style={{ fontFamily: 'var(--mk-font-head)' }}>{item.title}</b>
-                                            <div style={{ fontSize: 13, color: 'var(--mk-muted)', fontWeight: 600 }}>{data.guests} {item.unit}</div></div>
+                                <div className="rounded-card border border-black/[.06] bg-white p-[22px] shadow-mk lg:sticky lg:top-[92px]">
+                                    <div className="mb-4 flex items-center gap-3 border-b border-black/[.06] pb-4">
+                                        <img src={item.image_url} className="h-16 w-16 rounded-xl object-cover" alt="" />
+                                        <div>
+                                            <b className="font-head text-navy">{item.title}</b>
+                                            <div className="text-[13px] font-semibold text-muted">{data.guests} {item.unit}</div>
+                                        </div>
                                     </div>
-                                    <div className="mk-summary-row"><span>السعر ({data.guests} {item.unit})</span><span>{money(subtotal)} ج.م</span></div>
-                                    <div className="mk-summary-row"><span>رسوم الخدمة</span><span>{money(fee)} ج.م</span></div>
+                                    <div className="flex justify-between py-[9px] text-sm"><span>السعر ({data.guests} {item.unit})</span><span>{money(subtotal)} ج.م</span></div>
+                                    <div className="flex justify-between py-[9px] text-sm"><span>رسوم الخدمة</span><span>{money(fee)} ج.م</span></div>
                                     {discount > 0 && (
-                                        <div className="mk-summary-row"><span>خصم مكفول</span><span style={{ color: 'var(--mk-makfol)' }}>−{money(discount)} ج.م</span></div>
+                                        <div className="flex justify-between py-[9px] text-sm"><span>خصم مكفول</span><span className="text-makfol">−{money(discount)} ج.م</span></div>
                                     )}
-                                    <div className="mk-summary-row total"><span>الإجمالي</span><b>{money(total)} ج.م</b></div>
-                                    <button type="submit" disabled={processing} className="mk-btn mk-btn-primary mk-btn-block mk-btn-lg" style={{ marginTop: 16 }}>
+                                    <div className="mt-2 flex justify-between border-t border-black/[.06] pb-[9px] pt-3.5 text-base font-extrabold"><span>الإجمالي</span><b className="font-head text-xl text-coral-deep">{money(total)} ج.م</b></div>
+                                    <Button type="submit" disabled={processing} block size="lg" className="mt-4">
                                         {processing ? 'جاري التأكيد…' : 'أكّد وادفع'}
-                                    </button>
-                                    <p style={{ textAlign: 'center', fontSize: '12.5px', color: 'var(--mk-muted)', margin: '12px 0 0' }}>🔒 دفع آمن ومشفّر</p>
+                                    </Button>
+                                    <p className="mt-3 flex items-center justify-center gap-1.5 text-[12.5px] text-muted"><Lock className="h-3.5 w-3.5" /> دفع آمن ومشفّر</p>
                                 </div>
                             </div>
                         </div>

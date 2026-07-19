@@ -1,31 +1,37 @@
 // محفول مكفول — Layout لوحات التحكم (أدمن + بائع)
-import '../../css/admin.css';
+import '../../css/admin.css'; // لازم: صفحات اللوحة (children) بتعتمد على كلاسات mkad-* (جداول/فورم/بطاقات)
 import { Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
+import {
+    LayoutDashboard, Plane, BedDouble, UtensilsCrossed, Car, MapPin,
+    Gift, FileText, Ticket, LogOut, CheckCircle2, AlertTriangle,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/Components/ui/button';
 
 const NAV = {
     admin: [
-        { href: '/admin', label: 'الرئيسية', icon: '📊', exact: true },
+        { href: '/admin', label: 'الرئيسية', Icon: LayoutDashboard, exact: true },
         { sep: true },
-        { href: '/admin/tours', label: 'الرحلات', icon: '🌍' },
-        { href: '/admin/hotels', label: 'الفنادق', icon: '🏨' },
-        { href: '/admin/restaurants', label: 'المطاعم', icon: '🍽️' },
-        { href: '/admin/cars', label: 'السيارات', icon: '🚗' },
-        { href: '/admin/locations', label: 'الوجهات', icon: '📍' },
-        { href: '/admin/sahb', label: 'صاحب السعادة', icon: '🎁' },
-        { href: '/admin/pages', label: 'الصفحات', icon: '📄' },
+        { href: '/admin/tours', label: 'الرحلات', Icon: Plane },
+        { href: '/admin/hotels', label: 'الفنادق', Icon: BedDouble },
+        { href: '/admin/restaurants', label: 'المطاعم', Icon: UtensilsCrossed },
+        { href: '/admin/cars', label: 'السيارات', Icon: Car },
+        { href: '/admin/locations', label: 'الوجهات', Icon: MapPin },
+        { href: '/admin/sahb', label: 'صاحب السعادة', Icon: Gift },
+        { href: '/admin/pages', label: 'الصفحات', Icon: FileText },
         { sep: true },
-        { href: '/admin/bookings', label: 'الحجوزات', icon: '🎫' },
+        { href: '/admin/bookings', label: 'الحجوزات', Icon: Ticket },
     ],
     vendor: [
-        { href: '/vendor', label: 'الرئيسية', icon: '📊', exact: true },
+        { href: '/vendor', label: 'الرئيسية', Icon: LayoutDashboard, exact: true },
         { sep: true },
-        { href: '/vendor/tours', label: 'رحلاتي', icon: '🌍' },
-        { href: '/vendor/hotels', label: 'فنادقي', icon: '🏨' },
-        { href: '/vendor/restaurants', label: 'مطاعمي', icon: '🍽️' },
-        { href: '/vendor/cars', label: 'سياراتي', icon: '🚗' },
+        { href: '/vendor/tours', label: 'رحلاتي', Icon: Plane },
+        { href: '/vendor/hotels', label: 'فنادقي', Icon: BedDouble },
+        { href: '/vendor/restaurants', label: 'مطاعمي', Icon: UtensilsCrossed },
+        { href: '/vendor/cars', label: 'سياراتي', Icon: Car },
         { sep: true },
-        { href: '/vendor/bookings', label: 'حجوزاتي', icon: '🎫' },
+        { href: '/vendor/bookings', label: 'حجوزاتي', Icon: Ticket },
     ],
 };
 
@@ -56,39 +62,63 @@ export default function AdminLayout({ title, crumb, actions, children }) {
     const logout = () => router.post(`/${panel}/logout`);
 
     return (
-        <div className="mkad">
-            {toast && <div className={`mkad-toast ${toast.type}`}>{toast.type === 'success' ? '✓' : '⚠️'} {toast.msg}</div>}
-
-            <aside className="mkad-sidebar">
-                <div className="mkad-brand">
-                    <img src="/assets/img/logo-t.png" alt="محفول مكفول" />
-                    <div>محفول مكفول<small>{brandSub}</small></div>
+        <div className="flex min-h-screen flex-col bg-cream font-body text-navy min-[860px]:flex-row-reverse">
+            {toast && (
+                <div className={cn(
+                    'fixed start-1/2 top-[18px] z-[100] inline-flex -translate-x-1/2 items-center gap-2 rounded-xl px-[22px] py-3 text-[14.5px] font-bold text-white shadow-mk-lg',
+                    toast.type === 'success' ? 'bg-makfol' : 'bg-danger',
+                )}>
+                    {toast.type === 'success'
+                        ? <CheckCircle2 className="h-5 w-5" />
+                        : <AlertTriangle className="h-5 w-5" />}
+                    {toast.msg}
                 </div>
-                <nav className="mkad-nav">
+            )}
+
+            <aside className="flex w-full shrink-0 flex-col overflow-y-auto bg-gradient-to-br from-navy to-navy-light px-4 py-[22px] text-white min-[860px]:sticky min-[860px]:top-0 min-[860px]:h-screen min-[860px]:w-[264px]">
+                <div className="flex items-center gap-2.5 px-2 pb-5 pt-1.5 font-head text-xl font-bold">
+                    <img src="/assets/img/logo-t.png" alt="محفول مكفول" className="h-[38px]" />
+                    <div>محفول مكفول<small className="block text-xs font-normal text-white/60">{brandSub}</small></div>
+                </div>
+                <nav className="mt-2 flex flex-row flex-wrap gap-[3px] min-[860px]:flex-col">
                     {NAV[panel].map((item, i) =>
-                        item.sep ? <div key={i} className="sep" /> : (
-                            <Link key={item.href} href={item.href} className={isActive(item) ? 'is-active' : ''}>
-                                <span className="ic">{item.icon}</span> {item.label}
+                        item.sep ? <div key={i} className="mx-1.5 my-3 h-px w-full bg-white/[.12]" /> : (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                className={cn(
+                                    'flex shrink-0 items-center gap-[11px] rounded-input px-[13px] py-[11px] text-[15px] font-semibold text-white/80 transition-colors hover:bg-white/10 hover:text-white',
+                                    isActive(item) && 'bg-gradient-to-br from-coral to-coral-deep text-white shadow-[0_10px_26px_rgba(234,75,59,.28)] hover:text-white',
+                                )}
+                            >
+                                <item.Icon className="h-[18px] w-[18px] shrink-0" /> {item.label}
                             </Link>
                         )
                     )}
                 </nav>
-                <div className="mkad-side-foot">
-                    <div className="sep" />
-                    <div className="who">{user?.name} · {user?.role === 'admin' ? 'مدير' : 'شريك'}</div>
-                    <button className="mkad-iconbtn danger" style={{ width: '100%' }} onClick={logout}>تسجيل الخروج</button>
+                <div className="mt-auto pt-4">
+                    <div className="mx-1.5 my-3 h-px bg-white/[.12]" />
+                    <div className="px-2 pb-2 text-[13px] text-white/60">{user?.name} · {user?.role === 'admin' ? 'مدير' : 'شريك'}</div>
+                    <Button
+                        variant="ghost"
+                        block
+                        onClick={logout}
+                        className="border-white/20 text-white/90 hover:border-danger hover:bg-danger hover:text-white"
+                    >
+                        <LogOut className="h-4 w-4" /> تسجيل الخروج
+                    </Button>
                 </div>
             </aside>
 
-            <div className="mkad-main">
-                <header className="mkad-topbar">
+            <div className="flex min-w-0 flex-1 flex-col">
+                <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-sandline bg-white px-7 py-4">
                     <div>
-                        <h1>{title}</h1>
-                        {crumb && <div className="crumb">{crumb}</div>}
+                        <h1 className="font-head text-[22px] font-bold">{title}</h1>
+                        {crumb && <div className="text-[13px] text-muted">{crumb}</div>}
                     </div>
                     {actions}
                 </header>
-                <div className="mkad-body">{children}</div>
+                <div className="flex-1 px-3.5 py-[18px] min-[860px]:px-7 min-[860px]:py-[26px]">{children}</div>
             </div>
         </div>
     );
