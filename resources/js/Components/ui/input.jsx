@@ -20,7 +20,7 @@ const Select = React.forwardRef(({ className, children, ...props }, ref) => (
     <select
         ref={ref}
         className={cn(
-            'h-11 w-full rounded-input border border-black/10 bg-white px-3.5 text-sm text-navy outline-none transition-colors focus:border-coral focus:ring-2 focus:ring-coral/20 disabled:opacity-50',
+            'mk-native-select h-11 w-full rounded-input border border-black/10 bg-white ps-3.5 pe-9 text-sm text-navy outline-none transition-colors focus:border-coral focus:ring-2 focus:ring-coral/20 disabled:opacity-50',
             className,
         )}
         {...props}

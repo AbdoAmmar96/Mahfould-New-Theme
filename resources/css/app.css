@@ -177,6 +177,17 @@
 }
 .mk-input.is-error { border-color: var(--mk-danger); box-shadow: 0 0 0 3px rgba(210,64,47,.14); }
 
+/* سهم القائمة المنسدلة على اليسار دائمًا (RTL) — صريح ومستقل عن plugin forms */
+.mk-native-select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' fill='none' viewBox='0 0 24 24' stroke='%23363677' stroke-width='2.2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: left 0.85rem center;
+  background-size: 1.05rem 1.05rem;
+}
+
 /* ---------- الهيدر ---------- */
 .mk-header {
   position: sticky; top: 0; z-index: 60;

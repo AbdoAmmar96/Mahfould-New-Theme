@@ -106,13 +106,6 @@ export default function Home({ locations, featured, hotels, restaurants, cars, p
         router.get(TABS[tab].route, q);
     };
 
-    const NUMBERS = [
-        [`+${stats.services}`, 'خدمة متاحة'],
-        [stats.destinations, 'وجهة سياحية'],
-        ['24/7', 'دعم مصري'],
-        ['100%', 'حجز مكفول'],
-    ];
-
     return (
         <SiteLayout active="home">
             <Head title="رحلتك محفولة مكفولة" />
@@ -132,7 +125,7 @@ export default function Home({ locations, featured, hotels, restaurants, cars, p
                         <p className="mt-4 max-w-xl text-lg text-white/80">رحلات، فنادق، مطاعم، وتجارب — كلها في مكان واحد، بسعر مضمون وضمان استرداد.</p>
                     </div>
 
-                    <div className="mt-8 max-w-[920px] delay-150 duration-700 animate-in fade-in slide-in-from-bottom-3">
+                    <div className="mt-8 delay-150 duration-700 animate-in fade-in slide-in-from-bottom-3">
                         <Tabs value={String(tab)} onValueChange={(v) => setTab(Number(v))}>
                             <TabsList>
                                 {TABS.map((t, i) => (
@@ -140,18 +133,19 @@ export default function Home({ locations, featured, hotels, restaurants, cars, p
                                 ))}
                             </TabsList>
                         </Tabs>
-                        <form onSubmit={search} className="grid grid-cols-1 items-end gap-3 rounded-section rounded-tl-none bg-white p-4 shadow-mk-lg sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto]">
-                            <Field label="فين حابب تروح؟"><Input value={loc} onChange={(e) => setLoc(e.target.value)} placeholder={TABS[tab].ph} /></Field>
-                            <Field label="التاريخ"><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
+                        <form onSubmit={search} className="grid grid-cols-1 items-end gap-4 rounded-section rounded-tl-none bg-white p-6 shadow-mk-lg sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto]">
+                            <Field label="فين حابب تروح؟"><Input className="h-[52px]" value={loc} onChange={(e) => setLoc(e.target.value)} placeholder={TABS[tab].ph} /></Field>
+                            <Field label="التاريخ"><Input className="h-[52px]" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
                             <Field label="عدد الأفراد">
-                                <Select value={guests} onChange={(e) => setGuests(e.target.value)}>
-                                    <option value="">أي عدد</option>
+                                <Select className="h-[52px]" value={guests} onChange={(e) => setGuests(e.target.value)}>
+                                    <option value="" disabled hidden>حدّد العدد</option>
+                                    <option value="1">فرد واحد</option>
                                     <option value="2">فردين</option>
                                     <option value="3">3 أفراد</option>
                                     <option value="4">عائلة (4+)</option>
                                 </Select>
                             </Field>
-                            <Button type="submit" className="h-11 px-6"><Search className="h-4 w-4" /> دوّر</Button>
+                            <Button type="submit" className="h-[52px] px-9 text-base"><Search className="h-[18px] w-[18px]" /> بحث</Button>
                         </form>
                     </div>
                 </Wrap>
@@ -286,20 +280,6 @@ export default function Home({ locations, featured, hotels, restaurants, cars, p
                                 <Icon className="mx-auto mb-2.5 mt-1.5 h-9 w-9 text-coral" />
                                 <h3 className="font-head text-[19px] font-semibold text-navy">{t}</h3>
                                 <p className="mt-2 text-[14.5px] leading-relaxed text-muted">{d}</p>
-                            </div>
-                        ))}
-                    </div>
-                </Wrap>
-            </section>
-
-            {/* أرقام المنصة */}
-            <section className="bg-gradient-to-br from-navy to-navy-light py-12">
-                <Wrap>
-                    <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-                        {NUMBERS.map(([v, l], i) => (
-                            <div key={i} className="text-center text-white">
-                                <div className="font-head text-[32px] font-bold leading-none md:text-[40px]">{v}</div>
-                                <div className="mt-2 text-[15px] text-white/70">{l}</div>
                             </div>
                         ))}
                     </div>
