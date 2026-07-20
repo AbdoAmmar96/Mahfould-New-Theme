@@ -21,11 +21,13 @@ class Company extends Model
 {
     protected $fillable = [
         'user_id', 'provider_type', 'name', 'slug', 'logo', 'about',
-        'phone', 'email', 'national_id',
+        'phone', 'email', 'national_id', 'tax_id',
         'license_no', 'license_authority', 'license_expires_at',
+        'bank_holder', 'bank_iban', 'bank_name',
         'verification_status', 'is_first_party',
         'provider_review_score', 'provider_review_count',
         'commission_rate_override', 'admin_notes',
+        'total_paid_out', 'total_pending_settlement',
         'approved_at', 'approved_by',
     ];
 
@@ -34,6 +36,8 @@ class Company extends Model
         'license_expires_at' => 'date',
         'provider_review_score' => 'decimal:2',
         'commission_rate_override' => 'decimal:2',
+        'total_paid_out' => 'decimal:2',
+        'total_pending_settlement' => 'decimal:2',
         'approved_at' => 'datetime',
     ];
 

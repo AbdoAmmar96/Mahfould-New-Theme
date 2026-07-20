@@ -217,5 +217,12 @@ class DatabaseSeeder extends Seeder
 
         // ── صفحات المحتوى الثابت ──
         $this->call(PagesSeeder::class);
+
+        // ── Phase E: كتالوج (منيو + ترابيزات + فعاليات) + شرائح عمرية + إحداثيات ──
+        $this->call([
+            LocationsSeeder::class,   // يحدّث lat/lng للمدن
+            AgePricingSeeder::class,  // شرائح رضيع/طفل/بالغ
+            CatalogSeeder::class,     // ترابيزات + منيو + فعاليات
+        ]);
     }
 }

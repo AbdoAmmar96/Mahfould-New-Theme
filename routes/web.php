@@ -38,6 +38,9 @@ $crud = function (string $name, string $controller, array $only = ['index', 'cre
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
+// Health check تفصيلي (§Production monitoring) — يستهلكه uptime monitor
+Route::get('/health', \App\Http\Controllers\HealthController::class)->middleware('throttle:api')->name('health');
+
 // الرحلات
 Route::get('/tours', [TourController::class, 'index'])->name('tours.index');
 Route::get('/tours/{tour:slug}', [TourController::class, 'show'])->name('tours.show');
@@ -64,15 +67,15 @@ Route::get('/cars/{car:slug}', [CarController::class, 'show'])->name('cars.show'
 Route::get('/buses', [BusController::class, 'index'])->name('buses.index');
 Route::get('/buses/routes/{route:slug}', [BusController::class, 'route'])->name('buses.route');
 
-// التوصيل — V2 §11 (منصة وسيط، تسعير بالكيلومتر)
+// التوصيل — V2 §11 (منصة وسيط، تسعير بالكيلومتر) — rate-limit
 Route::get('/delivery', [DeliveryController::class, 'index'])->name('delivery.index');
-Route::post('/delivery/estimate', [DeliveryController::class, 'estimate'])->name('delivery.estimate');
-Route::post('/delivery/order', [DeliveryController::class, 'store'])->name('delivery.store');
+Route::post('/delivery/estimate', [DeliveryController::class, 'estimate'])->name('delivery.estimate')->middleware('throttle:api');
+Route::post('/delivery/order', [DeliveryController::class, 'store'])->name('delivery.store')->middleware('throttle:booking');
 Route::get('/delivery/confirm/{code}', [DeliveryController::class, 'confirm'])->name('delivery.confirm');
 
 // تسجيل مزوّد (شركة/فرد) — V2 §1.1 (صفحة منفصلة تماماً عن تسجيل العملاء)
 Route::get('/provider/register', [ProviderRegisterController::class, 'create'])->name('provider.register');
-Route::post('/provider/register', [ProviderRegisterController::class, 'store']);
+Route::post('/provider/register', [ProviderRegisterController::class, 'store'])->middleware('throttle:provider-register');
 
 // بروفايل عام للمزوّد — V2 §3 (لوجو + كل التقييمات المجمّعة)
 Route::get('/providers/{slug}', [ProviderProfileController::class, 'show'])->name('providers.show');
@@ -80,9 +83,9 @@ Route::get('/providers/{slug}', [ProviderProfileController::class, 'show'])->nam
 // إتاحة الفنادق (JSON) — لمنتقي التواريخ
 Route::get('/availability/hotel/{hotel:slug}', [AvailabilityController::class, 'hotel'])->name('availability.hotel');
 
-// الحجز
+// الحجز — §19: rate-limit إلزامي على مسار الإنشاء
 Route::get('/checkout/{type}/{id}', [BookingController::class, 'create'])->name('booking.create');
-Route::post('/checkout', [BookingController::class, 'store'])->name('booking.store');
+Route::post('/checkout', [BookingController::class, 'store'])->name('booking.store')->middleware('throttle:booking');
 Route::get('/booking/{booking:code}', [BookingController::class, 'confirmation'])->name('booking.confirmation');
 
 // دفع Paymob (callback من صفحة الدفع + webhook موثوق)
@@ -93,18 +96,18 @@ Route::post('/payment/webhook', [PaymentController::class, 'webhook'])->name('pa
 Route::match(['get', 'post'], '/payment/fawry/callback', [PaymentController::class, 'fawryCallback'])->name('payment.fawry.callback');
 Route::post('/payment/fawry/webhook', [PaymentController::class, 'fawryWebhook'])->name('payment.fawry.webhook');
 
-// المصادقة
+// المصادقة — §19: rate-limit إلزامي
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'create'])->name('login');
-    Route::post('/login', [LoginController::class, 'store']);
+    Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:login');
     Route::get('/register', [RegisterController::class, 'create'])->name('register');
-    Route::post('/register', [RegisterController::class, 'store']);
+    Route::post('/register', [RegisterController::class, 'store'])->middleware('throttle:register');
 
     // استرجاع كلمة المرور
     Route::get('/forgot-password', [PasswordResetController::class, 'create'])->name('password.request');
-    Route::post('/forgot-password', [PasswordResetController::class, 'store'])->name('password.email');
+    Route::post('/forgot-password', [PasswordResetController::class, 'store'])->name('password.email')->middleware('throttle:password');
     Route::get('/reset-password/{token}', [PasswordResetController::class, 'edit'])->name('password.reset');
-    Route::post('/reset-password', [PasswordResetController::class, 'update'])->name('password.update');
+    Route::post('/reset-password', [PasswordResetController::class, 'update'])->name('password.update')->middleware('throttle:password');
 });
 
 Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')->name('logout');
@@ -112,8 +115,8 @@ Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')-
 // حساب المستخدم
 Route::middleware('auth')->group(function () {
     Route::get('/account', [BookingController::class, 'account'])->name('account.index');
-    Route::post('/reviews', [ReviewController::class, 'store'])->name('reviews.store');
-    Route::post('/wishlist/toggle', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
+    Route::post('/reviews', [ReviewController::class, 'store'])->name('reviews.store')->middleware('throttle:actions');
+    Route::post('/wishlist/toggle', [WishlistController::class, 'toggle'])->name('wishlist.toggle')->middleware('throttle:actions');
     Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
 
     // Phase E — عناوين متعدّدة للعميل (§12)
@@ -123,12 +126,12 @@ Route::middleware('auth')->group(function () {
     Route::delete('/account/addresses/{address}', [UserAddressController::class, 'destroy'])->name('account.addresses.destroy');
     Route::post('/account/addresses/{address}/default', [UserAddressController::class, 'setDefault'])->name('account.addresses.default');
 
-    // Phase F — تذاكر دعم فني للعميل (§15)
+    // Phase F — تذاكر دعم فني للعميل (§15) — rate-limit للـstore/reply
     Route::get('/account/support', [SupportTicketController::class, 'index'])->name('account.support.index');
     Route::get('/account/support/create', [SupportTicketController::class, 'create'])->name('account.support.create');
-    Route::post('/account/support', [SupportTicketController::class, 'store'])->name('account.support.store');
+    Route::post('/account/support', [SupportTicketController::class, 'store'])->name('account.support.store')->middleware('throttle:support');
     Route::get('/account/support/{code}', [SupportTicketController::class, 'show'])->name('account.support.show');
-    Route::post('/account/support/{code}/reply', [SupportTicketController::class, 'reply'])->name('account.support.reply');
+    Route::post('/account/support/{code}/reply', [SupportTicketController::class, 'reply'])->name('account.support.reply')->middleware('throttle:actions');
 });
 
 // ── لوحة الدعم الفني (§15) ─────────────────────────────
@@ -196,5 +199,13 @@ Route::prefix('vendor')->name('vendor.')->group(function () use ($crud) {
         $crud('cars', Vendor\CarController::class);
 
         $crud('bookings', Vendor\BookingController::class, ['index']);
+
+        // §15: قارئ QR للمنشأة + الأرباح والتسويات
+        Route::get('scanner', [Vendor\ScannerController::class, 'index'])->name('scanner.index');
+        Route::post('scanner/verify', [Vendor\ScannerController::class, 'verify'])->name('scanner.verify');
+        Route::post('scanner/{code}/mark-used', [Vendor\ScannerController::class, 'markUsed'])->name('scanner.mark_used');
+
+        Route::get('earnings', [Vendor\EarningsController::class, 'index'])->name('earnings.index');
+        Route::put('earnings/banking', [Vendor\EarningsController::class, 'updateBanking'])->name('earnings.banking');
     });
 });

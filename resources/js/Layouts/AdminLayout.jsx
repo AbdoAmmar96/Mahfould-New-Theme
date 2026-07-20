@@ -4,7 +4,7 @@ import { Link, router, usePage } from '@inertiajs/react';
 import { useEffect } from 'react';
 import {
     LayoutDashboard, Plane, BedDouble, UtensilsCrossed, Car, MapPin,
-    Gift, FileText, Ticket, LogOut, ShieldCheck, BarChart3,
+    Gift, FileText, Ticket, LogOut, ShieldCheck, BarChart3, ScanLine, Wallet,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/Components/ui/button';
@@ -35,6 +35,8 @@ const NAV = {
         { href: '/vendor/cars', label: 'سياراتي', Icon: Car },
         { sep: true },
         { href: '/vendor/bookings', label: 'حجوزاتي', Icon: Ticket },
+        { href: '/vendor/scanner', label: 'مسح QR', Icon: ScanLine },
+        { href: '/vendor/earnings', label: 'الأرباح والتسويات', Icon: Wallet },
     ],
 };
 
