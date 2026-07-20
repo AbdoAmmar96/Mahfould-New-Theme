@@ -35,8 +35,23 @@ export default function SiteLayout({ children, active = '' }) {
         <div className="mk min-h-screen bg-cream font-body text-navy">
             <Toaster />
 
+            {/* شريط علوي — دخول الشركاء */}
+            {!auth?.user && (
+                <div className="hidden border-b border-black/[.06] bg-beige/40 py-1.5 text-[12.5px] text-navy/80 md:block">
+                    <div className="mx-auto flex max-w-[1200px] items-center justify-end gap-3 px-5 2xl:max-w-[1600px]">
+                        <Link href="/provider/register" className="font-bold hover:text-coral-deep">
+                            سجّل كمقدم خدمة
+                        </Link>
+                        <span className="text-black/20">·</span>
+                        <Link href="/vendor/login" className="font-bold hover:text-coral-deep">
+                            دخول شريك
+                        </Link>
+                    </div>
+                </div>
+            )}
+
             <header className="sticky top-0 z-40 border-b border-black/[.07] bg-white/95 backdrop-blur">
-                <div className="mx-auto flex h-[74px] max-w-[1200px] items-center px-5">
+                <div className="mx-auto flex h-[74px] max-w-[1200px] items-center px-5 2xl:max-w-[1600px]">
                     <Link href="/" className="shrink-0">
                         <img src="/assets/img/logo.png" alt="محفول مكفول" className="h-9 w-auto" />
                     </Link>
@@ -74,7 +89,7 @@ export default function SiteLayout({ children, active = '' }) {
             <main>{children}</main>
 
             <footer className="mt-10 bg-navy-deep pt-16 text-white/70">
-                <div className="mx-auto max-w-[1200px] px-5">
+                <div className="mx-auto max-w-[1200px] px-5 2xl:max-w-[1600px]">
                     <div className="grid grid-cols-1 gap-8 pb-10 md:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr]">
                         <div>
                             <img src="/assets/img/logo_white_transparent.png" alt="محفول مكفول" className="mb-3.5 h-12 w-auto" />

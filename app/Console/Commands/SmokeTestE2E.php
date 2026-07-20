@@ -186,12 +186,17 @@ class SmokeTestE2E extends Command
         if (!$rest) throw new \RuntimeException('No restaurant with tables — run CatalogSeeder');
         $table = $rest->activeTables()->where('capacity', '>=', 2)->first();
 
+        // تاريخ + وقت فريدين — يمنع collisions عبر إعادة تشغيل الـtest
+        $uniqueDate = now()->addDays(random_int(60, 120))->toDateString();
+        $slots = ['12:00', '13:30', '15:00', '17:00', '18:30', '20:00', '21:30'];
+        $uniqueSlot = $slots[random_int(0, count($slots) - 1)];
+
         $before = Booking::count();
         $req = Request::create('/checkout', 'POST', [
             'type' => 'restaurant', 'id' => $rest->id,
             'restaurant_table_id' => $table->id,
-            'start_date' => now()->addDays(2)->toDateString(),
-            'start_time' => '19:30', 'guests' => 2,
+            'start_date' => $uniqueDate,
+            'start_time' => $uniqueSlot, 'guests' => 2,
             'customer_name' => 'E2E Rest', 'customer_phone' => '01000000003',
             'booking_for' => 'self', 'payment_method' => 'on_arrival',
         ]);

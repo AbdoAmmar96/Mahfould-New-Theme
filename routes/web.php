@@ -44,6 +44,8 @@ Route::get('/health', \App\Http\Controllers\HealthController::class)->middleware
 // الرحلات
 Route::get('/tours', [TourController::class, 'index'])->name('tours.index');
 Route::get('/tours/{tour:slug}', [TourController::class, 'show'])->name('tours.show');
+Route::get('/tours/{tour:slug}/schedule', [TourController::class, 'schedule'])->name('tours.schedule');
+Route::get('/tours/{tour:slug}/schedule/print', [TourController::class, 'schedulePrint'])->name('tours.schedule.print');
 
 // الفنادق
 Route::get('/hotels', [HotelController::class, 'index'])->name('hotels.index');
@@ -83,9 +85,11 @@ Route::get('/providers/{slug}', [ProviderProfileController::class, 'show'])->nam
 // إتاحة الفنادق (JSON) — لمنتقي التواريخ
 Route::get('/availability/hotel/{hotel:slug}', [AvailabilityController::class, 'hotel'])->name('availability.hotel');
 
-// الحجز — §19: rate-limit إلزامي على مسار الإنشاء
-Route::get('/checkout/{type}/{id}', [BookingController::class, 'create'])->name('booking.create');
-Route::post('/checkout', [BookingController::class, 'store'])->name('booking.store')->middleware('throttle:booking');
+// الحجز — §19: rate-limit + auth إلزامي (لازم يسجّل قبل الحجز)
+Route::middleware('auth')->group(function () {
+    Route::get('/checkout/{type}/{id}', [BookingController::class, 'create'])->name('booking.create');
+    Route::post('/checkout', [BookingController::class, 'store'])->name('booking.store')->middleware('throttle:booking');
+});
 Route::get('/booking/{booking:code}', [BookingController::class, 'confirmation'])->name('booking.confirmation');
 
 // دفع Paymob (callback من صفحة الدفع + webhook موثوق)

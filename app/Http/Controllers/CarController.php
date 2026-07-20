@@ -13,11 +13,37 @@ class CarController extends Controller
 {
     public function index(Request $request): Response
     {
-        $cars = Car::published()->with('location:id,name')
-            ->when($request->query('location'), fn ($q, $s) =>
-                $q->whereHas('location', fn ($qq) => $qq->where('slug', $s)))
-            ->when($request->query('transmission'), fn ($q, $t) => $q->where('transmission', $t))
-            ->latest()->paginate(9)->withQueryString();
+        $query = Car::published()->with('location:id,name');
+
+        // بحث نصّي
+        if ($q = trim((string) $request->query('q', ''))) {
+            $query->where(function ($sub) use ($q) {
+                $sub->where('title', 'like', "%{$q}%")
+                    ->orWhere('brand', 'like', "%{$q}%")
+                    ->orWhereHas('location', fn ($l) => $l->where('name', 'like', "%{$q}%"));
+            });
+        }
+
+        if ($slug = $request->query('location')) $query->whereHas('location', fn ($qq) => $qq->where('slug', $slug));
+        if ($t = $request->query('transmission')) $query->where('transmission', $t);
+        if ($b = $request->query('brand')) $query->where('brand', $b);
+        if ($request->query('with_driver') !== null && $request->query('with_driver') !== '') {
+            $query->where('with_driver', $request->boolean('with_driver'));
+        }
+        if ($seats = $request->query('min_seats')) $query->where('seats', '>=', (int) $seats);
+        if ($max = $request->query('max_price')) $query->where('price', '<=', (float) $max);
+
+        match ($request->query('sort')) {
+            'price_asc' => $query->orderBy('price'),
+            'price_desc' => $query->orderByDesc('price'),
+            'rating' => $query->orderByDesc('review_score'),
+            default => $query->latest(),
+        };
+
+        $cars = $query->paginate(9)->withQueryString();
+
+        // كل الماركات المتاحة (للفلتر)
+        $brands = Car::published()->distinct()->pluck('brand')->filter()->values();
 
         return Inertia::render('Cars/Index', [
             'cars' => $cars->through(fn ($c) => [
@@ -40,7 +66,8 @@ class CarController extends Controller
             ]),
             'locations' => Location::orderBy('order')->get()
                 ->map(fn ($l) => ['name' => $l->name, 'slug' => $l->slug]),
-            'filters' => (object) $request->only(['location', 'transmission']),
+            'brands' => $brands,
+            'filters' => (object) $request->only(['q', 'location', 'transmission', 'brand', 'with_driver', 'min_seats', 'max_price', 'sort']),
         ]);
     }
 

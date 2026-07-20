@@ -13,10 +13,37 @@ class HotelController extends Controller
 {
     public function index(Request $request): Response
     {
-        $hotels = Hotel::published()->with('location:id,name')
-            ->when($request->query('location'), fn ($q, $s) =>
-                $q->whereHas('location', fn ($qq) => $qq->where('slug', $s)))
-            ->latest()->paginate(9)->withQueryString();
+        $query = Hotel::published()->with('location:id,name');
+
+        // بحث نصّي (اسم + مدينة + وصف)
+        if ($q = trim((string) $request->query('q', ''))) {
+            $query->where(function ($sub) use ($q) {
+                $sub->where('title', 'like', "%{$q}%")
+                    ->orWhere('short_desc', 'like', "%{$q}%")
+                    ->orWhere('content', 'like', "%{$q}%")
+                    ->orWhereHas('location', fn ($l) => $l->where('name', 'like', "%{$q}%"));
+            });
+        }
+
+        if ($slug = $request->query('location')) {
+            $query->whereHas('location', fn ($qq) => $qq->where('slug', $slug));
+        }
+        if ($min = $request->query('min_price')) $query->where('price', '>=', (float) $min);
+        if ($max = $request->query('max_price')) $query->where('price', '<=', (float) $max);
+        if ($stars = $request->query('star_rating')) $query->where('star_rating', (int) $stars);
+        if ($request->boolean('guaranteed')) $query->where('is_guaranteed', true);
+        if ($request->boolean('breakfast')) {
+            $query->whereHas('activeRoomTypes', fn ($q) => $q->where('includes_breakfast', true));
+        }
+
+        match ($request->query('sort')) {
+            'price_asc' => $query->orderBy('price'),
+            'price_desc' => $query->orderByDesc('price'),
+            'rating' => $query->orderByDesc('review_score'),
+            default => $query->latest(),
+        };
+
+        $hotels = $query->paginate(9)->withQueryString();
 
         return Inertia::render('Hotels/Index', [
             'hotels' => $hotels->through(fn ($h) => [
@@ -37,7 +64,7 @@ class HotelController extends Controller
             ]),
             'locations' => Location::withCount('hotels')->orderBy('order')->get()
                 ->map(fn ($l) => ['name' => $l->name, 'slug' => $l->slug, 'count' => $l->hotels_count]),
-            'filters' => (object) $request->only(['location']),
+            'filters' => (object) $request->only(['q', 'location', 'min_price', 'max_price', 'star_rating', 'guaranteed', 'breakfast', 'sort']),
         ]);
     }
 

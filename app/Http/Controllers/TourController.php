@@ -14,16 +14,44 @@ class TourController extends Controller
 {
     public function index(Request $request, ValueScoreService $value): Response
     {
-        $query = Tour::published()->with('location:id,name')->withCount('activities');
+        $query = Tour::published()->with('location:id,name,slug')->withCount('activities');
 
-        // فلترة بالوجهة
+        // بحث نصّي — يبحث في العنوان، الوصف، والمدينة (بأي جزء من الكلمة)
+        if ($q = trim((string) $request->query('q', ''))) {
+            $query->where(function ($sub) use ($q) {
+                $sub->where('title', 'like', "%{$q}%")
+                    ->orWhere('short_desc', 'like', "%{$q}%")
+                    ->orWhere('content', 'like', "%{$q}%")
+                    ->orWhereHas('location', fn ($l) => $l->where('name', 'like', "%{$q}%"));
+            });
+        }
+
+        // فلترة بالوجهة (بالـslug من قائمة الوجهات)
         if ($slug = $request->query('location')) {
             $query->whereHas('location', fn ($q) => $q->where('slug', $slug));
         }
 
-        // فلترة بالسعر
+        // فلترة بالسعر (min + max)
+        if ($min = $request->query('min_price')) {
+            $query->where('price', '>=', (float) $min);
+        }
         if ($max = $request->query('max_price')) {
             $query->where('price', '<=', (float) $max);
+        }
+
+        // فلترة بمدة الرحلة
+        if ($days = $request->query('duration_days')) {
+            $query->where('duration_days', (int) $days);
+        }
+
+        // مضمون (مكفول) فقط
+        if ($request->boolean('guaranteed')) {
+            $query->where('is_guaranteed', true);
+        }
+
+        // فيها فعاليات إضافية
+        if ($request->boolean('with_activities')) {
+            $query->has('activeActivities');
         }
 
         // ترتيب — value = أفضل قيمة (§12)
@@ -77,8 +105,61 @@ class TourController extends Controller
                 : $tours->through($mapItem),
             'locations' => Location::withCount('tours')->orderBy('order')->get()
                 ->map(fn ($l) => ['name' => $l->name, 'slug' => $l->slug, 'count' => $l->tours_count]),
-            'filters' => (object) $request->only(['location', 'max_price', 'sort']),
+            'filters' => (object) $request->only(['q', 'location', 'min_price', 'max_price', 'duration_days', 'guaranteed', 'with_activities', 'sort']),
         ]);
+    }
+
+    public function schedule(Tour $tour)
+    {
+        abort_if($tour->status !== 'publish', 404);
+
+        $tour->load([
+            'location',
+            'activeActivities',
+            'itineraries' => fn ($q) => $q->orderBy('day_number'),
+        ]);
+
+        return Inertia::render('Tours/Schedule', [
+            'tour' => [
+                'id' => $tour->id,
+                'title' => $tour->title,
+                'slug' => $tour->slug,
+                'location' => $tour->location?->name,
+                'duration_days' => $tour->duration_days,
+                'max_people' => $tour->max_people,
+                'price' => (float) $tour->price,
+                'sale_price' => $tour->sale_price ? (float) $tour->sale_price : null,
+                'image_url' => $tour->image_url,
+                'included' => $tour->included ?: [],
+                'itineraries' => $tour->itineraries->map(fn ($d) => [
+                    'day' => $d->day_number,
+                    'title' => $d->title,
+                    'description' => $d->description,
+                    'highlights' => $d->highlights ?: [],
+                ])->values(),
+                'activities' => $tour->activeActivities->map(fn ($a) => [
+                    'title' => $a->title,
+                    'short_desc' => $a->short_desc,
+                    'price' => (float) $a->price,
+                ])->values(),
+                'checkout_url' => route('booking.create', ['type' => 'tour', 'id' => $tour->id]),
+                'print_url' => route('tours.schedule.print', $tour->slug),
+            ],
+        ]);
+    }
+
+    public function schedulePrint(Tour $tour)
+    {
+        abort_if($tour->status !== 'publish', 404);
+
+        $tour->load([
+            'location',
+            'activeActivities',
+            'itineraries' => fn ($q) => $q->orderBy('day_number'),
+        ]);
+
+        // إخراج HTML قابل للطباعة (window.print) — يعمل PDF بسهولة عبر Ctrl+P
+        return response()->view('tours.schedule-print', ['tour' => $tour]);
     }
 
     public function show(Tour $tour): Response

@@ -35,9 +35,9 @@ const STEPS = [
     [ShieldCheck, 'ادفع بأمان', 'كارت، محفظة، أو عند الوصول — وتأكيد لحظي بضمان استرداد.'],
 ];
 
-// حاوية بعرض ثابت
+// حاوية بعرض ثابت — تتّسع للشاشات 2K
 const Wrap = ({ className, children }) => (
-    <div className={cn('mx-auto w-full max-w-[1200px] px-5', className)}>{children}</div>
+    <div className={cn('mx-auto w-full max-w-[1200px] px-5 2xl:max-w-[1600px]', className)}>{children}</div>
 );
 
 // عنوان قسم
@@ -100,11 +100,12 @@ export default function Home({ locations, featured, hotels, restaurants, cars, p
 
     const search = (e) => {
         e.preventDefault();
-        const q = {};
-        if (loc) q.location = loc;
-        if (date) q.start_date = date;
-        if (guests) q.guests = guests;
-        router.get(TABS[tab].route, q);
+        const params = {};
+        // نبعت بحث نصّي (يبحث في العنوان + الوجهة + الوصف)
+        if (loc) params.q = loc;
+        if (date) params.start_date = date;
+        if (guests) params.guests = guests;
+        router.get(TABS[tab].route, params);
     };
 
     return (

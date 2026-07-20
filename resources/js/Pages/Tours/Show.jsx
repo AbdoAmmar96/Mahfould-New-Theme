@@ -2,7 +2,7 @@ import SiteLayout from '@/Layouts/SiteLayout';
 import Reviews from '@/Components/Reviews';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
-import { MapPin, Star, Heart, Check, ShieldCheck, Sparkles, CalendarDays } from 'lucide-react';
+import { MapPin, Star, Heart, Check, ShieldCheck, Sparkles, CalendarDays, Download, FileText } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 import { Badge } from '@/Components/ui/badge';
 import { Input, Field } from '@/Components/ui/input';
@@ -164,9 +164,23 @@ export default function Show({ tour, reviews, review_type, review_id }) {
                             {/* برنامج الرحلة يوم بيوم */}
                             {days.length > 0 && (
                                 <div className="mb-5 rounded-card border border-black/[.06] bg-white p-6">
-                                    <h3 className="mb-3.5 flex items-center gap-2 font-head text-[19px] font-semibold text-navy">
-                                        <CalendarDays className="h-5 w-5 text-coral-deep" /> برنامج الرحلة
-                                    </h3>
+                                    <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2">
+                                        <h3 className="flex items-center gap-2 font-head text-[19px] font-semibold text-navy">
+                                            <CalendarDays className="h-5 w-5 text-coral-deep" /> برنامج الرحلة
+                                        </h3>
+                                        <div className="flex gap-1.5">
+                                            <Button asChild variant="secondary" size="sm">
+                                                <Link href={`/tours/${tour.slug}/schedule`}>
+                                                    <FileText className="h-3.5 w-3.5" /> البرنامج الكامل
+                                                </Link>
+                                            </Button>
+                                            <Button asChild variant="secondary" size="sm">
+                                                <a href={`/tours/${tour.slug}/schedule/print?autoprint=1`} target="_blank" rel="noopener noreferrer">
+                                                    <Download className="h-3.5 w-3.5" /> PDF
+                                                </a>
+                                            </Button>
+                                        </div>
+                                    </div>
                                     <div className="relative ps-[26px]">
                                         <div className="absolute bottom-1.5 start-[7px] top-1.5 w-0.5 bg-black/[.06]" />
                                         {days.map((d, i) => (
