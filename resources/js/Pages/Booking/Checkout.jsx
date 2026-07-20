@@ -300,23 +300,26 @@ export default function Checkout({ item, prefill = {}, pricing = {} }) {
                                             ].map((opt) => {
                                                 const sel = data.transport_mode === opt.key;
                                                 return (
-                                                    <label key={opt.key} className={cn(
-                                                        'flex cursor-pointer items-start gap-2 rounded-input border-[1.5px] p-3 transition-colors hover:border-coral',
-                                                        sel ? 'border-coral bg-coral/[.06]' : 'border-black/[.08]',
-                                                    )}>
-                                                        <RadioGroupItem value={opt.key} className="mt-1" />
-                                                        <div>
-                                                            <div className="flex items-center gap-1.5 font-bold text-navy">
-                                                                <opt.Icon className="h-4 w-4 text-coral-deep" /> {opt.label}
-                                                            </div>
-                                                            <div className="text-[12px] text-muted">{opt.hint}</div>
+                                                    <label
+                                                        key={opt.key}
+                                                        dir="rtl"
+                                                        className={cn(
+                                                            'block cursor-pointer rounded-input border-[1.5px] p-4 text-right transition-colors hover:border-coral',
+                                                            sel ? 'border-coral bg-coral/[.06]' : 'border-black/[.08]',
+                                                        )}
+                                                    >
+                                                        <RadioGroupItem value={opt.key} className="sr-only" />
+                                                        <div className="flex items-center gap-2">
+                                                            <opt.Icon className="h-5 w-5 flex-none text-coral-deep" />
+                                                            <span className="font-bold text-navy">{opt.label}</span>
                                                         </div>
+                                                        <p className="mt-1.5 text-right text-[12.5px] leading-snug text-muted">{opt.hint}</p>
                                                     </label>
                                                 );
                                             })}
                                         </RadioGroup>
                                         {data.transport_mode === 'own_car' && (
-                                            <div className="mt-3 flex items-start gap-2 rounded-input border border-royal/25 bg-royal/[.04] p-3 text-[12.5px] text-navy">
+                                            <div dir="rtl" className="mt-4 flex items-start gap-2 rounded-input border border-royal/25 bg-royal/[.04] p-3 text-right text-[12.5px] text-navy">
                                                 <ShieldCheck className="mt-0.5 h-4 w-4 flex-none text-royal" />
                                                 <span>هيصدر تصريح دخول QR عند تأكيد الحجز — يظهر في صفحة التأكيد وبروفايلك.</span>
                                             </div>
@@ -360,9 +363,6 @@ export default function Checkout({ item, prefill = {}, pricing = {} }) {
                                                         sel ? 'border-coral bg-coral/[.06]' : 'border-black/[.06]',
                                                     )}>
                                                     <p.Icon className="h-5 w-5 text-coral-deep" /> {p.label}
-                                                    <span className={cn('ms-auto flex h-[18px] w-[18px] items-center justify-center rounded-full border-2', sel ? 'border-coral' : 'border-black/[.06]')}>
-                                                        {sel && <span className="h-2 w-2 rounded-full bg-coral" />}
-                                                    </span>
                                                 </div>
                                             );
                                         })}
