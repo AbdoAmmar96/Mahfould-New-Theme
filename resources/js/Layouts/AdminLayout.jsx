@@ -1,13 +1,14 @@
 // محفول مكفول — Layout لوحات التحكم (أدمن + بائع)
 import '../../css/admin.css'; // لازم: صفحات اللوحة (children) بتعتمد على كلاسات mkad-* (جداول/فورم/بطاقات)
 import { Link, router, usePage } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import {
     LayoutDashboard, Plane, BedDouble, UtensilsCrossed, Car, MapPin,
-    Gift, FileText, Ticket, LogOut, CheckCircle2, AlertTriangle,
+    Gift, FileText, Ticket, LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/Components/ui/button';
+import { Toaster, toast } from '@/Components/ui/sonner';
 
 const NAV = {
     admin: [
@@ -44,14 +45,9 @@ export default function AdminLayout({ title, crumb, actions, children }) {
     const panel = url.startsWith('/vendor') ? 'vendor' : 'admin';
     const brandSub = panel === 'vendor' ? 'بوابة الشركاء' : 'لوحة التحكم';
 
-    const [toast, setToast] = useState(null);
     useEffect(() => {
-        const msg = flash.success || flash.error;
-        if (msg) {
-            setToast({ type: flash.success ? 'success' : 'error', msg });
-            const t = setTimeout(() => setToast(null), 4000);
-            return () => clearTimeout(t);
-        }
+        if (flash.success) toast.success(flash.success);
+        if (flash.error) toast.error(flash.error);
     }, [flash.success, flash.error]);
 
     const isActive = (item) => {
@@ -63,17 +59,7 @@ export default function AdminLayout({ title, crumb, actions, children }) {
 
     return (
         <div className="flex min-h-screen flex-col bg-cream font-body text-navy min-[860px]:flex-row-reverse">
-            {toast && (
-                <div className={cn(
-                    'fixed start-1/2 top-[18px] z-[100] inline-flex -translate-x-1/2 items-center gap-2 rounded-xl px-[22px] py-3 text-[14.5px] font-bold text-white shadow-mk-lg',
-                    toast.type === 'success' ? 'bg-makfol' : 'bg-danger',
-                )}>
-                    {toast.type === 'success'
-                        ? <CheckCircle2 className="h-5 w-5" />
-                        : <AlertTriangle className="h-5 w-5" />}
-                    {toast.msg}
-                </div>
-            )}
+            <Toaster />
 
             <aside className="flex w-full shrink-0 flex-col overflow-y-auto bg-gradient-to-br from-navy to-navy-light px-4 py-[22px] text-white min-[860px]:sticky min-[860px]:top-0 min-[860px]:h-screen min-[860px]:w-[264px]">
                 <div className="flex items-center gap-2.5 px-2 pb-5 pt-1.5 font-head text-xl font-bold">

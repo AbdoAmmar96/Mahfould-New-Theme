@@ -1,8 +1,9 @@
 // محفول مكفول — محتوى بنود الثقة (تظهر كبطاقات في الرئيسية + مودال بالتفاصيل)
+import { ShieldCheck, CreditCard, Phone, Star } from 'lucide-react';
 
 export const TRUST = [
     {
-        icon: '🛡️',
+        Icon: ShieldCheck,
         title: 'ضمان مكفول',
         short: 'استرداد كامل لو حصل أي تغيير',
         body: (
@@ -18,7 +19,7 @@ export const TRUST = [
         ),
     },
     {
-        icon: '💳',
+        Icon: CreditCard,
         title: 'ادفع بأمان',
         short: 'دفع مقدّم أو عند الوصول',
         body: (
@@ -33,7 +34,7 @@ export const TRUST = [
         ),
     },
     {
-        icon: '📞',
+        Icon: Phone,
         title: 'دعم 24/7',
         short: 'فريق مصري معاك طول الرحلة',
         body: (
@@ -48,7 +49,7 @@ export const TRUST = [
         ),
     },
     {
-        icon: '⭐',
+        Icon: Star,
         title: 'أفضل سعر',
         short: 'أسعار تنافسية نراجعها باستمرار',
         body: (
@@ -59,7 +60,7 @@ export const TRUST = [
                     <li>مقارنة استرشادية تساعدك تختار صح.</li>
                     <li>شفافية كاملة — السعر اللي بتشوفه هو اللي بتدفعه.</li>
                 </ul>
-                <p style={{ color: 'var(--mk-muted)', fontSize: 13.5 }}>الأسعار المعروضة استرشادية وقابلة للتغيّر حسب توفّر الخدمة ووقت الحجز.</p>
+                <p className="text-[13.5px] text-muted">الأسعار المعروضة استرشادية وقابلة للتغيّر حسب توفّر الخدمة ووقت الحجز.</p>
             </>
         ),
     },

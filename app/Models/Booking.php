@@ -14,10 +14,15 @@ class Booking extends Model
     protected $fillable = [
         'code', 'hold_token', 'user_id', 'bookable_type', 'bookable_id',
         'start_date', 'end_date', 'guests', 'units', 'nights',
-        'subtotal', 'service_fee', 'discount', 'total', 'commission_amount',
-        'status', 'payment_method', 'payment_status', 'payment_gateway', 'payment_ref',
-        'customer_name', 'customer_phone', 'customer_email',
-        'customer_national_id', 'notes',
+        'subtotal', 'service_fee', 'cleaning_fee', 'security_deposit', 'security_deposit_status',
+        'discount', 'total', 'amount_paid', 'commission_amount',
+        'status', 'payment_method', 'payment_status', 'payment_timing',
+        'payment_gateway', 'payment_ref',
+        'customer_name', 'customer_phone', 'customer_email', 'customer_national_id',
+        'booking_for', 'beneficiary_name', 'beneficiary_national_id', 'beneficiary_age',
+        'items_snapshot', 'cancellation_policy_snapshot', 'cancellation_deadline',
+        'cancelled_at', 'checked_in_at', 'no_show_at', 'forfeited_at', 'needs_review',
+        'notes',
     ];
 
     protected $casts = [
@@ -26,11 +31,23 @@ class Booking extends Model
         'guests' => 'integer',
         'units' => 'integer',
         'nights' => 'integer',
+        'beneficiary_age' => 'integer',
         'subtotal' => 'decimal:2',
         'service_fee' => 'decimal:2',
+        'cleaning_fee' => 'decimal:2',
+        'security_deposit' => 'decimal:2',
         'discount' => 'decimal:2',
         'total' => 'decimal:2',
+        'amount_paid' => 'decimal:2',
         'commission_amount' => 'decimal:2',
+        'items_snapshot' => 'array',
+        'cancellation_policy_snapshot' => 'array',
+        'cancellation_deadline' => 'datetime',
+        'cancelled_at' => 'datetime',
+        'checked_in_at' => 'datetime',
+        'no_show_at' => 'datetime',
+        'forfeited_at' => 'datetime',
+        'needs_review' => 'boolean',
     ];
 
     protected static function booted(): void
@@ -57,9 +74,27 @@ class Booking extends Model
         return $this->hasMany(BookingItem::class);
     }
 
+    /** أفراد الحجز (عمر لكل فرد + بيانات المستفيد الرئيسي) */
+    public function guestsList(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(BookingGuest::class);
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** المتبقّي عليه دفعه (0 لو مدفوع بالكامل أو الدفع عند الوصول/الاستخدام) */
+    public function getOutstandingAttribute(): float
+    {
+        return max(0, (float) $this->total - (float) $this->amount_paid);
+    }
+
+    /** لو المستفيد شخص آخر (BLUEPRINT §5) */
+    public function getIsForOtherAttribute(): bool
+    {
+        return $this->booking_for === 'other';
     }
 
     public function getStatusLabelAttribute(): string

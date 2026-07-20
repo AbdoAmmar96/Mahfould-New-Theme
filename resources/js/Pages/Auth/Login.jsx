@@ -1,5 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, Star } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 import { Badge } from '@/Components/ui/badge';
 import { Input, Field } from '@/Components/ui/input';
@@ -25,7 +25,7 @@ export default function Login() {
                                 <div className="text-[13px] text-white/70">رحلة مكفولة</div>
                             </div>
                             <div>
-                                <div className="font-head text-[26px] font-bold">4.9★</div>
+                                <div className="inline-flex items-center gap-1 font-head text-[26px] font-bold">4.9 <Star className="h-5 w-5 fill-vip text-vip" /></div>
                                 <div className="text-[13px] text-white/70">تقييم العملاء</div>
                             </div>
                         </div>

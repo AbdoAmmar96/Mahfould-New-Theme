@@ -163,7 +163,9 @@ export default function Home({ locations, featured, hotels, restaurants, cars, p
                     {TRUST.map((t, i) => (
                         <button key={i} type="button" onClick={() => setTrustOpen(i)}
                             className="flex items-center gap-3 rounded-card p-2 text-start transition hover:-translate-y-0.5 hover:shadow-mk">
-                            <span className="flex h-11 w-11 flex-none items-center justify-center rounded-[14px] bg-beige text-xl">{t.icon}</span>
+                            <span className="flex h-11 w-11 flex-none items-center justify-center rounded-[14px] bg-beige text-navy">
+                                <t.Icon className="h-5 w-5" />
+                            </span>
                             <span>
                                 <strong className="block text-[15px] font-extrabold text-navy">{t.title}</strong>
                                 <span className="text-[13px] text-muted">{t.short}</span>
@@ -173,11 +175,17 @@ export default function Home({ locations, featured, hotels, restaurants, cars, p
                 </div>
             </Wrap>
 
-            <Modal open={trustOpen !== null} onClose={() => setTrustOpen(null)}
-                icon={trustOpen !== null ? TRUST[trustOpen].icon : null}
-                title={trustOpen !== null ? TRUST[trustOpen].title : ''}>
-                {trustOpen !== null && TRUST[trustOpen].body}
-            </Modal>
+            {trustOpen !== null && (() => {
+                const T = TRUST[trustOpen];
+                const TIcon = T.Icon;
+                return (
+                    <Modal open onClose={() => setTrustOpen(null)}
+                        icon={<TIcon className="h-6 w-6 text-navy" />}
+                        title={T.title}>
+                        {T.body}
+                    </Modal>
+                );
+            })()}
 
             {/* الوجهات */}
             <section className="py-14 md:py-[72px]">
@@ -300,7 +308,11 @@ export default function Home({ locations, featured, hotels, restaurants, cars, p
                         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                             {testimonials.map((t, i) => (
                                 <div key={i} className="flex flex-col rounded-card border border-black/[.06] bg-white p-6 shadow-mk">
-                                    <div className="mb-2.5 text-[16px] tracking-[2px] text-[#F5A623]">{'★'.repeat(t.rating)}<span className="text-sandline">{'★'.repeat(5 - t.rating)}</span></div>
+                                    <div className="mb-2.5 flex items-center gap-0.5">
+                                        {Array.from({ length: 5 }).map((_, s) => (
+                                            <Star key={s} className={cn('h-4 w-4', s < t.rating ? 'fill-vip text-vip' : 'text-sandline')} />
+                                        ))}
+                                    </div>
                                     {t.title && <h4 className="mb-2 font-head text-[17px] font-semibold text-navy">{t.title}</h4>}
                                     <p className="mb-4 flex-1 text-[15px] leading-relaxed text-[#555]">{t.content}</p>
                                     <div className="flex items-center gap-3 border-t border-black/[.06] pt-3.5">

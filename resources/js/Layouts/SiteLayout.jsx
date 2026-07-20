@@ -1,8 +1,8 @@
 // محفول مكفول — Layout الأساسي (هيدر + فوتر) — Tailwind + Shadcn
 import { Link, usePage } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
-import { Check, TriangleAlert } from 'lucide-react';
+import { useEffect } from 'react';
 import { Button } from '@/Components/ui/button';
+import { Toaster, toast } from '@/Components/ui/sonner';
 import { cn } from '@/lib/utils';
 
 const NAV = [
@@ -24,29 +24,14 @@ export default function SiteLayout({ children, active = '' }) {
     const { auth, flash } = usePage().props;
     const url = usePage().url;
 
-    const [toast, setToast] = useState(null);
     useEffect(() => {
-        const msg = flash?.success || flash?.error;
-        if (msg) {
-            setToast({ type: flash.success ? 'success' : 'error', msg });
-            const t = setTimeout(() => setToast(null), 4500);
-            return () => clearTimeout(t);
-        }
+        if (flash?.success) toast.success(flash.success);
+        if (flash?.error) toast.error(flash.error);
     }, [flash]);
 
     return (
         <div className="mk min-h-screen bg-cream font-body text-navy">
-            {toast && (
-                <div
-                    className={cn(
-                        'fixed inset-x-0 top-4 z-[60] mx-auto flex w-fit max-w-[92%] items-center gap-2 rounded-input px-4 py-3 text-sm font-semibold text-white shadow-mk-lg animate-in fade-in slide-in-from-top-3',
-                        toast.type === 'success' ? 'bg-makfol' : 'bg-danger',
-                    )}
-                    role="status"
-                >
-                    {toast.type === 'success' ? <Check className="h-4 w-4" /> : <TriangleAlert className="h-4 w-4" />} {toast.msg}
-                </div>
-            )}
+            <Toaster />
 
             <header className="sticky top-0 z-40 border-b border-black/[.07] bg-white/95 backdrop-blur">
                 <div className="mx-auto flex h-[74px] max-w-[1200px] items-center px-5">

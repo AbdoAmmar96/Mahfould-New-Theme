@@ -1,4 +1,5 @@
 // محفول مكفول — مساعدات عرض خلايا الجداول للوحة التحكم
+import { Star, Check, X as XIcon } from 'lucide-react';
 
 export function money(n) {
     return new Intl.NumberFormat('en-US').format(Math.round(n || 0));
@@ -40,11 +41,21 @@ export function Cell({ col, row }) {
         case 'money-good':
             return <span className="mkad-money-good">{money(v)} ج.م</span>;
         case 'bool':
-            return v ? <span className="mkad-bool-y">✓</span> : <span className="mkad-bool-n">✕</span>;
+            return v
+                ? <span className="mkad-bool-y inline-flex items-center"><Check className="h-4 w-4" strokeWidth={3} /></span>
+                : <span className="mkad-bool-n inline-flex items-center"><XIcon className="h-4 w-4" strokeWidth={3} /></span>;
         case 'badge':
             return <Badge value={v} />;
-        case 'stars':
-            return <span title={`${v} نجوم`}>{'⭐'.repeat(Number(v) || 0)}</span>;
+        case 'stars': {
+            const n = Math.max(0, Math.min(5, Number(v) || 0));
+            return (
+                <span title={`${n} نجوم`} className="inline-flex items-center gap-0.5">
+                    {Array.from({ length: n }).map((_, i) => (
+                        <Star key={i} className="h-3.5 w-3.5 fill-vip text-vip" />
+                    ))}
+                </span>
+            );
+        }
         case 'strong':
             return <span className="mkad-td-strong">{v ?? '—'}</span>;
         default:
