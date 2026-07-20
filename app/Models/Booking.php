@@ -22,6 +22,7 @@ class Booking extends Model
         'booking_for', 'beneficiary_name', 'beneficiary_national_id', 'beneficiary_age',
         'items_snapshot', 'cancellation_policy_snapshot', 'cancellation_deadline',
         'cancelled_at', 'checked_in_at', 'no_show_at', 'forfeited_at', 'needs_review',
+        'transport_mode', 'bus_trip_id', 'transport_details',
         'notes',
     ];
 
@@ -42,6 +43,7 @@ class Booking extends Model
         'commission_amount' => 'decimal:2',
         'items_snapshot' => 'array',
         'cancellation_policy_snapshot' => 'array',
+        'transport_details' => 'array',
         'cancellation_deadline' => 'datetime',
         'cancelled_at' => 'datetime',
         'checked_in_at' => 'datetime',
@@ -72,6 +74,18 @@ class Booking extends Model
     public function roomType(): BelongsTo
     {
         return $this->belongsTo(RoomType::class);
+    }
+
+    /** رحلة الباص المرتبطة (لو transport_mode='bus') */
+    public function busTrip(): BelongsTo
+    {
+        return $this->belongsTo(BusTrip::class, 'bus_trip_id');
+    }
+
+    /** تصاريح الدخول (QR passes) — تصدر لو transport_mode='own_car' */
+    public function entryPasses(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(EntryPass::class);
     }
 
     /** وحدات المخزون المرتبطة بهذا الحجز (محرك الإتاحة) */

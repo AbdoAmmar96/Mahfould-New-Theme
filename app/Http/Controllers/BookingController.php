@@ -12,6 +12,7 @@ use App\Models\Setting;
 use App\Services\Availability\HoldService;
 use App\Services\Booking\AgePricingService;
 use App\Services\Booking\CancellationPolicyService;
+use App\Services\Booking\EntryPassService;
 use App\Services\Booking\PaymentTimingService;
 use App\Services\BookingNotifier;
 use App\Services\Payments\PaymentManager;
@@ -110,6 +111,7 @@ class BookingController extends Controller
         AgePricingService $agePricing,
         PaymentTimingService $paymentTiming,
         CancellationPolicyService $cancellation,
+        EntryPassService $entryPasses,
     ): SymfonyResponse {
         $data = $request->validate([
             'type' => ['required', Rule::in(Bookables::types())],
@@ -130,6 +132,9 @@ class BookingController extends Controller
             'beneficiary_name' => ['required_if:booking_for,other', 'nullable', 'string', 'max:120'],
             'beneficiary_national_id' => ['required_if:booking_for,other', 'nullable', 'string', 'max:20'],
             'beneficiary_age' => ['required_if:booking_for,other', 'nullable', 'integer', 'min:0', 'max:120'],
+            // Phase C §6: طريقة الوصول للفنادق/الرحلات (اختياري)
+            'transport_mode' => ['nullable', Rule::in(['own_car', 'bus', 'rented_car'])],
+            'bus_trip_id' => ['nullable', 'integer', 'exists:bus_trips,id'],
             'payment_method' => ['required', Rule::in(['card', 'wallet', 'on_arrival'])],
         ]);
 
@@ -294,6 +299,9 @@ class BookingController extends Controller
                 'items_snapshot' => $itemsSnapshot,
                 'cancellation_policy_snapshot' => $policySnapshot,
                 'cancellation_deadline' => $deadline,
+                // Phase C: النقل (للفنادق/الرحلات)
+                'transport_mode' => in_array($data['type'], ['hotel', 'tour'], true) ? ($data['transport_mode'] ?? null) : null,
+                'bus_trip_id' => ($data['transport_mode'] ?? null) === 'bus' ? ($data['bus_trip_id'] ?? null) : null,
                 'notes' => ! empty($data['slot']) ? "الوقت المطلوب: {$data['slot']}" : null,
             ]);
 
@@ -323,6 +331,10 @@ class BookingController extends Controller
         if ($data['payment_method'] === 'on_arrival') {
             if ($holdToken) {
                 $holds->convert($holdToken, $booking->id);
+            }
+            // §6: إصدار QR entry_pass لمن جاي بعربيته
+            if ($booking->transport_mode === 'own_car') {
+                $entryPasses->issueForBooking($booking);
             }
             $notifier->confirmed($booking);
 
@@ -357,7 +369,8 @@ class BookingController extends Controller
 
     public function confirmation(Booking $booking): Response
     {
-        $booking->load('bookable', 'guestsList');
+        $booking->load('bookable', 'guestsList', 'entryPasses', 'roomType');
+        $entryPass = $booking->entryPasses->firstWhere('status', 'active');
 
         return Inertia::render('Booking/Confirmation', [
             'booking' => [
@@ -378,6 +391,17 @@ class BookingController extends Controller
                 'booking_for' => $booking->booking_for,
                 'beneficiary_name' => $booking->beneficiary_name,
                 'guests_ages' => $booking->guestsList->pluck('age')->all(),
+                'room_type' => $booking->roomType ? [
+                    'title' => $booking->roomType->title,
+                    'includes_breakfast' => $booking->roomType->includes_breakfast,
+                ] : null,
+                'transport_mode' => $booking->transport_mode,
+                'entry_pass' => $entryPass ? [
+                    'code' => $entryPass->code,
+                    'qr_image_url' => $entryPass->qr_image_url,
+                    'valid_from' => optional($entryPass->valid_from)->format('Y-m-d'),
+                    'valid_until' => optional($entryPass->valid_until)->format('Y-m-d'),
+                ] : null,
             ],
         ]);
     }

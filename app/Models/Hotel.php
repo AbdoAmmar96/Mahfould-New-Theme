@@ -4,7 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\Bookable;
 use App\Models\Concerns\HasAvailability;
-use Illuminate\Database\Eloquent\Builder;
+use App\Models\Concerns\HasProvider;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,12 +14,14 @@ use Illuminate\Support\Str;
 
 class Hotel extends Model
 {
-    use HasFactory, Bookable, HasAvailability;
+    use HasFactory, Bookable, HasAvailability, HasProvider;
 
     protected $fillable = [
-        'user_id', 'location_id', 'title', 'slug', 'short_desc', 'content',
+        'user_id', 'provider_id', 'location_id', 'title', 'slug', 'short_desc', 'content',
         'price', 'sale_price', 'star_rating', 'units_total', 'image', 'gallery',
-        'is_featured', 'is_guaranteed', 'status', 'review_score', 'review_count',
+        'is_featured', 'is_guaranteed',
+        'status', 'publish_state', 'submitted_at', 'reviewed_at', 'reviewed_by', 'rejection_reason',
+        'review_score', 'review_count',
     ];
 
     protected $casts = [
@@ -30,16 +32,13 @@ class Hotel extends Model
         'sale_price'    => 'decimal:2',
         'review_score'  => 'decimal:2',
         'units_total'   => 'integer',
+        'submitted_at'  => 'datetime',
+        'reviewed_at'   => 'datetime',
     ];
 
     protected static function booted(): void
     {
         static::creating(fn (Hotel $h) => $h->slug ??= Str::slug($h->title) . '-' . Str::random(4));
-    }
-
-    public function scopePublished(Builder $q): Builder
-    {
-        return $q->where('status', 'publish');
     }
 
     public function location(): BelongsTo

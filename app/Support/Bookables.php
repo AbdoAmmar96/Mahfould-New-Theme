@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\BusTrip;
 use App\Models\Car;
 use App\Models\Hotel;
 use App\Models\Restaurant;
@@ -21,6 +22,7 @@ class Bookables
         'restaurant' => Restaurant::class,
         'car'        => Car::class,
         'sahb'       => SahbPackage::class,
+        'bus_trip'   => BusTrip::class,
     ];
 
     public static function types(): array

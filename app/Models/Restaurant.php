@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\Bookable;
-use Illuminate\Database\Eloquent\Builder;
+use App\Models\Concerns\HasProvider;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,12 +11,14 @@ use Illuminate\Support\Str;
 
 class Restaurant extends Model
 {
-    use HasFactory, Bookable;
+    use HasFactory, Bookable, HasProvider;
 
     protected $fillable = [
-        'user_id', 'location_id', 'title', 'slug', 'address', 'content',
+        'user_id', 'provider_id', 'location_id', 'title', 'slug', 'address', 'content',
         'cuisines', 'price_range', 'image', 'gallery', 'is_featured',
-        'is_guaranteed', 'instant_booking', 'status', 'review_score', 'review_count',
+        'is_guaranteed', 'instant_booking',
+        'status', 'publish_state', 'submitted_at', 'reviewed_at', 'reviewed_by', 'rejection_reason',
+        'review_score', 'review_count',
     ];
 
     protected $casts = [
@@ -26,16 +28,13 @@ class Restaurant extends Model
         'is_guaranteed'   => 'boolean',
         'instant_booking' => 'boolean',
         'review_score'    => 'decimal:2',
+        'submitted_at'    => 'datetime',
+        'reviewed_at'     => 'datetime',
     ];
 
     protected static function booted(): void
     {
         static::creating(fn (Restaurant $r) => $r->slug ??= Str::slug($r->title) . '-' . Str::random(4));
-    }
-
-    public function scopePublished(Builder $q): Builder
-    {
-        return $q->where('status', 'publish');
     }
 
     public function location(): BelongsTo

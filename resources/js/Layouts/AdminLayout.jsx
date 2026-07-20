@@ -4,7 +4,7 @@ import { Link, router, usePage } from '@inertiajs/react';
 import { useEffect } from 'react';
 import {
     LayoutDashboard, Plane, BedDouble, UtensilsCrossed, Car, MapPin,
-    Gift, FileText, Ticket, LogOut,
+    Gift, FileText, Ticket, LogOut, ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/Components/ui/button';
@@ -23,6 +23,7 @@ const NAV = {
         { href: '/admin/pages', label: 'الصفحات', Icon: FileText },
         { sep: true },
         { href: '/admin/bookings', label: 'الحجوزات', Icon: Ticket },
+        { href: '/admin/approvals', label: 'الموافقات', Icon: ShieldCheck },
     ],
     vendor: [
         { href: '/vendor', label: 'الرئيسية', Icon: LayoutDashboard, exact: true },

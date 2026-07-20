@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\Bookable;
-use Illuminate\Database\Eloquent\Builder;
+use App\Models\Concerns\HasProvider;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,12 +11,13 @@ use Illuminate\Support\Str;
 
 class Car extends Model
 {
-    use HasFactory, Bookable;
+    use HasFactory, Bookable, HasProvider;
 
     protected $fillable = [
-        'user_id', 'location_id', 'title', 'slug', 'brand', 'content',
+        'user_id', 'provider_id', 'location_id', 'title', 'slug', 'brand', 'content',
         'price', 'sale_price', 'transmission', 'seats', 'with_driver',
-        'image', 'gallery', 'is_featured', 'is_guaranteed', 'status',
+        'image', 'gallery', 'is_featured', 'is_guaranteed',
+        'status', 'publish_state', 'submitted_at', 'reviewed_at', 'reviewed_by', 'rejection_reason',
         'review_score', 'review_count',
     ];
 
@@ -28,16 +29,13 @@ class Car extends Model
         'price'         => 'decimal:2',
         'sale_price'    => 'decimal:2',
         'review_score'  => 'decimal:2',
+        'submitted_at'  => 'datetime',
+        'reviewed_at'   => 'datetime',
     ];
 
     protected static function booted(): void
     {
         static::creating(fn (Car $c) => $c->slug ??= Str::slug($c->title) . '-' . Str::random(4));
-    }
-
-    public function scopePublished(Builder $q): Builder
-    {
-        return $q->where('status', 'publish');
     }
 
     public function location(): BelongsTo

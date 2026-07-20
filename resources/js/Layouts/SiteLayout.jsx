@@ -11,12 +11,13 @@ const NAV = [
     { href: '/hotels', label: 'الفنادق', key: 'hotels' },
     { href: '/restaurants', label: 'المطاعم', key: 'restaurants' },
     { href: '/cars', label: 'السيارات', key: 'cars' },
+    { href: '/buses', label: 'الباصات', key: 'buses' },
     { href: '/sahb-elsaada', label: 'صاحب السعادة', key: 'sahb' },
 ];
 
 const FOOTER = {
-    'المنصة': [['/tours', 'الرحلات'], ['/hotels', 'الفنادق'], ['/restaurants', 'المطاعم'], ['/cars', 'السيارات'], ['/sahb-elsaada', 'صاحب السعادة']],
-    'الشركة': [['/p/about', 'من احنا'], ['/p/partner', 'كن شريكاً'], ['/p/driver', 'انضم كسائق'], ['/p/contact', 'تواصل معانا']],
+    'المنصة': [['/tours', 'الرحلات'], ['/hotels', 'الفنادق'], ['/restaurants', 'المطاعم'], ['/cars', 'السيارات'], ['/buses', 'الباصات'], ['/sahb-elsaada', 'صاحب السعادة']],
+    'الشركة': [['/p/about', 'من احنا'], ['/provider/register', 'كن شريكاً (تسجيل مزوّد)'], ['/p/driver', 'انضم كسائق'], ['/p/contact', 'تواصل معانا']],
     'الدعم': [['/p/help', 'مركز المساعدة'], ['/p/refund', 'سياسة الاسترداد'], ['/p/terms', 'الشروط والأحكام'], ['/p/privacy', 'الخصوصية']],
 };
 

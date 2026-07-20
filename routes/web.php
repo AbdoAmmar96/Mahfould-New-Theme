@@ -6,8 +6,10 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\BusController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\CarController;
+use App\Http\Controllers\ProviderRegisterController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\Vendor;
 use App\Http\Controllers\WishlistController;
@@ -52,6 +54,14 @@ Route::get('/p/{page:slug}', [PageController::class, 'show'])->name('pages.show'
 // السيارات
 Route::get('/cars', [CarController::class, 'index'])->name('cars.index');
 Route::get('/cars/{car:slug}', [CarController::class, 'show'])->name('cars.show');
+
+// الباصات — V2 §10 (خطوط سير + رحلات مجدولة بمقاعد)
+Route::get('/buses', [BusController::class, 'index'])->name('buses.index');
+Route::get('/buses/routes/{route:slug}', [BusController::class, 'route'])->name('buses.route');
+
+// تسجيل مزوّد (شركة/فرد) — V2 §1.1 (صفحة منفصلة تماماً عن تسجيل العملاء)
+Route::get('/provider/register', [ProviderRegisterController::class, 'create'])->name('provider.register');
+Route::post('/provider/register', [ProviderRegisterController::class, 'store']);
 
 // إتاحة الفنادق (JSON) — لمنتقي التواريخ
 Route::get('/availability/hotel/{hotel:slug}', [AvailabilityController::class, 'hotel'])->name('availability.hotel');
@@ -112,6 +122,15 @@ Route::prefix('admin')->name('admin.')->group(function () use ($crud) {
 
         $crud('bookings', Admin\BookingController::class, ['index', 'edit', 'update', 'destroy']);
         Route::post('bookings/{id}/refund', [Admin\BookingController::class, 'refund'])->name('bookings.refund');
+
+        // Phase D — لوحة الموافقات (§1.1, §15)
+        Route::get('approvals', [Admin\ApprovalController::class, 'index'])->name('approvals.index');
+        Route::post('approvals/providers/{company}/approve', [Admin\ApprovalController::class, 'approveProvider'])->name('approvals.provider.approve');
+        Route::post('approvals/providers/{company}/reject', [Admin\ApprovalController::class, 'rejectProvider'])->name('approvals.provider.reject');
+        Route::post('approvals/services/{type}/{id}/approve', [Admin\ApprovalController::class, 'approveService'])->name('approvals.service.approve');
+        Route::post('approvals/services/{type}/{id}/reject', [Admin\ApprovalController::class, 'rejectService'])->name('approvals.service.reject');
+        Route::post('approvals/documents/{doc}/approve', [Admin\ApprovalController::class, 'approveDocument'])->name('approvals.document.approve');
+        Route::post('approvals/documents/{doc}/reject', [Admin\ApprovalController::class, 'rejectDocument'])->name('approvals.document.reject');
     });
 });
 

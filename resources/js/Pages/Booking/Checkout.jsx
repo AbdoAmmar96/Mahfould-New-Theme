@@ -14,6 +14,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
     Check, Lock, CreditCard, Wallet, Banknote,
     User, UserPlus, Users, AlertTriangle, ShieldCheck, ChevronDown, Info,
+    Car, Bus, Truck,
 } from 'lucide-react';
 
 const PAY = [
@@ -56,8 +57,13 @@ export default function Checkout({ item, prefill = {}, pricing = {} }) {
         // Phase B — الحجز لمين
         booking_for: 'self',
         beneficiary_name: '', beneficiary_national_id: '', beneficiary_age: '',
+        // Phase C — طريقة الوصول (فنادق/رحلات فقط)
+        transport_mode: '',
+        bus_trip_id: null,
         payment_method: pooled ? 'on_arrival' : 'card',
     });
+
+    const showTransport = item.type === 'hotel' || item.type === 'tour';
 
     // احسم توقيت الدفع الحالي — لو للطرف آخر أو صاحب السعادة → prepaid إلزامي
     const timing = data.booking_for === 'other'
@@ -276,6 +282,47 @@ export default function Checkout({ item, prefill = {}, pricing = {} }) {
                                         </div>
                                     )}
                                 </div>
+
+                                {/* ── §6: طريقة الوصول (فنادق/رحلات فقط) ── */}
+                                {showTransport && (
+                                    <div className="mb-5 rounded-card border border-black/[.06] bg-white p-6">
+                                        <h3 className="mb-1 font-head text-[19px] text-navy">إزاي هتوصل؟</h3>
+                                        <p className="mb-4 text-sm text-muted">اختر طريقة الوصول (اختياري) — احنا نظبّطلك الباقي</p>
+                                        <RadioGroup
+                                            value={data.transport_mode}
+                                            onValueChange={(v) => setData('transport_mode', v)}
+                                            className="grid grid-cols-1 gap-3 sm:grid-cols-3"
+                                        >
+                                            {[
+                                                { key: 'own_car', label: 'هوصّل بعربيتي', Icon: Car, hint: 'تصريح دخول QR ينزل مع الحجز' },
+                                                { key: 'bus', label: 'أحجز باص', Icon: Bus, hint: 'من رحلات المنصة المجدولة' },
+                                                { key: 'rented_car', label: 'أحجز عربية', Icon: Truck, hint: 'من الأسطول أو مزوّدينا' },
+                                            ].map((opt) => {
+                                                const sel = data.transport_mode === opt.key;
+                                                return (
+                                                    <label key={opt.key} className={cn(
+                                                        'flex cursor-pointer items-start gap-2 rounded-input border-[1.5px] p-3 transition-colors hover:border-coral',
+                                                        sel ? 'border-coral bg-coral/[.06]' : 'border-black/[.08]',
+                                                    )}>
+                                                        <RadioGroupItem value={opt.key} className="mt-1" />
+                                                        <div>
+                                                            <div className="flex items-center gap-1.5 font-bold text-navy">
+                                                                <opt.Icon className="h-4 w-4 text-coral-deep" /> {opt.label}
+                                                            </div>
+                                                            <div className="text-[12px] text-muted">{opt.hint}</div>
+                                                        </div>
+                                                    </label>
+                                                );
+                                            })}
+                                        </RadioGroup>
+                                        {data.transport_mode === 'own_car' && (
+                                            <div className="mt-3 flex items-start gap-2 rounded-input border border-royal/25 bg-royal/[.04] p-3 text-[12.5px] text-navy">
+                                                <ShieldCheck className="mt-0.5 h-4 w-4 flex-none text-royal" />
+                                                <span>هيصدر تصريح دخول QR عند تأكيد الحجز — يظهر في صفحة التأكيد وبروفايلك.</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
 
                                 {/* ── §5: طريقة الدفع + توقيته ── */}
                                 <div className="mb-5 rounded-card border border-black/[.06] bg-white p-6">
