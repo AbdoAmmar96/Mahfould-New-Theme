@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Str;
 
@@ -49,6 +50,18 @@ class Hotel extends Model
     public function amenities(): MorphToMany
     {
         return $this->morphToMany(Amenity::class, 'service', 'amenity_service');
+    }
+
+    /** أنواع الغرف داخل الفندق (§7) — يشمل غير النشط للأدمن */
+    public function roomTypes(): HasMany
+    {
+        return $this->hasMany(RoomType::class)->orderBy('order');
+    }
+
+    /** الأنواع النشطة المعروضة للعميل (للحجز فقط) */
+    public function activeRoomTypes(): HasMany
+    {
+        return $this->hasMany(RoomType::class)->where('is_active', true)->orderBy('order');
     }
 
     public function getImageUrlAttribute(): string

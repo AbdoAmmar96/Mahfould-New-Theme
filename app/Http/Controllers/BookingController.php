@@ -6,6 +6,8 @@ use App\Exceptions\SlotUnavailableException;
 use App\Models\Booking;
 use App\Models\BookingGuest;
 use App\Models\Concerns\HasAvailability;
+use App\Models\Hotel;
+use App\Models\RoomType;
 use App\Models\Setting;
 use App\Services\Availability\HoldService;
 use App\Services\Booking\AgePricingService;
@@ -30,9 +32,30 @@ class BookingController extends Controller
         $model = Bookables::resolve($type, $id);
         abort_unless($model !== null, 404);
 
-        $price = (float) ($model->sale_price ?? $model->price ?? 0);
+        // §7: للفنادق، لازم يُختار نوع غرفة قبل الحجز
+        $roomType = null;
+        if ($type === 'hotel') {
+            $roomTypeId = (int) $request->query('room_type_id', 0);
+            if ($roomTypeId) {
+                $roomType = RoomType::where('hotel_id', $model->id)->where('is_active', true)->find($roomTypeId);
+            }
+            // Fallback: أول نوع نشط (لتوافق مع الحجوزات القديمة اللي مبتحدّدش نوع)
+            if (! $roomType) {
+                $roomType = $model->activeRoomTypes()->first();
+            }
+            // لو الفندق ملوش أي نوع (حالة نادرة بعد Backfill)، رجّع 404
+            abort_if($roomType === null, 404, 'الفندق لا يحتوي على أنواع غرف متاحة.');
+        }
+
+        // احسب السعر والمخزون من مصدر الحقيقة الصحيح
+        $price = $roomType
+            ? (float) $roomType->effective_price
+            : (float) ($model->sale_price ?? $model->price ?? 0);
+        $inventory = $roomType
+            ? $roomType->inventoryCount()
+            : ($this->isPooled($model) ? $model->inventoryCount() : null);
         $isGuaranteed = (bool) ($model->is_guaranteed ?? false);
-        $pooled = $this->isPooled($model);
+        $pooled = $type === 'hotel'; // الفنادق دائماً pooled عبر room_type
 
         return Inertia::render('Booking/Checkout', [
             'item' => [
@@ -42,10 +65,19 @@ class BookingController extends Controller
                 'image_url' => $model->image_url,
                 'price' => $price,
                 'pooled' => $pooled,
-                'units_total' => $pooled ? $model->inventoryCount() : null,
+                'units_total' => $inventory,
                 'unit' => match ($type) {
                     'hotel' => 'الليلة', 'car' => 'اليوم', default => 'الفرد'
                 },
+                // معلومات نوع الغرفة (فنادق فقط)
+                'room_type' => $roomType ? [
+                    'id' => $roomType->id,
+                    'title' => $roomType->title,
+                    'capacity' => $roomType->capacity_per_night,
+                    'includes_breakfast' => $roomType->includes_breakfast,
+                    'price' => (float) $roomType->price_per_night,
+                    'sale_price' => $roomType->sale_price_per_night ? (float) $roomType->sale_price_per_night : null,
+                ] : null,
             ],
             'prefill' => [
                 'start_date' => $request->query('start_date'),
@@ -53,12 +85,12 @@ class BookingController extends Controller
                 'nights' => max(1, (int) $request->query('nights', 1)),
                 'units' => max(1, (int) $request->query('units', 1)),
                 'slot' => $request->query('slot'),
+                'room_type_id' => $roomType?->id,
             ],
             'pricing' => [
                 'fee' => (float) Setting::get('service_fee', 200),
                 'discount' => $isGuaranteed ? (float) Setting::get('makfol_discount', 400) : 0,
                 'is_guaranteed' => $isGuaranteed,
-                // Phase B: شرائح تسعير عمرية + توقيت الدفع
                 'age_tiers' => $agePricing->tiersFor($model)->values(),
                 'payment' => [
                     'default_timing_self' => $paymentTiming->resolve($type, 'self'),
@@ -82,6 +114,7 @@ class BookingController extends Controller
         $data = $request->validate([
             'type' => ['required', Rule::in(Bookables::types())],
             'id' => ['required', 'integer'],
+            'room_type_id' => ['nullable', 'integer', 'exists:room_types,id'],
             'start_date' => ['nullable', 'date'],
             'guests' => ['required', 'integer', 'min:1', 'max:50'],
             'nights' => ['nullable', 'integer', 'min:1', 'max:60'],
@@ -93,7 +126,6 @@ class BookingController extends Controller
             'customer_phone' => ['required', 'string', 'max:20'],
             'customer_email' => ['nullable', 'email', 'max:120'],
             'customer_national_id' => ['nullable', 'string', 'max:20'],
-            // Phase B: لنفسه أو لطرف آخر
             'booking_for' => ['required', Rule::in(['self', 'other'])],
             'beneficiary_name' => ['required_if:booking_for,other', 'nullable', 'string', 'max:120'],
             'beneficiary_national_id' => ['required_if:booking_for,other', 'nullable', 'string', 'max:20'],
@@ -104,11 +136,23 @@ class BookingController extends Controller
         $model = Bookables::resolve($data['type'], $data['id']);
         abort_unless($model !== null, 404);
 
-        $unit = (float) ($model->sale_price ?? $model->price ?? 0);
+        // §7: للفنادق نستخدم RoomType كـ"وحدة الإتاحة" بدل الفندق نفسه
+        $roomType = null;
+        if ($data['type'] === 'hotel') {
+            $roomType = $this->resolveRoomType($model, $data['room_type_id'] ?? null);
+            if (! $roomType) {
+                return back()->withInput()->with('error', 'الفندق لا يحتوي على أنواع غرف متاحة للحجز.');
+            }
+        }
+
+        // السعر يجيء من RoomType (فنادق) أو الموديل نفسه (باقي الأنواع)
+        $unit = $roomType
+            ? (float) $roomType->effective_price
+            : (float) ($model->sale_price ?? $model->price ?? 0);
         $guests = (int) $data['guests'];
         $ages = $this->normalizeAges($data['guests_ages'] ?? [], $guests);
         $bookingFor = $data['booking_for'];
-        $pooled = $this->isPooled($model);
+        $pooled = $data['type'] === 'hotel' || $this->isPooled($model);
 
         // §5: احسم توقيت الدفع
         $timing = $paymentTiming->resolve(
@@ -138,7 +182,7 @@ class BookingController extends Controller
         $holdToken = null;
 
         if ($pooled) {
-            // فندق: تاريخ + ليالي + غرف + حجز فعلي للمخزون
+            // فندق: تاريخ + ليالي + غرف + حجز فعلي للمخزون (على مستوى room_type)
             $startDate = $data['start_date'] ?? null;
             if (! $startDate) {
                 return back()->with('error', 'اختَر تاريخ الوصول أولاً.');
@@ -150,7 +194,7 @@ class BookingController extends Controller
             $nights = max(1, (int) ($data['nights'] ?? 1));
             $units  = max(1, (int) ($data['units'] ?? 1));
             $endDate = Carbon::parse($startDate)->addDays($nights)->toDateString();
-            // للفنادق: التسعير بالليلة×الغرف (الشرائح العمرية لا تُطبَّق مباشرة)
+            // للفنادق: التسعير بالليلة×الغرف (شرائح العمر مش بتنطبق مباشرة على غرف)
             $subtotal = $unit * $nights * $units;
 
             $dates = [];
@@ -158,10 +202,18 @@ class BookingController extends Controller
                 $dates[] = Carbon::parse($startDate)->addDays($i)->toDateString();
             }
 
+            // §7 §14: الحجز يمرّ عبر RoomType (وحدة الإتاحة الحقيقية للفنادق)
+            $availabilityUnit = $roomType ?? $model;
+
             try {
                 $res = $holds->reserve(
-                    $model->availabilityType(), $model->id, $model->inventoryCount(),
-                    $dates, $model->defaultSlot(), $units, HoldService::HOLD_TTL_MINUTES,
+                    $availabilityUnit->availabilityType(),
+                    $availabilityUnit->getKey(),
+                    $availabilityUnit->inventoryCount(),
+                    $dates,
+                    $availabilityUnit->defaultSlot(),
+                    $units,
+                    HoldService::HOLD_TTL_MINUTES,
                 );
                 $holdToken = $res['hold_token'];
             } catch (SlotUnavailableException $e) {
@@ -178,7 +230,7 @@ class BookingController extends Controller
         $rate = (float) Setting::get('commission_rate', 15);
         $commission = round($total * $rate / 100, 2);
 
-        // §7: snapshots (سعر + سياسة إلغاء)
+        // §7: snapshots (سعر + سياسة إلغاء) — snapshot لنوع الغرفة أيضاً لو موجود
         $itemsSnapshot = [
             'unit_price' => $unit,
             'guests' => $guests,
@@ -190,6 +242,13 @@ class BookingController extends Controller
             'total' => $total,
             'is_guaranteed' => (bool) ($model->is_guaranteed ?? false),
             'age_pricing_applied' => $agePricingRows,
+            'room_type' => $roomType ? [
+                'id' => $roomType->id,
+                'title' => $roomType->title,
+                'capacity_per_night' => $roomType->capacity_per_night,
+                'includes_breakfast' => $roomType->includes_breakfast,
+                'price_per_night_snapshot' => $unit,
+            ] : null,
         ];
         $policySnapshot = $cancellation->snapshot($model);
         $serviceDate = $data['start_date'] ? Carbon::parse($data['start_date']) : null;
@@ -199,7 +258,7 @@ class BookingController extends Controller
             || in_array($data['payment_method'], ['card', 'wallet'], true);
 
         $booking = DB::transaction(function () use (
-            $request, $data, $holdToken, $model, $endDate, $guests, $units, $nights,
+            $request, $data, $holdToken, $model, $roomType, $endDate, $guests, $units, $nights,
             $subtotal, $fee, $discount, $total, $commission, $timing, $isPrepay,
             $itemsSnapshot, $policySnapshot, $deadline, $bookingFor, $agePricingRows, $ages
         ) {
@@ -208,6 +267,7 @@ class BookingController extends Controller
                 'hold_token' => $holdToken,
                 'bookable_type' => Bookables::classFor($data['type']),
                 'bookable_id' => $model->id,
+                'room_type_id' => $roomType?->id,
                 'start_date' => $data['start_date'] ?? null,
                 'end_date' => $endDate,
                 'guests' => $guests,
@@ -326,6 +386,17 @@ class BookingController extends Controller
     private function isPooled(Model $model): bool
     {
         return in_array(HasAvailability::class, class_uses_recursive($model), true);
+    }
+
+    /** يحسم نوع الغرفة المطلوب (fallback على الأول النشط لو مش محدّد) */
+    private function resolveRoomType(Hotel $hotel, ?int $roomTypeId): ?RoomType
+    {
+        if ($roomTypeId) {
+            return RoomType::where('hotel_id', $hotel->id)
+                ->where('is_active', true)
+                ->find($roomTypeId);
+        }
+        return $hotel->activeRoomTypes()->first();
     }
 
     /** يضبط قائمة الأعمار مع عدد الأفراد (لو الأعمار ناقصة نكمّل ببالغ افتراضي = 30) */

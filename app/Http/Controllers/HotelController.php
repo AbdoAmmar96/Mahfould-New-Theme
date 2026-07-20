@@ -44,7 +44,7 @@ class HotelController extends Controller
     public function show(Hotel $hotel): Response
     {
         abort_if($hotel->status !== 'publish', 404);
-        $hotel->load('location', 'amenities');
+        $hotel->load('location', 'amenities', 'activeRoomTypes');
 
         return Inertia::render('Hotels/Show', [
             'hotel' => [
@@ -56,14 +56,28 @@ class HotelController extends Controller
                 'gallery'      => $hotel->gallery ?: [],
                 'location'     => $hotel->location?->name,
                 'star_rating'  => $hotel->star_rating,
+                // السعر المسطّح للفندق (يُبقى للعرض الافتراضي كـ"يبدأ من")
                 'price'        => (float) $hotel->price,
                 'sale_price'   => $hotel->sale_price ? (float) $hotel->sale_price : null,
-                'units_total'  => $hotel->inventoryCount(),
                 'review_score' => (float) $hotel->review_score,
                 'review_count' => $hotel->review_count,
                 'availability_url' => route('availability.hotel', $hotel->slug),
-                'checkout_url' => route('booking.create', ['type' => 'hotel', 'id' => $hotel->id]),
             ],
+            // §7: أنواع الغرف — كل نوع بمخزونه وسعره
+            'room_types' => $hotel->activeRoomTypes->map(fn ($r) => [
+                'id' => $r->id,
+                'title' => $r->title,
+                'description' => $r->description,
+                'capacity' => $r->capacity_per_night,
+                'units_total' => $r->units_total,
+                'price' => (float) $r->price_per_night,
+                'sale_price' => $r->sale_price_per_night ? (float) $r->sale_price_per_night : null,
+                'effective_price' => $r->effective_price,
+                'includes_breakfast' => $r->includes_breakfast,
+                'image_url' => $r->image_url,
+                // رابط الحجز للنوع المحدد
+                'checkout_url' => route('booking.create', ['type' => 'hotel', 'id' => $hotel->id]) . '?room_type_id=' . $r->id,
+            ])->values(),
             'reviews'     => Review::forReviewable($hotel)->latest()->take(10)->get()
                 ->map(fn ($r) => ['name' => $r->user?->name ?? 'زائر', 'rating' => $r->rating, 'title' => $r->title, 'content' => $r->content, 'date' => $r->created_at->format('Y-m-d')]),
             'review_type' => 'hotel',

@@ -45,6 +45,7 @@ export default function Checkout({ item, prefill = {}, pricing = {} }) {
 
     const { data, setData, post, processing, errors } = useForm({
         type: item.type, id: item.id,
+        room_type_id: prefill.room_type_id || item.room_type?.id || null,
         start_date: prefill.start_date || '',
         guests: Number(prefill.guests) || 2,
         nights: Number(prefill.nights) || 2,
@@ -327,9 +328,15 @@ export default function Checkout({ item, prefill = {}, pricing = {} }) {
                                 <div className="rounded-card border border-black/[.06] bg-white p-[22px] shadow-mk lg:sticky lg:top-[92px]">
                                     <div className="mb-4 flex items-center gap-3 border-b border-black/[.06] pb-4">
                                         <img src={item.image_url} className="h-16 w-16 rounded-xl object-cover" alt="" />
-                                        <div>
+                                        <div className="flex-1">
                                             <b className="font-head text-navy">{item.title}</b>
-                                            <div className="text-[13px] font-semibold text-muted">
+                                            {item.room_type && (
+                                                <div className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-coral/[.08] px-2 py-0.5 text-[11.5px] font-bold text-coral-deep">
+                                                    {item.room_type.title}
+                                                    {item.room_type.includes_breakfast && <span className="text-[10.5px] text-makfol">· إفطار</span>}
+                                                </div>
+                                            )}
+                                            <div className="mt-1 text-[13px] font-semibold text-muted">
                                                 {pooled ? `${data.nights} ليالي · ${data.units} غرفة · ${data.guests} ضيوف` : `${data.guests} ${item.unit}`}
                                             </div>
                                         </div>

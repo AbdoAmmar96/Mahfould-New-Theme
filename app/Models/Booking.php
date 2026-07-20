@@ -12,7 +12,7 @@ class Booking extends Model
     use HasFactory;
 
     protected $fillable = [
-        'code', 'hold_token', 'user_id', 'bookable_type', 'bookable_id',
+        'code', 'hold_token', 'user_id', 'bookable_type', 'bookable_id', 'room_type_id',
         'start_date', 'end_date', 'guests', 'units', 'nights',
         'subtotal', 'service_fee', 'cleaning_fee', 'security_deposit', 'security_deposit_status',
         'discount', 'total', 'amount_paid', 'commission_amount',
@@ -66,6 +66,12 @@ class Booking extends Model
     public function bookable(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    /** نوع الغرفة المحجوز (للفنادق فقط) — nullable */
+    public function roomType(): BelongsTo
+    {
+        return $this->belongsTo(RoomType::class);
     }
 
     /** وحدات المخزون المرتبطة بهذا الحجز (محرك الإتاحة) */
