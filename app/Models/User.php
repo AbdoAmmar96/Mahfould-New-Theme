@@ -54,6 +54,17 @@ class User extends Authenticatable
         return $this->hasOne(Company::class);
     }
 
+    /** عناوين متعدّدة (§12) */
+    public function addresses(): HasMany
+    {
+        return $this->hasMany(UserAddress::class)->orderByDesc('is_default')->orderBy('order');
+    }
+
+    public function defaultAddress(): HasOne
+    {
+        return $this->hasOne(UserAddress::class)->where('is_default', true);
+    }
+
     public function isAdmin(): bool   { return $this->role === self::ROLE_ADMIN; }
     public function isVendor(): bool  { return $this->role === self::ROLE_VENDOR; }
     public function isSupport(): bool { return $this->role === self::ROLE_SUPPORT; }

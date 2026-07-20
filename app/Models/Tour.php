@@ -7,6 +7,7 @@ use App\Models\Concerns\HasProvider;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Str;
 
@@ -53,6 +54,21 @@ class Tour extends Model
     public function amenities(): MorphToMany
     {
         return $this->morphToMany(Amenity::class, 'service', 'amenity_service');
+    }
+
+    public function activities(): HasMany
+    {
+        return $this->hasMany(Activity::class)->orderBy('order');
+    }
+
+    public function activeActivities(): HasMany
+    {
+        return $this->activities()->where('is_active', true);
+    }
+
+    public function itineraries(): HasMany
+    {
+        return $this->hasMany(TourItinerary::class)->orderBy('day_number');
     }
 
     public function getImageUrlAttribute(): string

@@ -19,6 +19,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\RestaurantController;
 use App\Http\Controllers\SahbController;
 use App\Http\Controllers\TourController;
+use App\Http\Controllers\UserAddressController;
 use Illuminate\Support\Facades\Route;
 
 /** يسجّل مسارات CRUD لمورد (كلها أو جزء منها عبر $only) */
@@ -101,6 +102,13 @@ Route::middleware('auth')->group(function () {
     Route::post('/reviews', [ReviewController::class, 'store'])->name('reviews.store');
     Route::post('/wishlist/toggle', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
     Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
+
+    // Phase E — عناوين متعدّدة للعميل (§12)
+    Route::get('/account/addresses', [UserAddressController::class, 'index'])->name('account.addresses.index');
+    Route::post('/account/addresses', [UserAddressController::class, 'store'])->name('account.addresses.store');
+    Route::put('/account/addresses/{address}', [UserAddressController::class, 'update'])->name('account.addresses.update');
+    Route::delete('/account/addresses/{address}', [UserAddressController::class, 'destroy'])->name('account.addresses.destroy');
+    Route::post('/account/addresses/{address}/default', [UserAddressController::class, 'setDefault'])->name('account.addresses.default');
 });
 
 // ── لوحة الأدمن ──────────────────────────────────────────────

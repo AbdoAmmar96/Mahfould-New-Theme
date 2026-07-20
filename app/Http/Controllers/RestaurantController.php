@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BookingItem;
 use App\Models\Review;
 use App\Models\Restaurant;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -26,6 +28,7 @@ class RestaurantController extends Controller
                 'address'       => $r->address,
                 'cuisines'      => $r->cuisines ?: [],
                 'price_range'   => $r->price_range,
+                'venue_type'    => $r->venue_type,
                 'instant'       => $r->instant_booking,
                 'is_guaranteed' => $r->is_guaranteed,
                 'is_featured'   => $r->is_featured,
@@ -35,9 +38,28 @@ class RestaurantController extends Controller
         ]);
     }
 
-    public function show(Restaurant $restaurant): Response
+    public function show(Restaurant $restaurant, Request $request): Response
     {
         abort_if($restaurant->status !== 'publish', 404);
+
+        // تحميل الترابيزات + أقسام المنيو + عناصر المنيو
+        $restaurant->load([
+            'activeTables',
+            'menuSections' => fn ($q) => $q->orderBy('order'),
+            'menuSections.items' => fn ($q) => $q->where('is_available', true)->orderBy('order'),
+        ]);
+
+        // إتاحة الترابيزات لتاريخ معين (اختياري من الـquery)
+        $date = $request->query('date', now()->toDateString());
+        $bookedIds = BookingItem::query()
+            ->active()
+            ->where('unit_type', 'restaurant_table')
+            ->where('date', $date)
+            ->pluck('unit_id')
+            ->unique();
+
+        // slots الافتراضية: من 12:00 لـ23:00 بفاصل الـslot_minutes
+        $slots = $this->generateSlots($restaurant->slot_minutes ?? 90);
 
         return Inertia::render('Restaurants/Show', [
             'restaurant' => [
@@ -49,13 +71,59 @@ class RestaurantController extends Controller
                 'address'      => $restaurant->address,
                 'cuisines'     => $restaurant->cuisines ?: [],
                 'price_range'  => $restaurant->price_range,
+                'venue_type'   => $restaurant->venue_type,
                 'review_score' => (float) $restaurant->review_score,
+                'review_count' => $restaurant->review_count,
+                // شمول الرسوم/الضريبة — يظهر صراحة (§9)
+                'fees_note' => [
+                    'service_fee_inclusive' => $restaurant->service_fee_inclusive,
+                    'tax_inclusive' => $restaurant->tax_inclusive,
+                    'service_fee_pct' => (float) $restaurant->service_fee_pct,
+                    'tax_pct' => (float) $restaurant->tax_pct,
+                ],
+                'slot_minutes' => (int) $restaurant->slot_minutes,
+                'slots' => $slots,
+                'tables' => $restaurant->activeTables->map(fn ($t) => [
+                    'id' => $t->id,
+                    'code' => $t->code,
+                    'label' => $t->label,
+                    'capacity' => (int) $t->capacity,
+                    'area' => $t->area,
+                    'booked' => $bookedIds->contains($t->id),
+                ])->values(),
+                'menu' => $restaurant->menuSections->map(fn ($s) => [
+                    'id' => $s->id,
+                    'title' => $s->title,
+                    'items' => $s->items->map(fn ($i) => [
+                        'id' => $i->id,
+                        'title' => $i->title,
+                        'description' => $i->description,
+                        'price' => (float) $i->price,
+                        'image_url' => $i->image_url,
+                        'tags' => $i->tags ?: [],
+                        'is_signature' => $i->is_signature,
+                    ])->values(),
+                ])->values(),
                 'checkout_url' => route('booking.create', ['type' => 'restaurant', 'id' => $restaurant->id]),
             ],
+            'query_date' => $date,
             'reviews'     => Review::forReviewable($restaurant)->latest()->take(10)->get()
                 ->map(fn ($r) => ['name' => $r->user?->name ?? 'زائر', 'rating' => $r->rating, 'title' => $r->title, 'content' => $r->content, 'date' => $r->created_at->format('Y-m-d')]),
             'review_type' => 'restaurant',
             'review_id'   => $restaurant->id,
         ]);
+    }
+
+    /** يولّد فترات زمنية (12:00 → 23:00 بفاصل الدقايق) */
+    private function generateSlots(int $minutes): array
+    {
+        $slots = [];
+        $start = Carbon::parse('12:00');
+        $end = Carbon::parse('23:00');
+        while ($start->lte($end)) {
+            $slots[] = $start->format('H:i');
+            $start->addMinutes($minutes);
+        }
+        return $slots;
     }
 }

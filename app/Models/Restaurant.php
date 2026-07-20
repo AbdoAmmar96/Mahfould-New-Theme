@@ -7,6 +7,7 @@ use App\Models\Concerns\HasProvider;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 class Restaurant extends Model
@@ -15,21 +16,28 @@ class Restaurant extends Model
 
     protected $fillable = [
         'user_id', 'provider_id', 'location_id', 'title', 'slug', 'address', 'content',
-        'cuisines', 'price_range', 'image', 'gallery', 'is_featured',
+        'cuisines', 'price_range', 'venue_type', 'service_fee_inclusive', 'tax_inclusive',
+        'service_fee_pct', 'tax_pct', 'slot_minutes',
+        'image', 'gallery', 'is_featured',
         'is_guaranteed', 'instant_booking',
         'status', 'publish_state', 'submitted_at', 'reviewed_at', 'reviewed_by', 'rejection_reason',
         'review_score', 'review_count',
     ];
 
     protected $casts = [
-        'cuisines'        => 'array',
-        'gallery'         => 'array',
-        'is_featured'     => 'boolean',
-        'is_guaranteed'   => 'boolean',
-        'instant_booking' => 'boolean',
-        'review_score'    => 'decimal:2',
-        'submitted_at'    => 'datetime',
-        'reviewed_at'     => 'datetime',
+        'cuisines'              => 'array',
+        'gallery'               => 'array',
+        'is_featured'           => 'boolean',
+        'is_guaranteed'         => 'boolean',
+        'instant_booking'       => 'boolean',
+        'service_fee_inclusive' => 'boolean',
+        'tax_inclusive'         => 'boolean',
+        'service_fee_pct'       => 'decimal:2',
+        'tax_pct'               => 'decimal:2',
+        'slot_minutes'          => 'integer',
+        'review_score'          => 'decimal:2',
+        'submitted_at'          => 'datetime',
+        'reviewed_at'           => 'datetime',
     ];
 
     protected static function booted(): void
@@ -40,6 +48,26 @@ class Restaurant extends Model
     public function location(): BelongsTo
     {
         return $this->belongsTo(Location::class);
+    }
+
+    public function tables(): HasMany
+    {
+        return $this->hasMany(RestaurantTable::class)->orderBy('order');
+    }
+
+    public function activeTables(): HasMany
+    {
+        return $this->tables()->where('is_active', true);
+    }
+
+    public function menuSections(): HasMany
+    {
+        return $this->hasMany(RestaurantMenuSection::class)->orderBy('order');
+    }
+
+    public function menuItems(): HasMany
+    {
+        return $this->hasMany(RestaurantMenuItem::class)->orderBy('order');
     }
 
     // للمطاعم السعر غير أساسي — نرجّع 0 حتى يعمل الـ trait

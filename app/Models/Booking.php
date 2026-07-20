@@ -13,14 +13,15 @@ class Booking extends Model
 
     protected $fillable = [
         'code', 'hold_token', 'user_id', 'bookable_type', 'bookable_id', 'room_type_id',
-        'start_date', 'end_date', 'guests', 'units', 'nights',
+        'restaurant_table_id',
+        'start_date', 'start_time', 'end_date', 'guests', 'units', 'nights',
         'subtotal', 'service_fee', 'cleaning_fee', 'security_deposit', 'security_deposit_status',
         'discount', 'total', 'amount_paid', 'commission_amount',
         'status', 'payment_method', 'payment_status', 'payment_timing',
         'payment_gateway', 'payment_ref',
         'customer_name', 'customer_phone', 'customer_email', 'customer_national_id',
         'booking_for', 'beneficiary_name', 'beneficiary_national_id', 'beneficiary_age',
-        'items_snapshot', 'cancellation_policy_snapshot', 'cancellation_deadline',
+        'items_snapshot', 'addons_snapshot', 'cancellation_policy_snapshot', 'cancellation_deadline',
         'cancelled_at', 'checked_in_at', 'no_show_at', 'forfeited_at', 'needs_review',
         'transport_mode', 'bus_trip_id', 'transport_details',
         'notes',
@@ -42,6 +43,7 @@ class Booking extends Model
         'amount_paid' => 'decimal:2',
         'commission_amount' => 'decimal:2',
         'items_snapshot' => 'array',
+        'addons_snapshot' => 'array',
         'cancellation_policy_snapshot' => 'array',
         'transport_details' => 'array',
         'cancellation_deadline' => 'datetime',
@@ -74,6 +76,12 @@ class Booking extends Model
     public function roomType(): BelongsTo
     {
         return $this->belongsTo(RoomType::class);
+    }
+
+    /** الترابيزة المحجوزة (للمطاعم فقط) — nullable */
+    public function restaurantTable(): BelongsTo
+    {
+        return $this->belongsTo(RestaurantTable::class);
     }
 
     /** رحلة الباص المرتبطة (لو transport_mode='bus') */

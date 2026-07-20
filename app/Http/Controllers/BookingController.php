@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\SlotUnavailableException;
+use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\BookingGuest;
 use App\Models\Concerns\HasAvailability;
 use App\Models\Hotel;
+use App\Models\Restaurant;
+use App\Models\RestaurantTable;
 use App\Models\RoomType;
 use App\Models\Setting;
 use App\Services\Availability\HoldService;
@@ -82,11 +85,14 @@ class BookingController extends Controller
             ],
             'prefill' => [
                 'start_date' => $request->query('start_date'),
+                'start_time' => $request->query('start_time'),
                 'guests' => (int) $request->query('guests', 2),
                 'nights' => max(1, (int) $request->query('nights', 1)),
                 'units' => max(1, (int) $request->query('units', 1)),
                 'slot' => $request->query('slot'),
                 'room_type_id' => $roomType?->id,
+                'restaurant_table_id' => $request->query('restaurant_table_id') ? (int) $request->query('restaurant_table_id') : null,
+                'activity_ids' => array_map('intval', (array) $request->query('activity_ids', [])),
             ],
             'pricing' => [
                 'fee' => (float) Setting::get('service_fee', 200),
@@ -117,7 +123,11 @@ class BookingController extends Controller
             'type' => ['required', Rule::in(Bookables::types())],
             'id' => ['required', 'integer'],
             'room_type_id' => ['nullable', 'integer', 'exists:room_types,id'],
+            'restaurant_table_id' => ['nullable', 'integer', 'exists:restaurant_tables,id'],
             'start_date' => ['nullable', 'date'],
+            'start_time' => ['nullable', 'string', 'regex:/^\d{1,2}:\d{2}$/'],
+            'activity_ids' => ['nullable', 'array', 'max:20'],
+            'activity_ids.*' => ['integer', 'exists:activities,id'],
             'guests' => ['required', 'integer', 'min:1', 'max:50'],
             'nights' => ['nullable', 'integer', 'min:1', 'max:60'],
             'units' => ['nullable', 'integer', 'min:1', 'max:20'],
@@ -150,6 +160,18 @@ class BookingController extends Controller
             }
         }
 
+        // §9: للمطاعم نستخدم RestaurantTable كوحدة إتاحة بـslot زمني
+        $restaurantTable = null;
+        if ($data['type'] === 'restaurant') {
+            $restaurantTable = $this->resolveRestaurantTable($model, $data['restaurant_table_id'] ?? null);
+            if (! $restaurantTable) {
+                return back()->withInput()->with('error', 'اختَر ترابيزة متاحة أولاً.');
+            }
+            if (empty($data['start_time'])) {
+                return back()->withInput()->with('error', 'اختَر وقت الحجز (الفترة).');
+            }
+        }
+
         // السعر يجيء من RoomType (فنادق) أو الموديل نفسه (باقي الأنواع)
         $unit = $roomType
             ? (float) $roomType->effective_price
@@ -178,6 +200,27 @@ class BookingController extends Controller
             $result = $agePricing->computeGuests($model, $unit, $ages);
             $agePricingRows = $result['guests'];
             $ageSubtotal = (float) $result['subtotal'];
+        }
+
+        // §8: فعاليات اختيارية على الرحلة (add-ons) — تُضرب في عدد الأفراد
+        $addonsSnapshot = [];
+        $addonsSubtotal = 0.0;
+        if ($data['type'] === 'tour' && ! empty($data['activity_ids'])) {
+            $activities = Activity::where('tour_id', $model->id)
+                ->where('is_active', true)
+                ->whereIn('id', $data['activity_ids'])
+                ->get();
+            foreach ($activities as $act) {
+                $line = (float) $act->price * $guests;
+                $addonsSubtotal += $line;
+                $addonsSnapshot[] = [
+                    'activity_id' => $act->id,
+                    'title' => $act->title,
+                    'unit_price' => (float) $act->price,
+                    'quantity' => $guests,
+                    'line_total' => $line,
+                ];
+            }
         }
 
         // القيم الافتراضية (أنواع بلا مخزون)
@@ -224,10 +267,35 @@ class BookingController extends Controller
             } catch (SlotUnavailableException $e) {
                 return back()->with('error', $e->getMessage());
             }
+        } elseif ($restaurantTable) {
+            // §9: حجز ترابيزة على slot زمني — الوحدة = ترابيزة واحدة، الفترة = الوقت
+            $startDate = $data['start_date'] ?? now()->toDateString();
+            if (Carbon::parse($startDate)->startOfDay()->lt(now()->startOfDay())) {
+                return back()->with('error', 'لا يمكن الحجز في تاريخ ماضٍ.');
+            }
+            // في المطاعم السعر بيتحسب من المنيو المسبق (لو محددة) لسه، أو صفر (لأن الدفع في المطعم)
+            $subtotal = 0.0;
+            try {
+                $res = $holds->reserve(
+                    $restaurantTable->availabilityType(),
+                    $restaurantTable->getKey(),
+                    1,                                 // ترابيزة واحدة
+                    [$startDate],
+                    $data['start_time'],               // الوقت هو الـslot
+                    1,
+                    HoldService::HOLD_TTL_MINUTES,
+                );
+                $holdToken = $res['hold_token'];
+            } catch (SlotUnavailableException $e) {
+                return back()->with('error', $e->getMessage());
+            }
         } else {
-            // خدمات بلا مخزون (رحلات/مطاعم/عربيات/…): استخدم الشرائح العمرية لو مُدخلة، وإلا guests × unit
+            // خدمات بلا مخزون (رحلات/عربيات/…): استخدم الشرائح العمرية لو مُدخلة، وإلا guests × unit
             $subtotal = $ageSubtotal > 0 ? $ageSubtotal : ($unit * $guests);
         }
+
+        // §8: ضم add-ons للـsubtotal
+        $subtotal += $addonsSubtotal;
 
         $fee = (float) Setting::get('service_fee', 200);
         $discount = $model->is_guaranteed ? (float) Setting::get('makfol_discount', 400) : 0;
@@ -263,9 +331,10 @@ class BookingController extends Controller
             || in_array($data['payment_method'], ['card', 'wallet'], true);
 
         $booking = DB::transaction(function () use (
-            $request, $data, $holdToken, $model, $roomType, $endDate, $guests, $units, $nights,
+            $request, $data, $holdToken, $model, $roomType, $restaurantTable, $endDate, $guests, $units, $nights,
             $subtotal, $fee, $discount, $total, $commission, $timing, $isPrepay,
-            $itemsSnapshot, $policySnapshot, $deadline, $bookingFor, $agePricingRows, $ages
+            $itemsSnapshot, $policySnapshot, $deadline, $bookingFor, $agePricingRows, $ages,
+            $addonsSnapshot
         ) {
             $booking = Booking::create([
                 'user_id' => $request->user()?->id,
@@ -273,7 +342,9 @@ class BookingController extends Controller
                 'bookable_type' => Bookables::classFor($data['type']),
                 'bookable_id' => $model->id,
                 'room_type_id' => $roomType?->id,
+                'restaurant_table_id' => $restaurantTable?->id,
                 'start_date' => $data['start_date'] ?? null,
+                'start_time' => $data['start_time'] ?? null,
                 'end_date' => $endDate,
                 'guests' => $guests,
                 'units' => $units,
@@ -297,6 +368,7 @@ class BookingController extends Controller
                 'beneficiary_national_id' => $bookingFor === 'other' ? $data['beneficiary_national_id'] : null,
                 'beneficiary_age' => $bookingFor === 'other' ? $data['beneficiary_age'] : null,
                 'items_snapshot' => $itemsSnapshot,
+                'addons_snapshot' => $addonsSnapshot ?: null,
                 'cancellation_policy_snapshot' => $policySnapshot,
                 'cancellation_deadline' => $deadline,
                 // Phase C: النقل (للفنادق/الرحلات)
@@ -421,6 +493,17 @@ class BookingController extends Controller
                 ->find($roomTypeId);
         }
         return $hotel->activeRoomTypes()->first();
+    }
+
+    /** يحسم الترابيزة المطلوبة (fallback على أول نشطة لو مش محدّدة — نادراً) */
+    private function resolveRestaurantTable(Restaurant $restaurant, ?int $tableId): ?RestaurantTable
+    {
+        if ($tableId) {
+            return RestaurantTable::where('restaurant_id', $restaurant->id)
+                ->where('is_active', true)
+                ->find($tableId);
+        }
+        return $restaurant->activeTables()->first();
     }
 
     /** يضبط قائمة الأعمار مع عدد الأفراد (لو الأعمار ناقصة نكمّل ببالغ افتراضي = 30) */

@@ -1,20 +1,38 @@
 import SiteLayout from '@/Layouts/SiteLayout';
 import Reviews from '@/Components/Reviews';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
-import { MapPin, Star, Heart, Check, ShieldCheck } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { MapPin, Star, Heart, Check, ShieldCheck, Sparkles, CalendarDays } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 import { Badge } from '@/Components/ui/badge';
 import { Input, Field } from '@/Components/ui/input';
 import { PartySizeField } from '@/Components/ui/party-size';
 import { money } from '@/Components/ui/service-card';
+import { cn } from '@/lib/utils';
 
 export default function Show({ tour, reviews, review_type, review_id }) {
     const [guests, setGuests] = useState(2);
     const [date, setDate] = useState('');
+
+    // فعاليات مختارة — تُبدأ بالـdefault
+    const defaultAddonIds = useMemo(
+        () => tour.activities.filter(a => a.is_default).map(a => a.id),
+        [tour.activities],
+    );
+    const [selectedAddons, setSelectedAddons] = useState(defaultAddonIds);
+
+    // لو الرحلة اتغيّرت (route change) يترجع للـdefaults
+    useEffect(() => { setSelectedAddons(defaultAddonIds); }, [defaultAddonIds]);
+
     const unit = tour.sale_price || tour.price;
     const fee = 200;
-    const total = useMemo(() => unit * guests + fee, [unit, guests]);
+    const addonsSum = useMemo(
+        () => tour.activities
+            .filter(a => selectedAddons.includes(a.id))
+            .reduce((s, a) => s + a.price * guests, 0),
+        [tour.activities, selectedAddons, guests],
+    );
+    const total = useMemo(() => unit * guests + addonsSum + fee, [unit, guests, addonsSum]);
 
     const page = usePage();
     const authed = !!page.props.auth?.user;
@@ -24,16 +42,24 @@ export default function Show({ tour, reviews, review_type, review_id }) {
         router.post('/wishlist/toggle', { type: 'tour', id: tour.id }, { preserveScroll: true, preserveState: true });
     };
 
+    const toggleAddon = (id) => setSelectedAddons(a => a.includes(id) ? a.filter(x => x !== id) : [...a, id]);
+
     const checkoutUrl = () => {
         const q = new URLSearchParams();
         if (date) q.set('start_date', date);
         q.set('guests', guests);
+        selectedAddons.forEach(id => q.append('activity_ids[]', id));
         return `${tour.checkout_url}?${q.toString()}`;
     };
 
     const gallery = tour.gallery.length ? tour.gallery : [
         tour.image_url, ...[2, 3, 4, 5].map((n) => `https://picsum.photos/seed/g${tour.id}${n}/400/400`),
     ];
+
+    // استخدم itineraries الجديدة لو موجودة، وإلا itinerary القديم JSON
+    const days = tour.itineraries.length > 0
+        ? tour.itineraries
+        : tour.itinerary.map((d, i) => ({ day: i + 1, title: d.title, description: d.desc, highlights: [] }));
 
     return (
         <SiteLayout active="tours">
@@ -95,16 +121,70 @@ export default function Show({ tour, reviews, review_type, review_id }) {
                                 </div>
                             )}
 
-                            {tour.itinerary.length > 0 && (
+                            {/* فعاليات اختيارية (add-ons) — §8 */}
+                            {tour.activities.length > 0 && (
                                 <div className="mb-5 rounded-card border border-black/[.06] bg-white p-6">
-                                    <h3 className="mb-3.5 font-head text-[19px] font-semibold text-navy">برنامج الرحلة</h3>
+                                    <h3 className="mb-1 flex items-center gap-2 font-head text-[19px] font-semibold text-navy">
+                                        <Sparkles className="h-5 w-5 text-vip" /> فعاليات اختيارية
+                                    </h3>
+                                    <p className="mb-4 text-sm text-muted">ضيف تجربة أعمق لرحلتك — أسعار للفرد.</p>
+                                    <div className="space-y-2.5">
+                                        {tour.activities.map(act => {
+                                            const on = selectedAddons.includes(act.id);
+                                            return (
+                                                <label
+                                                    key={act.id}
+                                                    className={cn(
+                                                        'flex cursor-pointer items-center gap-3 rounded-input border-[1.5px] p-3 transition-colors hover:border-coral',
+                                                        on ? 'border-coral bg-coral/[.06]' : 'border-black/[.08]',
+                                                    )}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={on}
+                                                        onChange={() => toggleAddon(act.id)}
+                                                        className="h-4 w-4 accent-coral"
+                                                    />
+                                                    <img src={act.image_url} className="h-14 w-14 flex-none rounded-md object-cover" alt="" />
+                                                    <div className="flex-1">
+                                                        <div className="font-bold text-navy">{act.title}</div>
+                                                        {act.short_desc && <p className="mt-0.5 line-clamp-2 text-[12.5px] text-muted">{act.short_desc}</p>}
+                                                    </div>
+                                                    <div className="text-end">
+                                                        <b className="font-head text-coral-deep">+{money(act.price)}</b>
+                                                        <div className="text-[11px] text-muted">للفرد</div>
+                                                    </div>
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* برنامج الرحلة يوم بيوم */}
+                            {days.length > 0 && (
+                                <div className="mb-5 rounded-card border border-black/[.06] bg-white p-6">
+                                    <h3 className="mb-3.5 flex items-center gap-2 font-head text-[19px] font-semibold text-navy">
+                                        <CalendarDays className="h-5 w-5 text-coral-deep" /> برنامج الرحلة
+                                    </h3>
                                     <div className="relative ps-[26px]">
                                         <div className="absolute bottom-1.5 start-[7px] top-1.5 w-0.5 bg-black/[.06]" />
-                                        {tour.itinerary.map((d, i) => (
+                                        {days.map((d, i) => (
                                             <div key={i} className="relative pb-5">
-                                                <span className="absolute -start-[23px] top-1 h-3 w-3 rounded-full bg-coral shadow-[0_0_0_3px_#fff,0_0_0_4px_rgba(0,0,0,.06)]" />
+                                                <span className="absolute -start-[26px] top-0 grid h-6 w-6 place-items-center rounded-full bg-coral text-[11px] font-extrabold text-white shadow-[0_0_0_3px_#fff]">
+                                                    {d.day}
+                                                </span>
                                                 <b className="block font-head text-navy">{d.title}</b>
-                                                <p className="mt-0.5 text-sm text-muted">{d.desc}</p>
+                                                {d.description && <p className="mt-0.5 text-sm text-muted">{d.description}</p>}
+                                                {d.highlights && d.highlights.length > 0 && (
+                                                    <ul className="mt-1.5 space-y-1">
+                                                        {d.highlights.map((h, j) => (
+                                                            <li key={j} className="flex items-center gap-1.5 text-[13px] text-navy">
+                                                                <Check className="h-3.5 w-3.5 flex-none text-makfol" /> {h}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
@@ -138,6 +218,12 @@ export default function Show({ tour, reviews, review_type, review_id }) {
 
                                 <div className="mb-1.5 mt-4">
                                     <div className="flex justify-between py-[9px] text-sm"><span>{money(unit)} × {guests} فرد</span><span>{money(unit * guests)} ج.م</span></div>
+                                    {addonsSum > 0 && (
+                                        <div className="flex justify-between py-[9px] text-sm">
+                                            <span>فعاليات ({selectedAddons.length})</span>
+                                            <span className="text-vip">+{money(addonsSum)} ج.م</span>
+                                        </div>
+                                    )}
                                     <div className="flex justify-between py-[9px] text-sm"><span>رسوم الخدمة</span><span>{fee} ج.م</span></div>
                                     <div className="mt-2 flex justify-between border-t border-black/[.06] pt-3.5 text-base font-extrabold"><span>الإجمالي</span><b className="font-head text-xl text-coral-deep">{money(total)} ج.م</b></div>
                                 </div>

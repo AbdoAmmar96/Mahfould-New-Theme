@@ -6,6 +6,7 @@ use App\Models\BusTrip;
 use App\Models\Car;
 use App\Models\Hotel;
 use App\Models\Restaurant;
+use App\Models\RestaurantTable;
 use App\Models\SahbPackage;
 use App\Models\Tour;
 use Illuminate\Database\Eloquent\Model;
@@ -17,12 +18,13 @@ use Illuminate\Database\Eloquent\Model;
 class Bookables
 {
     public const MAP = [
-        'tour'       => Tour::class,
-        'hotel'      => Hotel::class,
-        'restaurant' => Restaurant::class,
-        'car'        => Car::class,
-        'sahb'       => SahbPackage::class,
-        'bus_trip'   => BusTrip::class,
+        'tour'             => Tour::class,
+        'hotel'            => Hotel::class,
+        'restaurant'       => Restaurant::class,
+        'restaurant_table' => RestaurantTable::class,
+        'car'              => Car::class,
+        'sahb'             => SahbPackage::class,
+        'bus_trip'         => BusTrip::class,
     ];
 
     public static function types(): array

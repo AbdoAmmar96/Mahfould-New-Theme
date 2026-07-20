@@ -61,7 +61,12 @@ class TourController extends Controller
     {
         abort_if($tour->status !== 'publish', 404);
 
-        $tour->load('location', 'amenities');
+        $tour->load([
+            'location',
+            'amenities',
+            'activeActivities',
+            'itineraries' => fn ($q) => $q->orderBy('day_number'),
+        ]);
 
         return Inertia::render('Tours/Show', [
             'tour' => [
@@ -80,8 +85,28 @@ class TourController extends Controller
                 'is_guaranteed' => $tour->is_guaranteed,
                 'review_score'  => (float) $tour->review_score,
                 'review_count'  => $tour->review_count,
+                // JSON itinerary القديم (fallback لو الجدول الجديد فاضي)
                 'itinerary'     => $tour->itinerary ?: [],
                 'included'      => $tour->included ?: [],
+                // مخطط زمني يوم بيوم (جديد)
+                'itineraries'   => $tour->itineraries->map(fn ($d) => [
+                    'day' => $d->day_number,
+                    'title' => $d->title,
+                    'description' => $d->description,
+                    'highlights' => $d->highlights ?: [],
+                    'image' => $d->image,
+                ])->values(),
+                // فعاليات اختيارية add-ons
+                'activities'    => $tour->activeActivities->map(fn ($a) => [
+                    'id' => $a->id,
+                    'title' => $a->title,
+                    'short_desc' => $a->short_desc,
+                    'description' => $a->description,
+                    'price' => (float) $a->price,
+                    'image_url' => $a->image_url,
+                    'icon' => $a->icon,
+                    'is_default' => $a->is_default,
+                ])->values(),
                 'checkout_url'  => route('booking.create', ['type' => 'tour', 'id' => $tour->id]),
             ],
             'reviews'     => Review::forReviewable($tour)->latest()->take(10)->get()

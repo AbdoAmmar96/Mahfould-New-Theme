@@ -47,12 +47,16 @@ export default function Checkout({ item, prefill = {}, pricing = {} }) {
     const { data, setData, post, processing, errors } = useForm({
         type: item.type, id: item.id,
         room_type_id: prefill.room_type_id || item.room_type?.id || null,
+        restaurant_table_id: prefill.restaurant_table_id || null,
         start_date: prefill.start_date || '',
+        start_time: prefill.start_time || '',
         guests: Number(prefill.guests) || 2,
         nights: Number(prefill.nights) || 2,
         units: Number(prefill.units) || 1,
         slot: prefill.slot || '',
         guests_ages: [],
+        // Phase E — فعاليات مختارة (add-ons للرحلات)
+        activity_ids: prefill.activity_ids || [],
         customer_name: '', customer_phone: '', customer_email: '', customer_national_id: '',
         // Phase B — الحجز لمين
         booking_for: 'self',
