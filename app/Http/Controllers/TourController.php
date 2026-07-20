@@ -5,15 +5,16 @@ namespace App\Http\Controllers;
 use App\Models\Location;
 use App\Models\Review;
 use App\Models\Tour;
+use App\Services\ValueScoreService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class TourController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, ValueScoreService $value): Response
     {
-        $query = Tour::published()->with('location:id,name');
+        $query = Tour::published()->with('location:id,name')->withCount('activities');
 
         // فلترة بالوجهة
         if ($slug = $request->query('location')) {
@@ -25,32 +26,55 @@ class TourController extends Controller
             $query->where('price', '<=', (float) $max);
         }
 
-        // ترتيب
-        match ($request->query('sort')) {
-            'price_asc'  => $query->orderBy('price'),
-            'rating'     => $query->orderByDesc('review_score'),
-            default      => $query->latest(),
-        };
+        // ترتيب — value = أفضل قيمة (§12)
+        $sort = $request->query('sort');
+        if ($sort === 'value') {
+            // في وضع القيمة نجيب كل النتائج ونرتّبها ثم نصفّحها يدوياً
+            $all = $value->markBestValueBadge($value->scoreCollection($query->get()));
+            $sorted = $all->sortByDesc('value_score')->values();
+            $tours = new \Illuminate\Pagination\LengthAwarePaginator(
+                $sorted->forPage($request->query('page', 1), 9)->values(),
+                $sorted->count(),
+                9,
+                $request->query('page', 1),
+                ['path' => $request->url(), 'query' => $request->query()],
+            );
+        } else {
+            match ($sort) {
+                'price_asc'  => $query->orderBy('price'),
+                'rating'     => $query->orderByDesc('review_score'),
+                default      => $query->latest(),
+            };
+            $paged = $query->paginate(9)->withQueryString();
+            // احسب value_score حتى في غير وضع value لعرض الشارة على أفضل قيمة داخل الصفحة
+            $scored = $value->markBestValueBadge($value->scoreCollection(collect($paged->items())));
+            $paged->setCollection($scored);
+            $tours = $paged;
+        }
 
-        $tours = $query->paginate(9)->withQueryString();
+        $mapItem = fn ($t) => [
+            'id'            => $t->id,
+            'title'         => $t->title,
+            'slug'          => $t->slug,
+            'url'           => $t->url,
+            'image_url'     => $t->image_url,
+            'location'      => $t->location?->name,
+            'short_desc'    => $t->short_desc,
+            'duration_days' => $t->duration_days,
+            'price'         => (float) $t->price,
+            'sale_price'    => $t->sale_price ? (float) $t->sale_price : null,
+            'is_guaranteed' => $t->is_guaranteed,
+            'is_featured'   => $t->is_featured,
+            'review_score'  => (float) $t->review_score,
+            'review_count'  => $t->review_count,
+            'value_score'   => isset($t->value_score) ? (float) $t->value_score : null,
+            'is_best_value' => (bool) ($t->is_best_value ?? false),
+        ];
 
         return Inertia::render('Tours/Index', [
-            'tours'   => $tours->through(fn ($t) => [
-                'id'            => $t->id,
-                'title'         => $t->title,
-                'slug'          => $t->slug,
-                'url'           => $t->url,
-                'image_url'     => $t->image_url,
-                'location'      => $t->location?->name,
-                'short_desc'    => $t->short_desc,
-                'duration_days' => $t->duration_days,
-                'price'         => (float) $t->price,
-                'sale_price'    => $t->sale_price ? (float) $t->sale_price : null,
-                'is_guaranteed' => $t->is_guaranteed,
-                'is_featured'   => $t->is_featured,
-                'review_score'  => (float) $t->review_score,
-                'review_count'  => $t->review_count,
-            ]),
+            'tours'   => $sort === 'value'
+                ? tap($tours, fn ($p) => $p->setCollection($p->getCollection()->map($mapItem)))
+                : $tours->through($mapItem),
             'locations' => Location::withCount('tours')->orderBy('order')->get()
                 ->map(fn ($l) => ['name' => $l->name, 'slug' => $l->slug, 'count' => $l->tours_count]),
             'filters' => (object) $request->only(['location', 'max_price', 'sort']),

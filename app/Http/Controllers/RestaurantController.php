@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\BookingItem;
 use App\Models\Review;
 use App\Models\Restaurant;
+use App\Services\PersonalizationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
@@ -12,13 +13,50 @@ use Inertia\Response;
 
 class RestaurantController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, PersonalizationService $personalization): Response
     {
-        $items = Restaurant::published()->with('location:id,name')
-            ->latest()->paginate(9)->withQueryString();
+        // §12: بحث بالاسم
+        $q = trim((string) $request->query('q', ''));
+        // §9: فلترة بنوع المكان
+        $venue = $request->query('venue');   // restaurant | cafe
+        // §12: نمط الترتيب
+        $sort = $request->query('sort', 'nearest'); // nearest | rating | price
+
+        $query = Restaurant::published()->with('location:id,name,lat,lng');
+        if ($q !== '') {
+            $query->where(fn ($x) => $x->where('title', 'like', "%{$q}%")->orWhere('address', 'like', "%{$q}%"));
+        }
+        if ($venue) {
+            $query->where('venue_type', $venue);
+        }
+
+        $collection = $query->get();
+
+        // ترتيب افتراضي = الأقرب لك (Personalization §12)
+        if ($sort === 'rating') {
+            $sorted = $collection->sortByDesc('review_score')->values();
+        } elseif ($sort === 'price') {
+            $sorted = $collection->sortBy(fn ($r) => strlen($r->price_range))->values();
+        } else {
+            // nearest (default) — يستخدم موقع العميل + تاريخه + تقييماته
+            $sorted = $personalization->rankRestaurants($collection, $request);
+        }
+
+        // Pagination يدوي
+        $page = max(1, (int) $request->query('page', 1));
+        $perPage = 9;
+        $paginated = new \Illuminate\Pagination\LengthAwarePaginator(
+            $sorted->forPage($page, $perPage)->values(),
+            $sorted->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()],
+        );
+
+        $userLocation = $personalization->resolveUserLocation($request);
 
         return Inertia::render('Restaurants/Index', [
-            'restaurants' => $items->through(fn ($r) => [
+            'restaurants' => $paginated->through(fn ($r) => [
                 'id'            => $r->id,
                 'title'         => $r->title,
                 'slug'          => $r->slug,
@@ -34,7 +72,11 @@ class RestaurantController extends Controller
                 'is_featured'   => $r->is_featured,
                 'review_score'  => (float) $r->review_score,
                 'review_count'  => $r->review_count,
+                'distance_km'   => $r->distance_km ?? null,
+                'personal_reasons' => $r->personal_reasons ?? [],
             ]),
+            'filters' => (object) ['q' => $q, 'venue' => $venue, 'sort' => $sort],
+            'user_location' => $userLocation,
         ]);
     }
 

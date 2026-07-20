@@ -12,11 +12,12 @@ const NAV = [
     { href: '/restaurants', label: 'المطاعم', key: 'restaurants' },
     { href: '/cars', label: 'السيارات', key: 'cars' },
     { href: '/buses', label: 'الباصات', key: 'buses' },
+    { href: '/delivery', label: 'التوصيل', key: 'delivery' },
     { href: '/sahb-elsaada', label: 'صاحب السعادة', key: 'sahb' },
 ];
 
 const FOOTER = {
-    'المنصة': [['/tours', 'الرحلات'], ['/hotels', 'الفنادق'], ['/restaurants', 'المطاعم'], ['/cars', 'السيارات'], ['/buses', 'الباصات'], ['/sahb-elsaada', 'صاحب السعادة']],
+    'المنصة': [['/tours', 'الرحلات'], ['/hotels', 'الفنادق'], ['/restaurants', 'المطاعم'], ['/cars', 'السيارات'], ['/buses', 'الباصات'], ['/delivery', 'التوصيل'], ['/sahb-elsaada', 'صاحب السعادة']],
     'الشركة': [['/p/about', 'من احنا'], ['/provider/register', 'كن شريكاً (تسجيل مزوّد)'], ['/p/driver', 'انضم كسائق'], ['/p/contact', 'تواصل معانا']],
     'الدعم': [['/p/help', 'مركز المساعدة'], ['/p/refund', 'سياسة الاسترداد'], ['/p/terms', 'الشروط والأحكام'], ['/p/privacy', 'الخصوصية']],
 };
@@ -76,7 +77,7 @@ export default function SiteLayout({ children, active = '' }) {
                 <div className="mx-auto max-w-[1200px] px-5">
                     <div className="grid grid-cols-1 gap-8 pb-10 md:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr]">
                         <div>
-                            <img src="/assets/img/logo-t.png" alt="محفول مكفول" className="mb-3.5 h-10 w-auto" />
+                            <img src="/assets/img/logo_white_transparent.png" alt="محفول مكفول" className="mb-3.5 h-12 w-auto" />
                             <p className="max-w-[320px] text-[14.5px] leading-relaxed">
                                 منصة سياحة مصرية — رحلتك محفولة مكفولة، من أول ما تفكر لحد ما ترجع.
                             </p>

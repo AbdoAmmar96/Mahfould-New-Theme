@@ -1,11 +1,43 @@
 import SiteLayout from '@/Layouts/SiteLayout';
-import { Head, Link } from '@inertiajs/react';
-import { MapPin, Star } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
+import { MapPin, Star, Search, Utensils, Coffee, Navigation, Sparkles } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 import { Badge } from '@/Components/ui/badge';
 import { Card, CardMedia, CardBody, CardTitle, CardMeta, CardFooter } from '@/Components/ui/card';
+import { Input } from '@/Components/ui/input';
+import { cn } from '@/lib/utils';
 
-export default function Index({ restaurants }) {
+export default function Index({ restaurants, filters, user_location }) {
+    const [q, setQ] = useState(filters?.q || '');
+    const [venue, setVenue] = useState(filters?.venue || '');
+    const [sort, setSort] = useState(filters?.sort || 'nearest');
+    const [gpsLoading, setGpsLoading] = useState(false);
+
+    const push = (patch = {}) => router.get('/restaurants', {
+        ...filters, q, venue, sort, ...patch,
+    }, { preserveState: true, replace: true });
+
+    // §12: geolocation لحظي
+    const useLiveLocation = () => {
+        if (!navigator.geolocation) return alert('المتصفح مش داعم لتحديد الموقع.');
+        setGpsLoading(true);
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                setGpsLoading(false);
+                router.get('/restaurants', { ...filters, q, venue, sort: 'nearest', lat: pos.coords.latitude, lng: pos.coords.longitude }, { preserveState: true });
+            },
+            () => { setGpsLoading(false); alert('لم نتمكن من قراءة موقعك.'); },
+            { timeout: 8000 },
+        );
+    };
+
+    // debounce للبحث
+    useEffect(() => {
+        const t = setTimeout(() => push(), 400);
+        return () => clearTimeout(t);
+    }, [q]); // eslint-disable-line
+
     return (
         <SiteLayout active="restaurants">
             <Head title="المطاعم" />
@@ -21,8 +53,61 @@ export default function Index({ restaurants }) {
                 </div>
             </section>
 
-            <section className="py-14 md:py-[72px]" style={{ paddingTop: 34 }}>
+            <section className="py-14" style={{ paddingTop: 34 }}>
                 <div className="mx-auto w-full max-w-[1200px] px-5">
+                    {/* شريط البحث + الفلاتر */}
+                    <div className="mb-6 rounded-card border border-black/[.06] bg-white p-4">
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto_auto_auto]">
+                            <div className="relative">
+                                <Search className="pointer-events-none absolute inset-y-0 right-3 my-auto h-4 w-4 text-muted" />
+                                <Input
+                                    value={q}
+                                    onChange={(e) => setQ(e.target.value)}
+                                    placeholder="ابحث باسم المطعم أو العنوان…"
+                                    className="pe-3 ps-9"
+                                />
+                            </div>
+                            <div className="flex gap-1.5">
+                                {[
+                                    { v: '', label: 'الكل' },
+                                    { v: 'restaurant', label: 'مطاعم', Icon: Utensils },
+                                    { v: 'cafe', label: 'كافيهات', Icon: Coffee },
+                                ].map(({ v, label, Icon }) => (
+                                    <button
+                                        key={v}
+                                        onClick={() => { setVenue(v); push({ venue: v }); }}
+                                        className={cn(
+                                            'inline-flex items-center gap-1 rounded-input border-[1.5px] px-3 py-2 text-sm font-bold transition-colors',
+                                            venue === v ? 'border-coral bg-coral/[.08] text-coral-deep' : 'border-black/[.08] text-navy hover:border-coral',
+                                        )}
+                                    >
+                                        {Icon && <Icon className="h-3.5 w-3.5" />}
+                                        {label}
+                                    </button>
+                                ))}
+                            </div>
+                            <select
+                                value={sort}
+                                onChange={(e) => { setSort(e.target.value); push({ sort: e.target.value }); }}
+                                className="rounded-input border-[1.5px] border-black/[.08] bg-white px-3 py-2 text-sm font-bold text-navy focus:border-coral focus:outline-none"
+                            >
+                                <option value="nearest">الأقرب لك 📍</option>
+                                <option value="rating">الأعلى تقييماً ⭐</option>
+                                <option value="price">الأرخص</option>
+                            </select>
+                            <Button variant="secondary" onClick={useLiveLocation} disabled={gpsLoading}>
+                                <Navigation className="h-4 w-4" />
+                                {gpsLoading ? 'جاري…' : 'حدّد موقعي'}
+                            </Button>
+                        </div>
+                        {user_location && sort === 'nearest' && (
+                            <p className="mt-3 flex items-center gap-1.5 text-[12.5px] text-muted">
+                                <Sparkles className="h-3.5 w-3.5 text-coral-deep" />
+                                نرتّبلك الأقرب {user_location.source === 'live' ? 'من موقعك دلوقتي' : 'من عنوانك الافتراضي'}.
+                            </p>
+                        )}
+                    </div>
+
                     <div className="mb-5 flex flex-wrap items-center justify-between gap-3.5 font-bold">
                         <div><b className="text-coral-deep">{restaurants.total}</b> مطعم وكافيه</div>
                     </div>
@@ -34,13 +119,26 @@ export default function Index({ restaurants }) {
                                     <div className="absolute top-3 start-3 z-10 flex flex-col gap-1.5">
                                         {r.instant && <Badge variant="best">حجز فوري</Badge>}
                                         {r.is_guaranteed && <Badge variant="makfol">مكفول</Badge>}
+                                        {r.personal_reasons?.length > 0 && (
+                                            <Badge variant="vip" title={r.personal_reasons.join(' · ')}>
+                                                <Sparkles className="me-0.5 inline h-3 w-3" /> ليك
+                                            </Badge>
+                                        )}
                                     </div>
+                                    {r.distance_km !== null && r.distance_km !== undefined && (
+                                        <div className="absolute end-3 top-3 z-10 rounded-full bg-white/95 px-2.5 py-1 text-[11.5px] font-extrabold text-navy shadow">
+                                            {r.distance_km} كم
+                                        </div>
+                                    )}
                                     <Link href={r.url}>
                                         <img src={r.image_url} alt={r.title} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                                     </Link>
                                 </CardMedia>
                                 <CardBody>
-                                    <CardTitle className="mb-1.5"><Link href={r.url} className="transition-colors hover:text-coral-deep">{r.title}</Link></CardTitle>
+                                    <CardTitle className="mb-1.5">
+                                        <Link href={r.url} className="transition-colors hover:text-coral-deep">{r.title}</Link>
+                                        {r.venue_type === 'cafe' && <Coffee className="ms-1 inline h-4 w-4 text-muted" />}
+                                    </CardTitle>
                                     <CardMeta className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {r.address || r.location}</CardMeta>
                                     <div className="mt-2 flex flex-wrap gap-1.5">
                                         {r.cuisines.map((c, i) => <span key={i} className="rounded-full border border-black/[.06] bg-beige px-2.5 py-1 text-xs font-bold text-muted">{c}</span>)}
@@ -54,6 +152,13 @@ export default function Index({ restaurants }) {
                             </Card>
                         ))}
                     </div>
+
+                    {restaurants.data.length === 0 && (
+                        <div className="rounded-card border border-dashed border-black/[.15] bg-beige/40 p-12 text-center">
+                            <Search className="mx-auto h-12 w-12 text-muted" />
+                            <p className="mt-3 text-muted">مافيش نتائج مطابقة.</p>
+                        </div>
+                    )}
                 </div>
             </section>
         </SiteLayout>

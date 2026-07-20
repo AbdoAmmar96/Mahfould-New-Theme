@@ -79,8 +79,9 @@ export function ListingCard({ item, feats = [], currency = 'ج.م', unit = 'لل
             <div className="relative aspect-[4/3] overflow-hidden bg-beige sm:aspect-auto sm:w-72 sm:flex-none">
                 <div className="absolute top-3 start-3 z-10 flex flex-col gap-1.5">
                     {item.is_guaranteed && <UIBadge variant="makfol">مكفول</UIBadge>}
+                    {item.is_best_value && <UIBadge variant="vip">⭐ أفضل قيمة</UIBadge>}
                     {item.sale_price && <UIBadge variant="best">أفضل سعر</UIBadge>}
-                    {item.is_featured && !item.sale_price && <UIBadge variant="vip">VIP</UIBadge>}
+                    {item.is_featured && !item.sale_price && !item.is_best_value && <UIBadge variant="vip">VIP</UIBadge>}
                 </div>
                 <img src={item.image_url} alt={item.title} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
             </div>

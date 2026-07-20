@@ -1,7 +1,7 @@
 import SiteLayout from '@/Layouts/SiteLayout';
 import { money } from '@/Components/UI';
 import { Head, Link, usePage, router } from '@inertiajs/react';
-import { Star, Calendar, Ticket, Heart, Crown, LogOut, ArrowLeft, MapPin } from 'lucide-react';
+import { Star, Calendar, Ticket, Heart, Crown, LogOut, ArrowLeft, MapPin, Headphones } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 
 export default function Dashboard({ bookings, stats }) {
@@ -38,6 +38,9 @@ export default function Dashboard({ bookings, stats }) {
                                 </Link>
                                 <Link href="/account/addresses" className="flex items-center gap-[11px] rounded-[10px] px-3 py-[11px] text-[14.5px] font-bold text-navy transition-colors hover:bg-beige">
                                     <MapPin className="h-[18px] w-[18px]" /> عناويني
+                                </Link>
+                                <Link href="/account/support" className="flex items-center gap-[11px] rounded-[10px] px-3 py-[11px] text-[14.5px] font-bold text-navy transition-colors hover:bg-beige">
+                                    <Headphones className="h-[18px] w-[18px]" /> الدعم الفني
                                 </Link>
                                 <Link href="/sahb-elsaada" className="flex items-center gap-[11px] rounded-[10px] px-3 py-[11px] text-[14.5px] font-bold text-navy transition-colors hover:bg-beige">
                                     <Crown className="h-[18px] w-[18px]" /> صاحب السعادة

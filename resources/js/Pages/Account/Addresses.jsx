@@ -1,7 +1,7 @@
 import SiteLayout from '@/Layouts/SiteLayout';
 import { Head, Link, useForm, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
-import { MapPin, Home, Building2, Palmtree, Plus, Trash2, Star, Ticket, Heart, Crown, LogOut } from 'lucide-react';
+import { MapPin, Home, Building2, Palmtree, Plus, Trash2, Star, Ticket, Heart, Crown, LogOut, Headphones } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 import { Input, Field } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
@@ -58,6 +58,9 @@ export default function Addresses({ addresses }) {
                                 </Link>
                                 <Link href="/account/addresses" className="flex items-center gap-[11px] rounded-[10px] bg-navy px-3 py-[11px] text-[14.5px] font-bold text-white">
                                     <MapPin className="h-[18px] w-[18px]" /> عناويني
+                                </Link>
+                                <Link href="/account/support" className="flex items-center gap-[11px] rounded-[10px] px-3 py-[11px] text-[14.5px] font-bold text-navy transition-colors hover:bg-beige">
+                                    <Headphones className="h-[18px] w-[18px]" /> الدعم الفني
                                 </Link>
                                 <Link href="/sahb-elsaada" className="flex items-center gap-[11px] rounded-[10px] px-3 py-[11px] text-[14.5px] font-bold text-navy transition-colors hover:bg-beige">
                                     <Crown className="h-[18px] w-[18px]" /> صاحب السعادة

@@ -7,8 +7,10 @@ use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\BusController;
+use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\CarController;
+use App\Http\Controllers\ProviderProfileController;
 use App\Http\Controllers\ProviderRegisterController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\Vendor;
@@ -18,6 +20,8 @@ use App\Http\Controllers\PageController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\RestaurantController;
 use App\Http\Controllers\SahbController;
+use App\Http\Controllers\Support;
+use App\Http\Controllers\SupportTicketController;
 use App\Http\Controllers\TourController;
 use App\Http\Controllers\UserAddressController;
 use Illuminate\Support\Facades\Route;
@@ -60,9 +64,18 @@ Route::get('/cars/{car:slug}', [CarController::class, 'show'])->name('cars.show'
 Route::get('/buses', [BusController::class, 'index'])->name('buses.index');
 Route::get('/buses/routes/{route:slug}', [BusController::class, 'route'])->name('buses.route');
 
+// التوصيل — V2 §11 (منصة وسيط، تسعير بالكيلومتر)
+Route::get('/delivery', [DeliveryController::class, 'index'])->name('delivery.index');
+Route::post('/delivery/estimate', [DeliveryController::class, 'estimate'])->name('delivery.estimate');
+Route::post('/delivery/order', [DeliveryController::class, 'store'])->name('delivery.store');
+Route::get('/delivery/confirm/{code}', [DeliveryController::class, 'confirm'])->name('delivery.confirm');
+
 // تسجيل مزوّد (شركة/فرد) — V2 §1.1 (صفحة منفصلة تماماً عن تسجيل العملاء)
 Route::get('/provider/register', [ProviderRegisterController::class, 'create'])->name('provider.register');
 Route::post('/provider/register', [ProviderRegisterController::class, 'store']);
+
+// بروفايل عام للمزوّد — V2 §3 (لوجو + كل التقييمات المجمّعة)
+Route::get('/providers/{slug}', [ProviderProfileController::class, 'show'])->name('providers.show');
 
 // إتاحة الفنادق (JSON) — لمنتقي التواريخ
 Route::get('/availability/hotel/{hotel:slug}', [AvailabilityController::class, 'hotel'])->name('availability.hotel');
@@ -109,6 +122,21 @@ Route::middleware('auth')->group(function () {
     Route::put('/account/addresses/{address}', [UserAddressController::class, 'update'])->name('account.addresses.update');
     Route::delete('/account/addresses/{address}', [UserAddressController::class, 'destroy'])->name('account.addresses.destroy');
     Route::post('/account/addresses/{address}/default', [UserAddressController::class, 'setDefault'])->name('account.addresses.default');
+
+    // Phase F — تذاكر دعم فني للعميل (§15)
+    Route::get('/account/support', [SupportTicketController::class, 'index'])->name('account.support.index');
+    Route::get('/account/support/create', [SupportTicketController::class, 'create'])->name('account.support.create');
+    Route::post('/account/support', [SupportTicketController::class, 'store'])->name('account.support.store');
+    Route::get('/account/support/{code}', [SupportTicketController::class, 'show'])->name('account.support.show');
+    Route::post('/account/support/{code}/reply', [SupportTicketController::class, 'reply'])->name('account.support.reply');
+});
+
+// ── لوحة الدعم الفني (§15) ─────────────────────────────
+Route::prefix('support')->name('support.')->middleware('role:support,admin')->group(function () {
+    Route::get('/', [Support\DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/tickets/{code}', [Support\DashboardController::class, 'show'])->name('tickets.show');
+    Route::post('/tickets/{code}/reply', [Support\DashboardController::class, 'reply'])->name('tickets.reply');
+    Route::post('/tickets/{code}/assign', [Support\DashboardController::class, 'assign'])->name('tickets.assign');
 });
 
 // ── لوحة الأدمن ──────────────────────────────────────────────
@@ -130,6 +158,17 @@ Route::prefix('admin')->name('admin.')->group(function () use ($crud) {
 
         $crud('bookings', Admin\BookingController::class, ['index', 'edit', 'update', 'destroy']);
         Route::post('bookings/{id}/refund', [Admin\BookingController::class, 'refund'])->name('bookings.refund');
+
+        // Phase G — لوحة الإحصائيات (§15.1) — Chart.js + D3.js
+        Route::get('analytics', [Admin\AnalyticsController::class, 'index'])->name('analytics.index');
+        Route::get('analytics/kpi', fn () => response()->json(app(Admin\AnalyticsController::class)->kpi()))->name('analytics.kpi');
+        Route::get('analytics/bookings-over-time', [Admin\AnalyticsController::class, 'bookingsOverTime'])->name('analytics.bookings_over_time');
+        Route::get('analytics/bookings-by-type', [Admin\AnalyticsController::class, 'bookingsByType'])->name('analytics.bookings_by_type');
+        Route::get('analytics/payment-methods', [Admin\AnalyticsController::class, 'paymentMethodsDistribution'])->name('analytics.payment_methods');
+        Route::get('analytics/top-providers', [Admin\AnalyticsController::class, 'topProviders'])->name('analytics.top_providers');
+        Route::get('analytics/customers-growth', [Admin\AnalyticsController::class, 'customersGrowth'])->name('analytics.customers_growth');
+        Route::get('analytics/support-tickets', [Admin\AnalyticsController::class, 'supportTicketsByCategory'])->name('analytics.support_tickets');
+        Route::get('analytics/bookings-heatmap', [Admin\AnalyticsController::class, 'bookingsHeatmap'])->name('analytics.bookings_heatmap');
 
         // Phase D — لوحة الموافقات (§1.1, §15)
         Route::get('approvals', [Admin\ApprovalController::class, 'index'])->name('approvals.index');

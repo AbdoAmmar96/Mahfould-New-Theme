@@ -72,6 +72,7 @@ export default function Index({ tours, locations, filters }) {
                                 <div className="font-bold text-navy"><b className="text-coral-deep">{tours.total}</b> رحلة متاحة</div>
                                 <Select value={sort} onChange={(e) => changeSort(e.target.value)} className="w-auto">
                                     <option value="">الأنسب</option>
+                                    <option value="value">أفضل قيمة ⭐</option>
                                     <option value="price_asc">الأرخص سعراً</option>
                                     <option value="rating">الأعلى تقييماً</option>
                                 </Select>
