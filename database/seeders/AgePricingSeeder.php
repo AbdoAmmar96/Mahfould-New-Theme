@@ -25,7 +25,7 @@ class AgePricingSeeder extends Seeder
         foreach (Tour::all() as $tour) {
             foreach ($tiers as $order => [$label, $min, $max, $mult]) {
                 AgePricingTier::updateOrCreate(
-                    ['pricable_type' => Tour::class, 'pricable_id' => $tour->id, 'label' => $label],
+                    ['bookable_type' => Tour::class, 'bookable_id' => $tour->id, 'label' => $label],
                     ['min_age' => $min, 'max_age' => $max, 'multiplier' => $mult, 'order' => $order],
                 );
             }
@@ -34,7 +34,7 @@ class AgePricingSeeder extends Seeder
         foreach (SahbPackage::all() as $pkg) {
             foreach ($tiers as $order => [$label, $min, $max, $mult]) {
                 AgePricingTier::updateOrCreate(
-                    ['pricable_type' => SahbPackage::class, 'pricable_id' => $pkg->id, 'label' => $label],
+                    ['bookable_type' => SahbPackage::class, 'bookable_id' => $pkg->id, 'label' => $label],
                     ['min_age' => $min, 'max_age' => $max, 'multiplier' => $mult, 'order' => $order],
                 );
             }

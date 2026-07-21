@@ -6,6 +6,8 @@ use App\Exceptions\SlotUnavailableException;
 use App\Models\Booking;
 use App\Models\BookingItem;
 use App\Models\Hotel;
+use App\Models\RoomType;
+use App\Models\User;
 use App\Services\Availability\AvailabilityService;
 use App\Services\Availability\HoldService;
 use App\Services\BookingNotifier;
@@ -18,10 +20,28 @@ class AvailabilityEngineTest extends TestCase
 {
     use RefreshDatabase;
 
+    /** فندق + نوع غرفة نشط (§7: الإتاحة والتسعير على مستوى room_type) */
     private function hotel(int $units = 2): Hotel
     {
-        return Hotel::create([
+        $hotel = Hotel::create([
             'title' => 'فندق اختبار', 'price' => 1000, 'units_total' => $units, 'status' => 'publish',
+        ]);
+
+        RoomType::create([
+            'hotel_id' => $hotel->id, 'title' => 'غرفة قياسية',
+            'capacity_per_night' => 2, 'units_total' => $units,
+            'price_per_night' => 1000, 'is_active' => true, 'order' => 0,
+        ]);
+
+        return $hotel;
+    }
+
+    /** §19: الحجز يتطلّب تسجيل دخول */
+    private function customer(): User
+    {
+        return User::create([
+            'name' => 'عميل', 'email' => 'c'.uniqid().'@test.local',
+            'phone' => '01000000000', 'role' => 'customer', 'password' => bcrypt('secret'),
         ]);
     }
 
@@ -141,6 +161,7 @@ class AvailabilityEngineTest extends TestCase
     public function test_on_arrival_hotel_booking_books_inventory_over_http(): void
     {
         $this->withoutMiddleware(ValidateCsrfToken::class);
+        $this->actingAs($this->customer());
         $this->mock(BookingNotifier::class, fn ($m) => $m->shouldReceive('confirmed'));
 
         $hotel = $this->hotel(2);
@@ -150,6 +171,7 @@ class AvailabilityEngineTest extends TestCase
             'type' => 'hotel', 'id' => $hotel->id, 'start_date' => $start,
             'nights' => 3, 'units' => 1, 'guests' => 2,
             'customer_name' => 'عميل', 'customer_phone' => '01000000000',
+            'booking_for' => 'self',
             'payment_method' => 'on_arrival',
         ]);
 
@@ -165,6 +187,7 @@ class AvailabilityEngineTest extends TestCase
     public function test_http_booking_rejected_when_sold_out(): void
     {
         $this->withoutMiddleware(ValidateCsrfToken::class);
+        $this->actingAs($this->customer());
         $this->mock(BookingNotifier::class, fn ($m) => $m->shouldReceive('confirmed')->zeroOrMoreTimes());
 
         $hotel = $this->hotel(1);
@@ -173,6 +196,7 @@ class AvailabilityEngineTest extends TestCase
             'type' => 'hotel', 'id' => $hotel->id, 'start_date' => $start,
             'nights' => 2, 'units' => 1, 'guests' => 2,
             'customer_name' => 'عميل', 'customer_phone' => '01000000000',
+            'booking_for' => 'self',
             'payment_method' => 'on_arrival',
         ];
 

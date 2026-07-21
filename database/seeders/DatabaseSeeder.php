@@ -108,15 +108,52 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // ── إشغال تجريبي: أول فندق (6 غرف) محجوز منه 4 غرف لـ5 ليالٍ قريبة ──
-        // (يخلّي منتقي التواريخ يوري "متبقّي 2 غرف" فعليًا)
-        $demoHotel = $hotelModels[0];
+        // ── أنواع الغرف (§7) — الإتاحة والتسعير بيشتغلوا على مستوى النوع مش الفندق ──
+        // (الـmigration فيها backfill للفنادق الموجودة، لكن في migrate:fresh الفنادق
+        //  بتتولد بعد الـmigrations — فلازم نبذر الأنواع هنا.)
+        $roomTypeSets = [
+            // [العنوان, الطاقة, الكمية, سعر الليلة, سعر العرض, شامل الإفطار]
+            [
+                ['غرفة قياسية', 2, 6, 2800, null, true],
+                ['غرفة ديلوكس بإطلالة بحر', 3, 4, 3900, 4400, true],
+                ['سويت عائلي', 5, 2, 6200, null, true],
+            ],
+            [
+                ['غرفة قياسية', 2, 4, 2400, 3200, true],
+                ['شاليه خاص', 4, 1, 5200, null, false], // الشاليه = نوع بكمية 1
+            ],
+            [
+                ['غرفة كلاسيك', 2, 3, 4600, null, true],
+                ['جناح تنفيذي', 3, 2, 8800, null, true],
+            ],
+        ];
+        $roomTypeModels = [];
+        foreach ($hotelModels as $hi => $hotelModel) {
+            foreach ($roomTypeSets[$hi] as $order => [$rtTitle, $cap, $qty, $rtPrice, $rtSale, $bf]) {
+                $roomTypeModels[$hi][] = \App\Models\RoomType::create([
+                    'hotel_id' => $hotelModel->id,
+                    'title' => $rtTitle,
+                    'description' => 'غرفة نضيفة ومجهّزة بالكامل — إلغاء مجاني حسب السياسة.',
+                    'capacity_per_night' => $cap,
+                    'units_total' => $qty,
+                    'price_per_night' => $rtPrice,
+                    'sale_price_per_night' => $rtSale,
+                    'includes_breakfast' => $bf,
+                    'is_active' => true,
+                    'order' => $order,
+                ]);
+            }
+        }
+
+        // ── إشغال تجريبي: "غرفة قياسية" في أول فندق (6 غرف) محجوز منها 4 لـ5 ليالٍ ──
+        // (يخلّي منتقي التواريخ يوري "متبقّي 2 غرفة" فعليًا)
+        $demoType = $roomTypeModels[0][0];
         $items = [];
         for ($room = 0; $room < 4; $room++) {
             for ($n = 3; $n < 8; $n++) { // بعد 3 أيام من اليوم، لمدة 5 ليالٍ
                 $items[] = [
-                    'unit_type' => 'hotel', 'unit_id' => $demoHotel->id, 'unit_index' => $room,
-                    'date' => now()->addDays($n)->toDateString(), 'slot' => 'STAY',
+                    'unit_type' => $demoType->availabilityType(), 'unit_id' => $demoType->id, 'unit_index' => $room,
+                    'date' => now()->addDays($n)->toDateString(), 'slot' => $demoType->defaultSlot(),
                     'state' => 'booked', 'created_at' => now(), 'updated_at' => now(),
                 ];
             }
