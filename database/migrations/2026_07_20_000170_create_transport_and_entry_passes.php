@@ -23,7 +23,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('bookings', function (Blueprint $t) {
-            $t->string('transport_mode', 16)->nullable()->after('slot');   // own_car | bus | rented_car | null
+            // ملاحظة: جدول bookings مالوش عمود "slot" — الوضع بعد room_type_id (موجود من migration 000120).
+            // MySQL بيرمي خطأ على ->after() لعمود غير موجود (SQLite بيتجاهلها) — كان بيفشّل النشر الأول.
+            $t->string('transport_mode', 16)->nullable()->after('room_type_id');   // own_car | bus | rented_car | null
             $t->foreignId('bus_trip_id')->nullable()->after('transport_mode')
                 ->constrained('bus_trips')->nullOnDelete();
             // بيانات إضافية للنقل (مثلاً رقم اللوحة، محطة الركوب/النزول لو باص)

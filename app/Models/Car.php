@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\Bookable;
+use App\Models\Concerns\HasAvailability;
 use App\Models\Concerns\HasProvider;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,11 +12,11 @@ use Illuminate\Support\Str;
 
 class Car extends Model
 {
-    use HasFactory, Bookable, HasProvider;
+    use HasFactory, Bookable, HasProvider, HasAvailability;
 
     protected $fillable = [
         'user_id', 'provider_id', 'location_id', 'title', 'slug', 'brand', 'content',
-        'price', 'sale_price', 'transmission', 'seats', 'with_driver',
+        'price', 'sale_price', 'transmission', 'seats', 'units_total', 'with_driver',
         'image', 'gallery', 'is_featured', 'is_guaranteed',
         'status', 'publish_state', 'submitted_at', 'reviewed_at', 'reviewed_by', 'rejection_reason',
         'review_score', 'review_count',
@@ -29,9 +30,17 @@ class Car extends Model
         'price'         => 'decimal:2',
         'sale_price'    => 'decimal:2',
         'review_score'  => 'decimal:2',
+        'units_total'   => 'integer',
         'submitted_at'  => 'datetime',
         'reviewed_at'   => 'datetime',
     ];
+
+    // ── HasAvailability overrides ──
+    // العربية بتتحجز بـ"اليوم" مش بالليلة — نفس المحرك، slot مختلف.
+    public function defaultSlot(): string
+    {
+        return 'DAY';
+    }
 
     protected static function booted(): void
     {

@@ -59,7 +59,8 @@ class BookingController extends Controller
             ? $roomType->inventoryCount()
             : ($this->isPooled($model) ? $model->inventoryCount() : null);
         $isGuaranteed = (bool) ($model->is_guaranteed ?? false);
-        $pooled = $type === 'hotel'; // الفنادق دائماً pooled عبر room_type
+        // الفنادق pooled عبر room_type، والعربيات pooled عبر أسطولها (units_total)
+        $pooled = $type === 'hotel' || $this->isPooled($model);
 
         return Inertia::render('Booking/Checkout', [
             'item' => [
@@ -230,19 +231,21 @@ class BookingController extends Controller
         $holdToken = null;
 
         if ($pooled) {
-            // فندق: تاريخ + ليالي + غرف + حجز فعلي للمخزون (على مستوى room_type)
+            // فندق (ليالي×غرف) أو عربية (أيام×عربيات) — الاتنين بيمرّوا بمحرك الإتاحة
+            $isCar = $data['type'] === 'car';
             $startDate = $data['start_date'] ?? null;
             if (! $startDate) {
-                return back()->with('error', 'اختَر تاريخ الوصول أولاً.');
+                return back()->withInput()->with('error', $isCar ? 'اختَر تاريخ الاستلام أولاً.' : 'اختَر تاريخ الوصول أولاً.');
             }
             if (Carbon::parse($startDate)->startOfDay()->lt(now()->startOfDay())) {
-                return back()->with('error', 'لا يمكن الحجز في تاريخ ماضٍ.');
+                return back()->withInput()->with('error', 'لا يمكن الحجز في تاريخ ماضٍ.');
             }
 
-            $nights = max(1, (int) ($data['nights'] ?? 1));
+            // للعربيات: "nights" = عدد الأيام (نقبل guests كاحتياطي للروابط القديمة)
+            $nights = max(1, (int) ($data['nights'] ?? ($isCar ? $guests : 1)));
             $units  = max(1, (int) ($data['units'] ?? 1));
             $endDate = Carbon::parse($startDate)->addDays($nights)->toDateString();
-            // للفنادق: التسعير بالليلة×الغرف (شرائح العمر مش بتنطبق مباشرة على غرف)
+            // التسعير: سعر الوحدة × المدة × عدد الوحدات (شرائح العمر مش بتنطبق على غرف/عربيات)
             $subtotal = $unit * $nights * $units;
 
             $dates = [];

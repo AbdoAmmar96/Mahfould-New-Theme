@@ -41,6 +41,11 @@ function tierFor(age, tiers) {
 
 export default function Checkout({ item, prefill = {}, pricing = {} }) {
     const pooled = !!item.pooled;
+    const isCar = item.type === 'car';
+    // مسمّيات وحدة/مدة الحجز حسب النوع (فندق: ليالي×غرف · عربية: أيام×عربيات)
+    const L = isCar
+        ? { date: 'تاريخ الاستلام', durLabel: 'عدد الأيام', dur: 'أيام', unitLabel: 'عدد العربيات', unit: 'عربية' }
+        : { date: 'تاريخ الوصول', durLabel: 'عدد الليالي', dur: 'ليالي', unitLabel: 'عدد الغرف', unit: 'غرفة' };
     const ageTiers = pricing.age_tiers || [];
     const payment = pricing.payment || { default_timing_self: 'on_arrival', timing_other: 'prepaid' };
 
@@ -230,19 +235,19 @@ export default function Checkout({ item, prefill = {}, pricing = {} }) {
                                                 <Input value={data.customer_national_id} onChange={(e) => setData('customer_national_id', e.target.value)} placeholder="14 رقم" />
                                             </Field>
                                         )}
-                                        <Field label={pooled ? 'تاريخ الوصول' : item.type === 'car' ? 'تاريخ الاستلام' : 'التاريخ'}>
+                                        <Field label={pooled ? L.date : 'التاريخ'}>
                                             <Input type="date" min={pooled ? today : undefined} value={data.start_date} onChange={(e) => setData('start_date', e.target.value)} />
                                         </Field>
                                         {pooled ? (
                                             <>
-                                                <Field label="عدد الليالي">
+                                                <Field label={L.durLabel}>
                                                     <Select value={data.nights} onChange={(e) => setData('nights', +e.target.value)}>
-                                                        {[1, 2, 3, 4, 5, 6, 7, 10, 14].map((n) => <option key={n} value={n}>{n} ليالي</option>)}
+                                                        {[1, 2, 3, 4, 5, 6, 7, 10, 14].map((n) => <option key={n} value={n}>{n} {L.dur}</option>)}
                                                     </Select>
                                                 </Field>
-                                                <Field label="عدد الغرف">
+                                                <Field label={L.unitLabel}>
                                                     <Select value={data.units} onChange={(e) => setData('units', +e.target.value)}>
-                                                        {Array.from({ length: item.units_total || 1 }, (_, i) => i + 1).map((n) => <option key={n} value={n}>{n} غرفة</option>)}
+                                                        {Array.from({ length: item.units_total || 1 }, (_, i) => i + 1).map((n) => <option key={n} value={n}>{n} {L.unit}</option>)}
                                                     </Select>
                                                 </Field>
                                                 <Field label="عدد الضيوف">
@@ -388,7 +393,7 @@ export default function Checkout({ item, prefill = {}, pricing = {} }) {
                                                 </div>
                                             )}
                                             <div className="mt-1 text-[13px] font-semibold text-muted">
-                                                {pooled ? `${data.nights} ليالي · ${data.units} غرفة · ${data.guests} ضيوف` : `${data.guests} ${item.unit}`}
+                                                {pooled ? `${data.nights} ${L.dur} · ${data.units} ${L.unit}` + (isCar ? '' : ` · ${data.guests} ضيوف`) : `${data.guests} ${item.unit}`}
                                             </div>
                                         </div>
                                     </div>

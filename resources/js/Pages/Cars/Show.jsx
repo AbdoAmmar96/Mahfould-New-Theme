@@ -17,7 +17,9 @@ export default function Show({ car, reviews, review_type, review_id }) {
     const checkoutUrl = () => {
         const q = new URLSearchParams();
         if (date) q.set('start_date', date);
-        q.set('guests', days);
+        q.set('nights', days);   // مدة الإيجار بالأيام (وحدة الحجز في محرك الإتاحة)
+        q.set('units', 1);       // عربية واحدة
+        q.set('guests', 1);
         return `${car.checkout_url}?${q.toString()}`;
     };
     const gallery = car.gallery.length ? car.gallery : [

@@ -6,10 +6,11 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title inertia>{{ config('app.name', 'محفول مكفول') }}</title>
     {{-- شعار التبويب (favicon) --}}
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('assets/img/logo-t.png') }}">
-    <link rel="icon" type="image/png" sizes="192x192" href="{{ asset('assets/img/logo.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('assets/img/logo.png') }}">
-    <link rel="shortcut icon" href="{{ asset('assets/img/logo-t.png') }}">
+    <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('assets/img/favicon-32.png') }}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ asset('assets/img/favicon-192.png') }}">
+    <link rel="icon" type="image/png" sizes="512x512" href="{{ asset('assets/img/favicon-512.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('assets/img/apple-touch-icon.png') }}">
     <meta name="theme-color" content="#363677">
     <meta property="og:image" content="{{ asset('assets/img/logo.png') }}">
     <meta property="og:title" content="{{ config('app.name', 'محفول مكفول') }}">

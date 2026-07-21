@@ -149,7 +149,7 @@ Route::prefix('support')->name('support.')->middleware('role:support,admin')->gr
 // ── لوحة الأدمن ──────────────────────────────────────────────
 Route::prefix('admin')->name('admin.')->group(function () use ($crud) {
     Route::get('login', [Admin\AuthController::class, 'create'])->name('login');
-    Route::post('login', [Admin\AuthController::class, 'store']);
+    Route::post('login', [Admin\AuthController::class, 'store'])->middleware('throttle:login');
 
     Route::middleware('role:admin')->group(function () use ($crud) {
         Route::post('logout', [Admin\AuthController::class, 'destroy'])->name('logout');
@@ -191,7 +191,7 @@ Route::prefix('admin')->name('admin.')->group(function () use ($crud) {
 // ── بوابة الشركاء (البائع) ───────────────────────────────────
 Route::prefix('vendor')->name('vendor.')->group(function () use ($crud) {
     Route::get('login', [Admin\AuthController::class, 'create'])->name('login');
-    Route::post('login', [Admin\AuthController::class, 'store']);
+    Route::post('login', [Admin\AuthController::class, 'store'])->middleware('throttle:login');
 
     Route::middleware('role:vendor,admin')->group(function () use ($crud) {
         Route::post('logout', [Admin\AuthController::class, 'destroy'])->name('logout');
