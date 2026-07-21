@@ -20,7 +20,7 @@ use Illuminate\Support\Str;
 class Company extends Model
 {
     protected $fillable = [
-        'user_id', 'provider_type', 'name', 'slug', 'logo', 'about',
+        'user_id', 'provider_type', 'service_types', 'name', 'slug', 'logo', 'about',
         'phone', 'email', 'national_id', 'tax_id',
         'license_no', 'license_authority', 'license_expires_at',
         'bank_holder', 'bank_iban', 'bank_name',
@@ -32,6 +32,7 @@ class Company extends Model
     ];
 
     protected $casts = [
+        'service_types' => 'array',
         'is_first_party' => 'boolean',
         'license_expires_at' => 'date',
         'provider_review_score' => 'decimal:2',

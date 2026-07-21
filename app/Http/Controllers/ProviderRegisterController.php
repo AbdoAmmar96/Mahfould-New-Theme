@@ -24,15 +24,33 @@ use Inertia\Response;
  */
 class ProviderRegisterController extends Controller
 {
+    /** أنواع الخدمات اللي المزوّد يقدر يقدّمها (بند 19) */
+    public const SERVICE_TYPES = [
+        'tour'       => 'رحلات وبرامج سياحية',
+        'hotel'      => 'فنادق وإقامة',
+        'restaurant' => 'مطاعم وكافيهات',
+        'car'        => 'تأجير سيارات',
+        'bus'        => 'باصات ونقل',
+        'delivery'   => 'خدمات توصيل',
+        'sahb'       => 'مناسبات (صاحب السعادة)',
+    ];
+
     public function create(): Response
     {
-        return Inertia::render('Provider/Register');
+        return Inertia::render('Provider/Register', [
+            'service_types' => collect(self::SERVICE_TYPES)
+                ->map(fn ($label, $key) => ['key' => $key, 'label' => $label])
+                ->values(),
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
             'provider_type' => ['required', Rule::in(['company', 'individual'])],
+            // بند 19: نوع الخدمة المقدَّمة إلزامي (نوع واحد على الأقل)
+            'service_types' => ['required', 'array', 'min:1'],
+            'service_types.*' => [Rule::in(array_keys(self::SERVICE_TYPES))],
             // بيانات صاحب الحساب (user)
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:120', 'unique:users,email'],
@@ -62,6 +80,7 @@ class ProviderRegisterController extends Controller
             $company = Company::create([
                 'user_id' => $user->id,
                 'provider_type' => $data['provider_type'],
+                'service_types' => array_values(array_unique($data['service_types'])),
                 'name' => $data['business_name'],
                 'phone' => $data['phone'],
                 'email' => $data['email'],

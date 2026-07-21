@@ -2,9 +2,10 @@ import SiteLayout from '@/Layouts/SiteLayout';
 import { ListingCard } from '@/Components/UI';
 import { Button } from '@/Components/ui/button';
 import { Select, Input } from '@/Components/ui/input';
+import { Popover, PopoverTrigger, PopoverContent } from '@/Components/ui/popover';
 import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
-import { Calendar, BedDouble, Plane, Search, Filter, Sparkles, ShieldCheck } from 'lucide-react';
+import { Calendar, BedDouble, Plane, Search, Filter, Sparkles, ShieldCheck, X, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function Index({ tours, locations, filters }) {
@@ -39,6 +40,70 @@ export default function Index({ tours, locations, filters }) {
     const clear = () => router.get('/tours');
     const hasActive = q || filters.location || minPrice || maxPrice !== 15000 || duration || guaranteed || withActivities || sort;
 
+    // عدد الفلاتر النشطة (يظهر على زر الفلاتر)
+    const activeCount = [
+        filters.location, minPrice, maxPrice && +maxPrice !== 15000 ? maxPrice : null,
+        duration, guaranteed || null, withActivities || null,
+    ].filter(Boolean).length;
+
+    // كل أقسام الفلترة في مكان واحد — تُستخدم داخل القائمة المنسدلة
+    const filterSections = (
+        <>
+            <FilterSection title="الوجهة">
+                <div className="max-h-56 space-y-1 overflow-y-auto">
+                    {locations.map((l) => (
+                        <label key={l.slug} className="flex cursor-pointer items-center gap-2 py-1 text-sm font-semibold text-navy">
+                            <input type="checkbox" checked={filters.location === l.slug}
+                                onChange={() => byLoc(l.slug)}
+                                className="h-[16px] w-[16px] accent-coral" />
+                            {l.name}
+                            <span className="ms-auto text-xs text-muted">{l.count}</span>
+                        </label>
+                    ))}
+                </div>
+            </FilterSection>
+
+            <FilterSection title="نطاق السعر (ج.م)">
+                <div className="grid grid-cols-2 gap-2">
+                    <Input type="number" placeholder="من" min={0} value={minPrice}
+                        onChange={(e) => setMinPrice(e.target.value)} onBlur={() => push()} className="h-9 text-sm" />
+                    <Input type="number" placeholder="إلى" min={0} value={maxPrice}
+                        onChange={(e) => setMaxPrice(e.target.value)} onBlur={() => push()} className="h-9 text-sm" />
+                </div>
+            </FilterSection>
+
+            <FilterSection title="مدة الرحلة">
+                <div className="grid grid-cols-4 gap-1.5">
+                    {[2, 3, 4, 5, 7].map((d) => (
+                        <button key={d}
+                            onClick={() => { setDuration(duration === String(d) ? '' : String(d)); push({ duration_days: duration === String(d) ? undefined : d }); }}
+                            className={cn(
+                                'rounded-md border py-1.5 text-[12.5px] font-bold transition-colors',
+                                +duration === d ? 'border-coral bg-coral/[.08] text-coral-deep' : 'border-black/[.08] text-navy hover:border-coral',
+                            )}>
+                            {d} {d > 2 ? 'أيام' : 'يوم'}
+                        </button>
+                    ))}
+                </div>
+            </FilterSection>
+
+            <FilterSection title="ميّزات">
+                <label className="flex cursor-pointer items-center gap-2 py-1 text-sm font-semibold text-navy">
+                    <input type="checkbox" checked={guaranteed}
+                        onChange={(e) => { setGuaranteed(e.target.checked); push({ guaranteed: e.target.checked || undefined }); }}
+                        className="h-4 w-4 accent-coral" />
+                    <ShieldCheck className="h-3.5 w-3.5 text-makfol" /> مكفول فقط
+                </label>
+                <label className="flex cursor-pointer items-center gap-2 py-1 text-sm font-semibold text-navy">
+                    <input type="checkbox" checked={withActivities}
+                        onChange={(e) => { setWithActivities(e.target.checked); push({ with_activities: e.target.checked || undefined }); }}
+                        className="h-4 w-4 accent-coral" />
+                    <Sparkles className="h-3.5 w-3.5 text-vip" /> بفعاليات إضافية
+                </label>
+            </FilterSection>
+        </>
+    );
+
     return (
         <SiteLayout active="tours">
             <Head title="الرحلات" />
@@ -52,8 +117,8 @@ export default function Index({ tours, locations, filters }) {
                     <h1 className="mt-1.5 font-head text-3xl font-bold">رحلات وبرامج سياحية</h1>
                     <p className="mt-1.5 text-white/70">كل الرحلات مكفولة — سعر متّفق عليه وضمان استرداد</p>
 
-                    {/* بحث نصي داخل البانر */}
-                    <div className="mt-5 flex max-w-2xl gap-2 rounded-input bg-white p-1.5">
+                    {/* بحث نصي + زر الفلاتر (قائمة منسدلة) */}
+                    <div className="mt-5 flex max-w-2xl items-center gap-2 rounded-input bg-white p-1.5">
                         <div className="relative flex-1">
                             <Search className="pointer-events-none absolute inset-y-0 right-3 my-auto h-4 w-4 text-muted" />
                             <input
@@ -63,91 +128,53 @@ export default function Index({ tours, locations, filters }) {
                                 className="h-11 w-full rounded-input border-none bg-transparent pe-3 ps-9 text-sm text-navy outline-none placeholder:text-muted"
                             />
                         </div>
+
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <button
+                                    type="button"
+                                    className={cn(
+                                        'relative flex h-11 shrink-0 items-center gap-1.5 rounded-input px-4 text-sm font-bold transition-colors',
+                                        activeCount > 0
+                                            ? 'bg-coral text-white hover:bg-coral-deep'
+                                            : 'bg-beige text-navy hover:bg-sandline',
+                                    )}
+                                >
+                                    <Filter className="h-4 w-4" />
+                                    <span className="hidden sm:inline">فلاتر</span>
+                                    {activeCount > 0 && (
+                                        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[11px] font-extrabold text-coral-deep">
+                                            {activeCount}
+                                        </span>
+                                    )}
+                                    <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                                </button>
+                            </PopoverTrigger>
+
+                            <PopoverContent align="end" sideOffset={10} className="w-[min(92vw,360px)] p-0">
+                                <div className="flex items-center justify-between border-b border-black/[.06] px-4 py-3">
+                                    <h4 className="flex items-center gap-1.5 font-head text-base font-bold text-navy">
+                                        <Filter className="h-4 w-4 text-coral-deep" /> فلترة النتائج
+                                    </h4>
+                                    {hasActive && (
+                                        <button onClick={clear} className="inline-flex items-center gap-1 text-[12px] font-bold text-coral-deep hover:underline">
+                                            <X className="h-3.5 w-3.5" /> مسح الكل
+                                        </button>
+                                    )}
+                                </div>
+                                {/* التمرير جوّه القائمة نفسها — عشان قسم «ميّزات» يبان من غير ما تنزل بالصفحة كلها */}
+                                <div className="max-h-[min(70vh,460px)] overflow-y-auto px-4 pb-3">
+                                    {filterSections}
+                                </div>
+                            </PopoverContent>
+                        </Popover>
                     </div>
                 </div>
             </section>
 
             <section className="pt-[34px] pb-14 md:pb-[72px]">
                 <div className="mx-auto w-full max-w-[1200px] px-5 2xl:max-w-[1600px]">
-                    <div className="grid grid-cols-1 items-start gap-7 lg:grid-cols-[300px_1fr]">
-                        {/* الفلتر */}
-                        <aside className="self-start rounded-card border border-black/[.06] bg-white p-5 lg:sticky lg:top-[92px]">
-                            <div className="mb-3 flex items-center justify-between">
-                                <h4 className="flex items-center gap-1.5 font-head text-base font-bold text-navy">
-                                    <Filter className="h-4 w-4 text-coral-deep" /> فلترة النتائج
-                                </h4>
-                                {hasActive && (
-                                    <button onClick={clear} className="text-[12px] font-bold text-coral-deep hover:underline">مسح</button>
-                                )}
-                            </div>
-
-                            {/* الوجهة */}
-                            <FilterSection title="الوجهة">
-                                <div className="max-h-56 overflow-y-auto space-y-1">
-                                    {locations.map((l) => (
-                                        <label key={l.slug}
-                                            className="flex cursor-pointer items-center gap-2 py-1 text-sm font-semibold text-navy">
-                                            <input type="checkbox" checked={filters.location === l.slug}
-                                                onChange={() => byLoc(l.slug)}
-                                                className="h-[16px] w-[16px] accent-coral" />
-                                            {l.name}
-                                            <span className="ms-auto text-xs text-muted">{l.count}</span>
-                                        </label>
-                                    ))}
-                                </div>
-                            </FilterSection>
-
-                            {/* السعر */}
-                            <FilterSection title="نطاق السعر (ج.م)">
-                                <div className="grid grid-cols-2 gap-2">
-                                    <Input
-                                        type="number" placeholder="من" min={0}
-                                        value={minPrice} onChange={(e) => setMinPrice(e.target.value)}
-                                        onBlur={() => push()}
-                                        className="h-9 text-sm"
-                                    />
-                                    <Input
-                                        type="number" placeholder="إلى" min={0}
-                                        value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)}
-                                        onBlur={() => push()}
-                                        className="h-9 text-sm"
-                                    />
-                                </div>
-                            </FilterSection>
-
-                            {/* مدة الرحلة */}
-                            <FilterSection title="مدة الرحلة">
-                                <div className="grid grid-cols-4 gap-1.5">
-                                    {[2, 3, 4, 5, 7].map(d => (
-                                        <button key={d}
-                                            onClick={() => { setDuration(duration === String(d) ? '' : String(d)); push({ duration_days: duration === String(d) ? undefined : d }); }}
-                                            className={cn(
-                                                'rounded-md border py-1.5 text-[12.5px] font-bold transition-colors',
-                                                +duration === d ? 'border-coral bg-coral/[.08] text-coral-deep' : 'border-black/[.08] text-navy hover:border-coral',
-                                            )}>
-                                            {d} {d > 2 ? 'أيام' : 'يوم'}
-                                        </button>
-                                    ))}
-                                </div>
-                            </FilterSection>
-
-                            {/* ميّزات */}
-                            <FilterSection title="ميّزات">
-                                <label className="flex cursor-pointer items-center gap-2 py-1 text-sm font-semibold text-navy">
-                                    <input type="checkbox" checked={guaranteed}
-                                        onChange={(e) => { setGuaranteed(e.target.checked); push({ guaranteed: e.target.checked || undefined }); }}
-                                        className="h-4 w-4 accent-coral" />
-                                    <ShieldCheck className="h-3.5 w-3.5 text-makfol" /> مكفول فقط
-                                </label>
-                                <label className="flex cursor-pointer items-center gap-2 py-1 text-sm font-semibold text-navy">
-                                    <input type="checkbox" checked={withActivities}
-                                        onChange={(e) => { setWithActivities(e.target.checked); push({ with_activities: e.target.checked || undefined }); }}
-                                        className="h-4 w-4 accent-coral" />
-                                    <Sparkles className="h-3.5 w-3.5 text-vip" /> بفعاليات إضافية
-                                </label>
-                            </FilterSection>
-                        </aside>
-
+                    <div>
                         {/* النتائج */}
                         <div>
                             <div className="mb-5 flex flex-wrap items-center justify-between gap-[14px]">

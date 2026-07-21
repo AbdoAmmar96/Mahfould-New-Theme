@@ -14,6 +14,7 @@ import { Input, Field } from '@/Components/ui/input';
 import { PartySizeField } from '@/Components/ui/party-size';
 import { Tabs, TabsList, TabsTrigger } from '@/Components/ui/tabs';
 import { ServiceCard, money } from '@/Components/ui/service-card';
+import ProviderBanner from '@/Components/ProviderBanner';
 import { cn } from '@/lib/utils';
 
 const TABS = [
@@ -119,7 +120,7 @@ export default function Home({ locations, featured, hotels, restaurants, cars, p
                 <Wrap className="relative z-10">
                     <div className="duration-700 animate-in fade-in slide-in-from-bottom-3">
                         <Badge variant="makfol"><ShieldCheck className="h-3.5 w-3.5" /> كل حجز مكفول 100%</Badge>
-                        <h1 className="mt-4 max-w-3xl font-head text-4xl font-bold leading-[1.2] text-white md:text-5xl">
+                        <h1 className="mt-4 max-w-3xl font-head text-4xl font-bold leading-[1.5] text-white md:text-5xl md:leading-[1.45]">
                             قوللنا مزاجك…<br />واحنا نرتّبلك{' '}
                             <span className="bg-gradient-to-br from-coral to-coral-deep bg-clip-text text-transparent">الرحلة كلها</span>{' '}
                             من غير تعب
@@ -357,6 +358,11 @@ export default function Home({ locations, featured, hotels, restaurants, cars, p
                     </div>
                 </Wrap>
             </section>
+
+            {/* انضم كمزوّد خدمة */}
+            <Wrap className="py-10">
+                <ProviderBanner />
+            </Wrap>
 
             {/* دعوة أخيرة */}
             <section className="bg-gradient-to-br from-coral to-coral-deep py-[60px] text-center text-white">

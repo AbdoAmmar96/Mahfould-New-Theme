@@ -83,10 +83,14 @@ export function ListingCard({ item, feats = [], currency = 'ج.م', unit = 'لل
                     {item.sale_price && <UIBadge variant="best">أفضل سعر</UIBadge>}
                     {item.is_featured && !item.sale_price && !item.is_best_value && <UIBadge variant="vip">VIP</UIBadge>}
                 </div>
-                <img src={item.image_url} alt={item.title} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                <Link href={item.url} aria-label={item.title} className="block h-full w-full">
+                    <img src={item.image_url} alt={item.title} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                </Link>
             </div>
             <div className="flex flex-1 flex-col p-5">
-                <h3 className="font-head text-xl font-semibold text-navy">{item.title}</h3>
+                <h3 className="font-head text-xl font-semibold text-navy">
+                    <Link href={item.url} className="transition-colors hover:text-coral-deep">{item.title}</Link>
+                </h3>
                 <div className="mt-1 text-[13px] font-semibold text-muted">{item.location}{item.short_desc ? ` · ${item.short_desc}` : ''}</div>
                 <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-muted">
                     {feats.map((f, i) => <span key={i}>{f}</span>)}

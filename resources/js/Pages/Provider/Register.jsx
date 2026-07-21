@@ -7,10 +7,11 @@ import { RadioGroup, RadioGroupItem } from '@/Components/ui/radio-group';
 import { Checkbox } from '@/Components/ui/checkbox';
 import { cn } from '@/lib/utils';
 
-export default function Register() {
+export default function Register({ service_types = [] }) {
     const { data, setData, post, processing, errors } = useForm({
         provider_type: 'company',
         name: '', email: '', phone: '', password: '', password_confirmation: '',
+        service_types: [],
         business_name: '', about: '',
         national_id: '', license_no: '', license_authority: '',
         terms_accepted: false,
@@ -18,6 +19,14 @@ export default function Register() {
 
     const submit = (e) => { e.preventDefault(); post('/provider/register'); };
     const isIndividual = data.provider_type === 'individual';
+
+    // بند 19: نوع الخدمة المقدَّمة إلزامي (نوع واحد على الأقل)
+    const toggleService = (key) => setData(
+        'service_types',
+        data.service_types.includes(key)
+            ? data.service_types.filter((k) => k !== key)
+            : [...data.service_types, key],
+    );
 
     return (
         <SiteLayout>
@@ -96,6 +105,39 @@ export default function Register() {
                                 <Input type="password" value={data.password_confirmation} onChange={(e) => setData('password_confirmation', e.target.value)} />
                             </Field>
                         </div>
+
+                        <h3 className="mb-1 font-head text-[17px] font-bold text-navy">
+                            نوع الخدمة المقدَّمة <span className="text-danger">*</span>
+                        </h3>
+                        <p className="mb-3 text-[13px] text-muted">اختَر نوع واحد على الأقل — تقدر تختار أكتر من نوع.</p>
+                        <div className="mb-2 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                            {service_types.map((st) => {
+                                const sel = data.service_types.includes(st.key);
+                                return (
+                                    <button
+                                        key={st.key}
+                                        type="button"
+                                        onClick={() => toggleService(st.key)}
+                                        className={cn(
+                                            'flex items-center gap-2.5 rounded-input border-[1.5px] px-3.5 py-3 text-start text-sm font-bold transition-colors',
+                                            sel ? 'border-coral bg-coral/[.06] text-navy' : 'border-black/[.08] text-navy hover:border-coral',
+                                        )}
+                                    >
+                                        <span className={cn(
+                                            'flex h-[18px] w-[18px] flex-none items-center justify-center rounded-[5px] border-2',
+                                            sel ? 'border-coral bg-coral text-white' : 'border-black/20',
+                                        )}>
+                                            {sel && <Check className="h-3 w-3" strokeWidth={3.5} />}
+                                        </span>
+                                        {st.label}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        {errors.service_types && (
+                            <p className="mb-5 text-[13px] font-bold text-danger">{errors.service_types}</p>
+                        )}
+                        {! errors.service_types && <div className="mb-6" />}
 
                         <h3 className="mb-3 font-head text-[17px] font-bold text-navy">بيانات الكيان</h3>
                         <div className="mb-6 grid grid-cols-1 gap-3.5 sm:grid-cols-2">

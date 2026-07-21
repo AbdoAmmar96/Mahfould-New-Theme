@@ -260,6 +260,7 @@ class DatabaseSeeder extends Seeder
             LocationsSeeder::class,   // يحدّث lat/lng للمدن
             AgePricingSeeder::class,  // شرائح رضيع/طفل/بالغ
             CatalogSeeder::class,     // ترابيزات + منيو + فعاليات
+            TransportSeeder::class,   // محطات وخطوط ورحلات باصات + خدمات التوصيل
         ]);
     }
 }

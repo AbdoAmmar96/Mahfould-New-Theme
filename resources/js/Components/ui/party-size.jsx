@@ -35,6 +35,7 @@ export function PartySizeField({
     placeholder,
     className,
     selectClassName,
+    onValidChange,   // (bool) => void — يبلّغ الأب لو الحقل المخصّص فاضي (إدخال إلزامي)
 }) {
     const maxPreset = React.useMemo(() => {
         const nums = options.map((o) => Number(o.value)).filter((n) => !Number.isNaN(n));
@@ -56,6 +57,10 @@ export function PartySizeField({
             setDraft(String(numeric));
         }
     }, [externalCustom, custom, numeric]);
+
+    // الإدخال إلزامي: لو اختار "أكثر من" لازم يكتب رقم
+    const missing = custom && draft.trim() === '';
+    React.useEffect(() => { onValidChange?.(! missing); }, [missing, onValidChange]);
 
     const selectValue = custom ? MORE : numeric == null ? '' : String(numeric);
 
@@ -104,21 +109,38 @@ export function PartySizeField({
             </Select>
 
             {custom && (
-                <div className="flex items-center gap-2.5 rounded-input border border-coral/30 bg-coral/[.05] px-3 py-2 duration-200 animate-in fade-in slide-in-from-top-1">
+                <div className={cn(
+                    'flex items-center gap-2.5 rounded-input border px-3 py-2 duration-200 animate-in fade-in slide-in-from-top-1',
+                    missing ? 'border-danger/40 bg-danger/[.05]' : 'border-coral/30 bg-coral/[.05]',
+                )}>
                     <input
                         type="number"
                         inputMode="numeric"
+                        required
                         min={floor}
                         max={max}
                         value={draft}
                         onChange={onNum}
                         onBlur={onBlur}
                         aria-label="عدد مخصّص"
-                        className="h-9 w-[68px] rounded-md border border-black/10 bg-white text-center text-sm font-bold text-navy outline-none focus:border-coral focus:ring-2 focus:ring-coral/20"
+                        aria-invalid={missing || undefined}
+                        placeholder="—"
+                        className={cn(
+                            'h-9 w-[68px] rounded-md border bg-white text-center text-sm font-bold text-navy outline-none focus:ring-2',
+                            missing
+                                ? 'border-danger/50 focus:border-danger focus:ring-danger/20'
+                                : 'border-black/10 focus:border-coral focus:ring-coral/20',
+                        )}
                     />
-                    <span className="text-[13px] font-semibold text-muted">
-                        {!Number.isNaN(draftNum) ? countLabel(draftNum, singular, plural) : ''}
-                        <span className="text-muted/70"> · الحد الأقصى {max}</span>
+                    <span className={cn('text-[13px] font-semibold', missing ? 'text-danger' : 'text-muted')}>
+                        {missing ? (
+                            <>اكتب العدد — الإدخال مطلوب</>
+                        ) : (
+                            <>
+                                {!Number.isNaN(draftNum) ? countLabel(draftNum, singular, plural) : ''}
+                                <span className="text-muted/70"> · الحد الأقصى {max}</span>
+                            </>
+                        )}
                     </span>
                 </div>
             )}

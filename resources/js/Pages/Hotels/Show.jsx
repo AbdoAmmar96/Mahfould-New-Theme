@@ -36,6 +36,9 @@ export default function Show({ hotel, room_types = [], reviews, review_type, rev
     const [rooms, setRooms] = useState(1);
     const [guests, setGuests] = useState(2);
     const [date, setDate] = useState('');
+    // إدخال «أكثر من» إلزامي — الحجز يتقفل لحد ما يتكتب العدد
+    const [nightsValid, setNightsValid] = useState(true);
+    const [roomsValid, setRoomsValid] = useState(true);
 
     const unit = selected?.effective_price ?? hotel.sale_price ?? hotel.price;
     const fee = 200;
@@ -55,7 +58,8 @@ export default function Show({ hotel, room_types = [], reviews, review_type, rev
     );
     const soldOut = date && rangeRemaining === 0;
     const notEnough = date && rangeRemaining !== null && rooms > rangeRemaining && rangeRemaining > 0;
-    const canBook = selected && date && rangeRemaining !== null && rooms <= rangeRemaining && rangeRemaining > 0;
+    const canBook = selected && date && nightsValid && roomsValid
+        && rangeRemaining !== null && rooms <= rangeRemaining && rangeRemaining > 0;
 
     const checkoutUrl = () => {
         const q = new URLSearchParams();
@@ -219,16 +223,24 @@ export default function Show({ hotel, room_types = [], reviews, review_type, rev
                                 </Field>
                                 <div className="mb-3.5 grid grid-cols-2 gap-3">
                                     <Field label="عدد الليالي">
-                                        <Select value={nights} onChange={(e) => setNights(+e.target.value)}>
-                                            {[1, 2, 3, 4, 5, 6, 7, 10, 14].map((n) => <option key={n} value={n}>{n} ليالي</option>)}
-                                        </Select>
+                                        <PartySizeField
+                                            value={nights}
+                                            onChange={(n) => setNights(n || 1)}
+                                            onValidChange={setNightsValid}
+                                            max={60}
+                                            singular="ليلة" plural="ليالي"
+                                            options={[1, 2, 3, 4, 5, 6, 7].map((n) => ({ value: n, label: `${n} ليالي` }))}
+                                        />
                                     </Field>
                                     <Field label="عدد الغرف">
-                                        <Select value={rooms} onChange={(e) => setRooms(+e.target.value)}>
-                                            {Array.from({ length: unitsTotal }, (_, i) => i + 1).map((n) => (
-                                                <option key={n} value={n}>{n} غرفة</option>
-                                            ))}
-                                        </Select>
+                                        <PartySizeField
+                                            value={rooms}
+                                            onChange={(n) => setRooms(n || 1)}
+                                            onValidChange={setRoomsValid}
+                                            max={unitsTotal}
+                                            singular="غرفة" plural="غرف"
+                                            options={Array.from({ length: Math.min(unitsTotal, 5) }, (_, i) => ({ value: i + 1, label: `${i + 1} غرفة` }))}
+                                        />
                                     </Field>
                                 </div>
                                 <Field label="عدد الضيوف" className="mb-3.5">

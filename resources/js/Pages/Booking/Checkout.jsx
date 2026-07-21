@@ -44,8 +44,11 @@ export default function Checkout({ item, prefill = {}, pricing = {} }) {
     const isCar = item.type === 'car';
     // مسمّيات وحدة/مدة الحجز حسب النوع (فندق: ليالي×غرف · عربية: أيام×عربيات)
     const L = isCar
-        ? { date: 'تاريخ الاستلام', durLabel: 'عدد الأيام', dur: 'أيام', unitLabel: 'عدد العربيات', unit: 'عربية' }
-        : { date: 'تاريخ الوصول', durLabel: 'عدد الليالي', dur: 'ليالي', unitLabel: 'عدد الغرف', unit: 'غرفة' };
+        ? { date: 'تاريخ الاستلام', durLabel: 'عدد الأيام', dur: 'أيام', durOne: 'يوم', unitLabel: 'عدد العربيات', unit: 'عربية', unitPlural: 'عربيات' }
+        : { date: 'تاريخ الوصول', durLabel: 'عدد الليالي', dur: 'ليالي', durOne: 'ليلة', unitLabel: 'عدد الغرف', unit: 'غرفة', unitPlural: 'غرف' };
+    // إدخال «أكثر من» إلزامي — الإرسال يتقفل لحد ما يتكتب العدد
+    const [nightsValid, setNightsValid] = useState(true);
+    const [unitsValid, setUnitsValid] = useState(true);
     const ageTiers = pricing.age_tiers || [];
     const payment = pricing.payment || { default_timing_self: 'on_arrival', timing_other: 'prepaid' };
 
@@ -107,7 +110,9 @@ export default function Checkout({ item, prefill = {}, pricing = {} }) {
 
     const total = Math.max(0, subtotal + fee - discount);
 
-    const submit = (e) => { e.preventDefault(); post('/checkout'); };
+    // «أكثر من» إلزامي في الفنادق/العربيات
+    const countsValid = ! pooled || (nightsValid && unitsValid);
+    const submit = (e) => { e.preventDefault(); if (! countsValid) return; post('/checkout'); };
 
     return (
         <SiteLayout>
@@ -241,14 +246,24 @@ export default function Checkout({ item, prefill = {}, pricing = {} }) {
                                         {pooled ? (
                                             <>
                                                 <Field label={L.durLabel}>
-                                                    <Select value={data.nights} onChange={(e) => setData('nights', +e.target.value)}>
-                                                        {[1, 2, 3, 4, 5, 6, 7, 10, 14].map((n) => <option key={n} value={n}>{n} {L.dur}</option>)}
-                                                    </Select>
+                                                    <PartySizeField
+                                                        value={data.nights}
+                                                        onChange={(n) => setData('nights', n || 1)}
+                                                        onValidChange={setNightsValid}
+                                                        max={60}
+                                                        singular={L.durOne} plural={L.dur}
+                                                        options={[1, 2, 3, 4, 5, 6, 7].map((n) => ({ value: n, label: `${n} ${L.dur}` }))}
+                                                    />
                                                 </Field>
                                                 <Field label={L.unitLabel}>
-                                                    <Select value={data.units} onChange={(e) => setData('units', +e.target.value)}>
-                                                        {Array.from({ length: item.units_total || 1 }, (_, i) => i + 1).map((n) => <option key={n} value={n}>{n} {L.unit}</option>)}
-                                                    </Select>
+                                                    <PartySizeField
+                                                        value={data.units}
+                                                        onChange={(n) => setData('units', n || 1)}
+                                                        onValidChange={setUnitsValid}
+                                                        max={item.units_total || 20}
+                                                        singular={L.unit} plural={L.unitPlural}
+                                                        options={Array.from({ length: Math.min(item.units_total || 1, 5) }, (_, i) => ({ value: i + 1, label: `${i + 1} ${L.unit}` }))}
+                                                    />
                                                 </Field>
                                                 <Field label="عدد الضيوف">
                                                     <PartySizeField
@@ -436,7 +451,7 @@ export default function Checkout({ item, prefill = {}, pricing = {} }) {
                                         <span>{TIMING_LABEL[timing]} — سياسة إلغاء ٤٨س قبل الميعاد</span>
                                     </div>
 
-                                    <Button type="submit" disabled={processing} block size="lg" className="mt-4">
+                                    <Button type="submit" disabled={processing || ! countsValid} block size="lg" className="mt-4">
                                         {processing ? 'جاري التأكيد…' : (timing === 'prepaid' ? 'أكّد وادفع' : 'أكّد الحجز')}
                                     </Button>
                                     <p className="mt-3 flex items-center justify-center gap-1.5 text-[12.5px] text-muted"><Lock className="h-3.5 w-3.5" /> دفع آمن ومشفّر</p>
