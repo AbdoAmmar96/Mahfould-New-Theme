@@ -7,7 +7,9 @@
    - الصور        → stale-while-revalidate بسقف عدد
    - أي POST/طلب غير GET → مابنلمسهوش خالص (الحجز والدفع)
 */
-const VERSION = 'mk-v1';
+// أي تغيير في الأصول المكاشة (لوجوهات/أيقونات) لازم يرفع الرقم ده،
+// وإلا الزوّار القدام يفضلوا شايفين النسخة القديمة من الكاش.
+const VERSION = 'mk-v2';
 const SHELL = `${VERSION}-shell`;
 const IMGS = `${VERSION}-img`;
 const OFFLINE_URL = '/offline';
@@ -104,8 +106,9 @@ self.addEventListener('push', (event) => {
 
     event.waitUntil(self.registration.showNotification(payload.title || 'محفول مكفول', {
         body: payload.body || '',
-        icon: '/assets/img/logo.png',
-        badge: '/assets/img/logo-t.png',
+        // الاتنين لازم يكونوا مربّعين — أندرويد بيقص/يشوّه أي أبعاد تانية
+        icon: '/assets/img/icon-192.png',
+        badge: '/assets/img/favicon-32.png',
         dir: 'rtl',
         lang: 'ar',
         tag: payload.tag || 'mk-notification',

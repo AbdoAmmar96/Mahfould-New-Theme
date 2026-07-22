@@ -6,7 +6,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>مفيش اتصال — محفول مكفول</title>
-    <link rel="icon" type="image/png" href="/assets/img/logo-t.png">
+    <link rel="icon" type="image/png" href="/assets/img/favicon-32.png">
     <meta name="theme-color" content="#363677">
     <style>
         * { box-sizing: border-box; }
