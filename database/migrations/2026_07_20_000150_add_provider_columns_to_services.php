@@ -28,15 +28,19 @@ return new class extends Migration
             if (! Schema::hasTable($table)) {
                 continue;
             }
+            // ملاحظة: مفيش after() هنا عن قصد.
+            // after() تجميلية بحتة (ترتيب الأعمدة)، لكنها بتفشل على MySQL/MariaDB
+            // لو العمود المرجعي مش موجود — و sahb_packages مثلاً مفيهوش user_id.
+            // SQLite بيتجاهل after() تماماً، فالعطل ده مابيظهرش محلياً وبيضرب في الإنتاج بس.
             Schema::table($table, function (Blueprint $t) use ($table) {
-                $t->foreignId('provider_id')->nullable()->after('user_id')
+                $t->foreignId('provider_id')->nullable()
                     ->constrained('companies')->nullOnDelete();
-                $t->string('publish_state', 20)->default('published')->after('status'); // نصير المنشور القديم published افتراضياً
-                $t->timestamp('submitted_at')->nullable()->after('publish_state');   // وقت الإرسال للمراجعة
-                $t->timestamp('reviewed_at')->nullable()->after('submitted_at');
-                $t->foreignId('reviewed_by')->nullable()->after('reviewed_at')
+                $t->string('publish_state', 20)->default('published'); // نصير المنشور القديم published افتراضياً
+                $t->timestamp('submitted_at')->nullable();   // وقت الإرسال للمراجعة
+                $t->timestamp('reviewed_at')->nullable();
+                $t->foreignId('reviewed_by')->nullable()
                     ->constrained('users')->nullOnDelete();
-                $t->text('rejection_reason')->nullable()->after('reviewed_by');
+                $t->text('rejection_reason')->nullable();
 
                 $t->index(['provider_id', 'publish_state']);
                 $t->index('publish_state');
