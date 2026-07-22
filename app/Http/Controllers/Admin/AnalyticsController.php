@@ -44,9 +44,14 @@ class AnalyticsController extends Controller
         $bookingsPending  = Booking::where('status', 'pending')->count();
         $bookingsConfirmed = Booking::where('status', 'confirmed')->count();
 
-        $revenue          = (float) Booking::where('payment_status', 'paid')->sum('total');
-        $revenueMonth     = (float) Booking::where('payment_status', 'paid')->where('created_at', '>=', $lastMonth)->sum('total');
-        $commission       = (float) Booking::sum('commission_amount');
+        // معيار واحد للإيراد المحقَّق: مدفوع **وغير ملغي**.
+        // (بند 18) قبل كده الصفحة دي كانت بتجمع العمولة من غير أي فلتر بينما
+        // /admin بيفلتر بـpaid — فالصفحتين كانوا بيعرضوا رقمين مختلفين لنفس الجدول.
+        $earned = fn () => Booking::where('payment_status', 'paid')->where('status', '!=', 'cancelled');
+
+        $revenue          = (float) $earned()->sum('total');
+        $revenueMonth     = (float) $earned()->where('created_at', '>=', $lastMonth)->sum('total');
+        $commission       = (float) $earned()->sum('commission_amount');
 
         // متوسط تقييم المنصة
         $avgRating        = (float) DB::table('reviews')->where('approved', true)->avg('rating') ?? 0;
@@ -96,7 +101,7 @@ class AnalyticsController extends Controller
         [$from, $to, $format] = $this->resolveRange($request);
 
         $rows = Booking::query()
-            ->selectRaw("strftime('{$format}', created_at) as bucket, COUNT(*) as bookings, SUM(total) as revenue")
+            ->selectRaw($this->dateBucket('created_at', $format).' as bucket, COUNT(*) as bookings, SUM(total) as revenue')
             ->where('created_at', '>=', $from)
             ->where('created_at', '<=', $to)
             ->groupBy('bucket')
@@ -180,7 +185,7 @@ class AnalyticsController extends Controller
     {
         $rows = User::query()
             ->where('role', 'customer')
-            ->selectRaw("strftime('%Y-%m', created_at) as bucket, COUNT(*) as cnt")
+            ->selectRaw($this->dateBucket('created_at', '%Y-%m').' as bucket, COUNT(*) as cnt')
             ->where('created_at', '>=', now()->subMonths(11)->startOfMonth())
             ->groupBy('bucket')
             ->orderBy('bucket')
@@ -220,7 +225,7 @@ class AnalyticsController extends Controller
     {
         // يوم الأسبوع (0=الأحد) × الساعة (0..23)
         $rows = Booking::query()
-            ->selectRaw("CAST(strftime('%w', created_at) as INTEGER) as dow, CAST(strftime('%H', created_at) as INTEGER) as hour, COUNT(*) as cnt")
+            ->selectRaw($this->dowExpr('created_at').' as dow, '.$this->hourExpr('created_at').' as hour, COUNT(*) as cnt')
             ->groupBy('dow', 'hour')
             ->get();
 
@@ -245,6 +250,41 @@ class AnalyticsController extends Controller
             default => [now()->subDays(30)->startOfDay(),  '%Y-%m-%d'],
         };
         return [$from, now(), $format];
+    }
+
+    /**
+     * تجميع زمني محمول بين المحرّكات.
+     *
+     * strftime() دالة SQLite. الإنتاج MariaDB فكانت بترمي
+     * «FUNCTION strftime does not exist» وتوقّع 3 نقاط تحليلات →
+     * وصفحة /admin/analytics كلها كانت بتفضل فاضية (Promise.all بلا catch).
+     */
+    private function dateBucket(string $column, string $format): string
+    {
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            return "strftime('{$format}', {$column})";
+        }
+
+        // MySQL/MariaDB: %W في strftime = رقم الأسبوع، لكن في DATE_FORMAT = اسم اليوم
+        $mysqlFormat = $format === '%Y-%W' ? '%x-%v' : $format;
+
+        return "DATE_FORMAT({$column}, '{$mysqlFormat}')";
+    }
+
+    /** رقم يوم الأسبوع (0=الأحد) محمول بين المحرّكات */
+    private function dowExpr(string $column): string
+    {
+        return DB::connection()->getDriverName() === 'sqlite'
+            ? "CAST(strftime('%w', {$column}) as INTEGER)"
+            : "(DAYOFWEEK({$column}) - 1)";
+    }
+
+    /** الساعة (0..23) محمولة بين المحرّكات */
+    private function hourExpr(string $column): string
+    {
+        return DB::connection()->getDriverName() === 'sqlite'
+            ? "CAST(strftime('%H', {$column}) as INTEGER)"
+            : "HOUR({$column})";
     }
 
     private function typeLabel(string $type): string

@@ -1,6 +1,6 @@
 import SiteLayout from '@/Layouts/SiteLayout';
 import Reviews from '@/Components/Reviews';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 import {
     MapPin, Star, Check, Waves, UtensilsCrossed, Umbrella, Sparkles, Wifi, Car,
@@ -58,12 +58,15 @@ export default function Show({ hotel, room_types = [], reviews, review_type, rev
     );
 
     const unit = selected?.effective_price ?? fromPrice;
-    const fee = 200;
+        // من الإعدادات مش مكتوبة بالكود — لازم تطابق صفحة الدفع
+    const site = usePage().props.site || {};
+    const fee = site.service_fee ?? 200;
+    const discount = hotel.is_guaranteed ? (site.makfol_discount ?? 400) : 0;
     const nightsN = Number(nights) || 0;
     const roomsN = Number(rooms) || 0;
     const total = useMemo(
-        () => (selected && nightsN && roomsN ? unit * nightsN * roomsN + fee : 0),
-        [selected, unit, nightsN, roomsN, fee],
+        () => (selected && nightsN && roomsN ? Math.max(0, unit * nightsN * roomsN + fee - discount) : 0),
+        [selected, unit, nightsN, roomsN, fee, discount],
     );
 
     const today = ymd(new Date());

@@ -7,7 +7,6 @@ use App\Models\Review;
 use App\Models\Restaurant;
 use App\Services\PersonalizationService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -93,15 +92,27 @@ class RestaurantController extends Controller
 
         // إتاحة الترابيزات لتاريخ معين (اختياري من الـquery)
         $date = $request->query('date', now()->toDateString());
-        $bookedIds = BookingItem::query()
+
+        // slots الافتراضية: من 12:00 لـ23:00 بفاصل الـslot_minutes
+        $slots = $restaurant->bookingSlots();
+
+        // المحجوز **لكل فترة** مش لليوم كله.
+        // قبل كده كان الاستعلام بيفلتر بالتاريخ بس، فحجز واحد الساعة 12:00
+        // كان بيقفل الترابيزة على طول اليوم (8 فترات) — خسارة مبيعات مباشرة.
+        $bookedBySlot = BookingItem::query()
             ->active()
             ->where('unit_type', 'restaurant_table')
             ->where('date', $date)
-            ->pluck('unit_id')
-            ->unique();
+            ->whereIn('slot', $slots)
+            ->get(['unit_id', 'slot'])
+            ->groupBy('slot')
+            ->map(fn ($rows) => $rows->pluck('unit_id')->unique()->values());
 
-        // slots الافتراضية: من 12:00 لـ23:00 بفاصل الـslot_minutes
-        $slots = $this->generateSlots($restaurant->slot_minutes ?? 90);
+        // للتوافق مع الواجهة الحالية: الترابيزة «محجوزة» لو كل فتراتها مليانة
+        $bookedIds = collect($slots)
+            ->map(fn ($s) => $bookedBySlot->get($s, collect()))
+            ->reduce(fn ($carry, $ids) => $carry === null ? $ids : $carry->intersect($ids), null)
+            ?? collect();
 
         return Inertia::render('Restaurants/Show', [
             'restaurant' => [
@@ -154,18 +165,5 @@ class RestaurantController extends Controller
             'review_type' => 'restaurant',
             'review_id'   => $restaurant->id,
         ]);
-    }
-
-    /** يولّد فترات زمنية (12:00 → 23:00 بفاصل الدقايق) */
-    private function generateSlots(int $minutes): array
-    {
-        $slots = [];
-        $start = Carbon::parse('12:00');
-        $end = Carbon::parse('23:00');
-        while ($start->lte($end)) {
-            $slots[] = $start->format('H:i');
-            $start->addMinutes($minutes);
-        }
-        return $slots;
     }
 }

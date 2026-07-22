@@ -44,6 +44,23 @@ class HoldService
 
         return $lock->block(8, function () use ($type, $id, $inventory, $dates, $slot, $quantity, $ttlMinutes) {
             return DB::transaction(function () use ($type, $id, $inventory, $dates, $slot, $quantity, $ttlMinutes) {
+                // حرّر المنتهي لهذه الوحدة **جوّه القفل** قبل أي قراءة.
+                //
+                // ده ضروري عشان مصدرين للحقيقة يفضلوا متسقين:
+                //   scopeActive() بيستثني المنتهي   ←  القراءة
+                //   uq_booking_items_active بيعتمد على released_at وحده  ←  الكتابة
+                // من غير السطور دي، خريطة المشغول هتقول «فاضي» والـINSERT يقع في
+                // الفهرس الفريد فيطلع «غير متاح» وهو متاح.
+                // وكمان بيخلي الكرون تنظيف مش شرط صحة.
+                BookingItem::query()
+                    ->forUnit($type, $id, $slot)
+                    ->whereIn('date', $dates)
+                    ->whereNull('released_at')
+                    ->where('state', 'held')
+                    ->whereNotNull('expires_at')
+                    ->where('expires_at', '<', now())
+                    ->update(['released_at' => now()]);
+
                 // (unit_index → مجموعة التواريخ المشغولة)
                 $busy = [];
                 BookingItem::query()->active()
@@ -135,9 +152,14 @@ class HoldService
             return true;
         }
 
-        // الحجز المؤقّت اتحرّر قبل وصول الدفع — حاول احجز نفس المدى من جديد
-        $model = $booking->bookable;
-        if (! $model || ! in_array(\App\Models\Concerns\HasAvailability::class, class_uses_recursive($model), true)) {
+        // الحجز المؤقّت اتحرّر قبل وصول الدفع — حاول احجز نفس المدى من جديد.
+        //
+        // ⚠️ لازم نستعمل نفس وحدة الإتاحة اللي BookingController::store() حجز بيها،
+        // مش $booking->bookable. للفنادق الحجز بيتم على **نوع الغرفة** (room_type)،
+        // فلو استعملنا الفندق هنا هنكتب صفوف في مساحة تاني محدش بيقراها →
+        // الدالة ترجع «نجاح» وهي مستهلكتش ولا وحدة، والغرفة تتباع مرتين.
+        $model = $this->availabilityUnitFor($booking);
+        if (! $model) {
             return true;
         }
 
@@ -146,10 +168,13 @@ class HoldService
             return true;
         }
 
+        // للمطاعم الفترة الزمنية هي جزء من هوية الوحدة
+        $slot = $booking->start_time ?: $model->defaultSlot();
+
         try {
             $res = $this->reserve(
                 $model->availabilityType(), $model->getKey(), $model->inventoryCount(),
-                $dates, $model->defaultSlot(), max(1, (int) $booking->units), self::HOLD_TTL_MINUTES,
+                $dates, $slot, max(1, (int) $booking->units), self::HOLD_TTL_MINUTES,
             );
             $this->convert($res['hold_token'], $booking->id);
             $booking->forceFill(['hold_token' => $res['hold_token']])->saveQuietly();
@@ -158,6 +183,24 @@ class HoldService
         } catch (SlotUnavailableException) {
             return false;
         }
+    }
+
+    /**
+     * وحدة الإتاحة الحقيقية للحجز — لازم تطابق اللي BookingController::store() استعمله.
+     *
+     * فندق  → نوع الغرفة (room_type)
+     * مطعم  → الترابيزة (restaurant_table)
+     * غير كده → الكيان نفسه لو بيدعم الإتاحة
+     */
+    private function availabilityUnitFor(Booking $booking): ?object
+    {
+        foreach ([$booking->roomType ?? null, $booking->restaurantTable ?? null, $booking->bookable] as $candidate) {
+            if ($candidate && in_array(\App\Models\Concerns\HasAvailability::class, class_uses_recursive($candidate), true)) {
+                return $candidate;
+            }
+        }
+
+        return null;
     }
 
     /** يعيد بناء تواريخ الإقامة من بيانات الحجز */

@@ -1,4 +1,5 @@
 import SiteLayout from '@/Layouts/SiteLayout';
+import Pager from '@/Components/Pager';
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import { Bus, ArrowLeft, MapPin, Clock, Users, ShieldCheck, Filter } from 'lucide-react';
@@ -102,6 +103,8 @@ export default function Index({ trips, cities = [], filters = {} }) {
                         ))}
                     </div>
                 )}
+
+                <Pager paginator={trips} className="px-4" />
 
                 <MobileSheet
                     open={filterOpen}
@@ -228,6 +231,8 @@ export default function Index({ trips, cities = [], filters = {} }) {
                             ))}
                         </div>
                     )}
+
+                    <Pager paginator={trips} />
                 </Wrap>
             </section>
         </SiteLayout>

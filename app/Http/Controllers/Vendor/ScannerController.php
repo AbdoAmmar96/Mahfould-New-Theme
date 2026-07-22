@@ -15,12 +15,37 @@ use Inertia\Response;
  */
 class ScannerController extends Controller
 {
-    public function index(): Response
+    /**
+     * تذكرة الدخول تخصّ هذا المزوّد؟
+     *
+     * من غير الفحص ده أي حد يسجّل كمزوّد (والتسجيل بيدخّله فوراً) يقدر يقرا
+     * حجوزات كل الأماكن التانية و«يحرق» أكواد دخول عملاء منافسيه.
+     */
+    private function owns(Request $request, EntryPass $pass): bool
     {
+        $user = $request->user();
+        if (! $user) {
+            return false;
+        }
+        if ($user->role === 'admin') {
+            return true;
+        }
+
+        return (int) ($pass->booking?->bookable?->user_id) === (int) $user->id;
+    }
+
+    public function index(Request $request): Response
+    {
+        $user = $request->user();
+
         return Inertia::render('Vendor/Scanner/Index', [
             'recent' => EntryPass::query()
-                ->with('booking:id,code,customer_name,start_date,end_date')
+                ->with('booking:id,code,customer_name,start_date,end_date,bookable_type,bookable_id', 'booking.bookable')
                 ->whereNotNull('scanned_at')
+                ->when($user->role !== 'admin', fn ($q) => $q->whereHas(
+                    'booking',
+                    fn ($b) => $b->whereHasMorph('bookable', '*', fn ($m) => $m->where('user_id', $user->id)),
+                ))
                 ->latest('scanned_at')
                 ->take(20)
                 ->get()
@@ -65,6 +90,11 @@ class ScannerController extends Controller
 
         $pass->load('booking.bookable', 'booking.roomType');
 
+        // بيانات العميل ما تتعرضش لمزوّد مش صاحب الخدمة
+        if (! $this->owns($request, $pass)) {
+            return response()->json(['ok' => false, 'reason' => 'not_yours', 'code' => $code], 403);
+        }
+
         return response()->json([
             'ok' => true,
             'pass' => [
@@ -91,6 +121,11 @@ class ScannerController extends Controller
     {
         $pass = $entryPasses->verify($code);
         if (!$pass) return response()->json(['ok' => false, 'reason' => 'invalid'], 422);
+
+        $pass->load('booking.bookable');
+        if (! $this->owns($request, $pass)) {
+            return response()->json(['ok' => false, 'reason' => 'not_yours'], 403);
+        }
 
         $entryPasses->markUsed($pass, $request->user()->id);
         return response()->json(['ok' => true, 'scanned_at' => $pass->fresh()->scanned_at?->format('Y-m-d H:i:s')]);

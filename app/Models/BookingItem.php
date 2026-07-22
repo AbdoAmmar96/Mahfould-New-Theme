@@ -28,10 +28,18 @@ class BookingItem extends Model
         return $this->belongsTo(Booking::class);
     }
 
-    /** الصفوف النشطة فقط (اللي بتشغل مخزون فعلاً) */
+    /**
+     * الصفوف النشطة فقط (اللي بتشغل مخزون فعلاً).
+     *
+     * الانتهاء بيتفحص هنا **وقت القراءة** — مش بس في الكرون.
+     * قبل كده كان الفحص على released_at بس، يعني أي حجز مؤقّت متسابش
+     * يفضل شاغل الغرفة للأبد لحد ما الكرون يشتغل. كده الكرون بقى
+     * تنظيف مش شرط صحة: لو وقف، الإتاحة تفضل صح.
+     */
     public function scopeActive(Builder $q): Builder
     {
-        return $q->whereNull('released_at');
+        return $q->whereNull('released_at')
+            ->where(fn (Builder $w) => $w->whereNull('expires_at')->orWhere('expires_at', '>', now()));
     }
 
     public function scopeForUnit(Builder $q, string $type, int $id, string $slot): Builder

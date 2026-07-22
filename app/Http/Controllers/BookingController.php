@@ -31,10 +31,41 @@ use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class BookingController extends Controller
 {
+    /**
+     * الخدمة لازم تكون منشورة عشان تتحجز.
+     *
+     * Bookables::resolve() مجرد find() — من غير الفحص ده كان أي حد يبعت
+     * /checkout/tour/{id} لخدمة draft أو مرفوضة أو تحت المراجعة ويحجزها بالـID.
+     */
+    private function abortIfNotPublished(Model $model): void
+    {
+        if (method_exists($model, 'isPublished')) {
+            abort_unless($model->isPublished(), 404);
+        }
+        abort_if(($model->status ?? 'publish') !== 'publish', 404);
+    }
+
+    /** الفعاليات المختارة بأسعارها — نفس الاستعلام اللي store() بيسعّر بيه */
+    private function addonsFor(string $type, Model $model, array $activityIds): array
+    {
+        if ($type !== 'tour' || empty($activityIds)) {
+            return [];
+        }
+
+        return Activity::where('tour_id', $model->id)
+            ->where('is_active', true)
+            ->whereIn('id', $activityIds)
+            ->get(['id', 'title', 'price'])
+            ->map(fn ($a) => ['id' => $a->id, 'title' => $a->title, 'price' => (float) $a->price])
+            ->values()
+            ->all();
+    }
+
     public function create(Request $request, string $type, int $id, AgePricingService $agePricing, PaymentTimingService $paymentTiming): Response
     {
         $model = Bookables::resolve($type, $id);
         abort_unless($model !== null, 404);
+        $this->abortIfNotPublished($model);
 
         // §7: للفنادق، لازم يُختار نوع غرفة قبل الحجز
         $roomType = null;
@@ -95,6 +126,10 @@ class BookingController extends Controller
                 'restaurant_table_id' => $request->query('restaurant_table_id') ? (int) $request->query('restaurant_table_id') : null,
                 'activity_ids' => array_map('intval', (array) $request->query('activity_ids', [])),
             ],
+            // الفعاليات بتفاصيل أسعارها — الواجهة كانت بتستلم الـIDs بس،
+            // فالسيرفر يحسبها في الإجمالي والشاشة ما تعرضهاش خالص:
+            // العميل يوافق على 2800 والحجز يتسجّل 3400.
+            'addons' => $this->addonsFor($type, $model, array_map('intval', (array) $request->query('activity_ids', []))),
             'pricing' => [
                 'fee' => (float) Setting::get('service_fee', 200),
                 'discount' => $isGuaranteed ? (float) Setting::get('makfol_discount', 400) : 0,
@@ -126,7 +161,9 @@ class BookingController extends Controller
             'room_type_id' => ['nullable', 'integer', 'exists:room_types,id'],
             'restaurant_table_id' => ['nullable', 'integer', 'exists:restaurant_tables,id'],
             'start_date' => ['nullable', 'date'],
-            'start_time' => ['nullable', 'string', 'regex:/^\d{1,2}:\d{2}$/'],
+            // فترة معتمدة بالظبط — مش أي "H:i". regex لوحده كان بيسمح بـ19:15
+            // فيبقى فترة مختلفة عن 19:00 وياخد نفس الترابيزة في نفس الجلسة.
+            'start_time' => ['nullable', 'string', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'],
             'activity_ids' => ['nullable', 'array', 'max:20'],
             'activity_ids.*' => ['integer', 'exists:activities,id'],
             'guests' => ['required', 'integer', 'min:1', 'max:50'],
@@ -151,6 +188,7 @@ class BookingController extends Controller
 
         $model = Bookables::resolve($data['type'], $data['id']);
         abort_unless($model !== null, 404);
+        $this->abortIfNotPublished($model);
 
         // §7: للفنادق نستخدم RoomType كـ"وحدة الإتاحة" بدل الفندق نفسه
         $roomType = null;
@@ -170,6 +208,12 @@ class BookingController extends Controller
             }
             if (empty($data['start_time'])) {
                 return back()->withInput()->with('error', 'اختَر وقت الحجز (الفترة).');
+            }
+            // لازم فترة من فترات المطعم المعتمدة.
+            // الـslot جزء من هوية الوحدة في محرك الإتاحة، فأي وقت حر (19:15)
+            // كان بيعمل «فترة» جديدة تاخد نفس الترابيزة في نفس الجلسة.
+            if (! in_array($data['start_time'], $model->bookingSlots(), true)) {
+                return back()->withInput()->with('error', 'الفترة المختارة غير متاحة — اختَر من الفترات المعروضة.');
             }
         }
 
@@ -442,8 +486,17 @@ class BookingController extends Controller
             ->with('error', 'بوابة الدفع لم تُضبط بعد — الحجز محفوظ كـ "في انتظار الدفع".');
     }
 
-    public function confirmation(Booking $booking): Response
+    public function confirmation(Request $request, Booking $booking): Response
     {
+        // ⚠️ الصفحة دي بتعرض بيانات العميل وكود دخول الـQR.
+        // الكود بصيغة MM-YYYY-NNNNNN — قابل للتخمين، فلازم ملكية مش «معرفة الكود».
+        // (قبل كده كان المسار مفتوح للكل: لوب على مليون رقم = كل حجوزات المنصة.)
+        $user = $request->user();
+        abort_unless(
+            $user && ($booking->user_id === $user->id || in_array($user->role, ['admin', 'support'], true)),
+            403,
+        );
+
         $booking->load('bookable', 'guestsList', 'entryPasses', 'roomType');
         $entryPass = $booking->entryPasses->firstWhere('status', 'active');
 

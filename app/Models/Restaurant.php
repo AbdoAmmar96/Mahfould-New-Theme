@@ -89,4 +89,26 @@ class Restaurant extends Model
     {
         return route('restaurants.show', $this->slug);
     }
+
+    /**
+     * فترات الحجز المعتمدة (12:00 → 23:00 بفاصل slot_minutes).
+     *
+     * مصدر حقيقة واحد: العرض والتحقق لازم يستعملوا نفس القايمة.
+     * من غير كده الـvalidator كان بيقبل أي "H:i" — يعني 19:15 بيتحسب فترة
+     * مختلفة عن 19:00 وياخد نفس الترابيزة، و"9:00" و"09:00" بقوا فترتين.
+     */
+    public function bookingSlots(): array
+    {
+        $minutes = max(15, (int) ($this->slot_minutes ?? 90));
+        $slots = [];
+        $t = \Illuminate\Support\Carbon::parse('12:00');
+        $end = \Illuminate\Support\Carbon::parse('23:00');
+        while ($t->lte($end)) {
+            $slots[] = $t->format('H:i');
+            $t->addMinutes($minutes);
+        }
+
+        return $slots;
+    }
+
 }

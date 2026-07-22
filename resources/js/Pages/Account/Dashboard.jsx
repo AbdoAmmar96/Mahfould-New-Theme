@@ -74,7 +74,7 @@ export default function Dashboard({ bookings, stats }) {
                     ) : (
                         <div className="space-y-2.5">
                             {bookings.map((b) => (
-                                <div key={b.code} className="flex gap-3 rounded-card border border-black/[.06] bg-white p-2.5">
+                                <Link key={b.code} href={`/booking/${b.code}`} className="mk-press flex gap-3 rounded-card border border-black/[.06] bg-white p-2.5">
                                     <img src={b.image_url} alt="" className="h-[70px] w-[70px] shrink-0 rounded-[10px] object-cover" />
                                     <div className="flex min-w-0 flex-1 flex-col">
                                         <h4 className="line-clamp-1 text-[14px] font-extrabold text-navy">{b.title}</h4>
@@ -93,7 +93,7 @@ export default function Dashboard({ bookings, stats }) {
                                             <b className="font-head text-[15px] text-coral-deep">{money(b.total)} ج.م</b>
                                         </div>
                                     </div>
-                                </div>
+                                </Link>
                             ))}
                         </div>
                     )}
@@ -181,7 +181,7 @@ export default function Dashboard({ bookings, stats }) {
 
                             <div className="space-y-3">
                                 {bookings.map((b) => (
-                                    <div key={b.code} className="grid grid-cols-[76px_1fr_auto] items-center gap-4 rounded-card border border-black/[.06] bg-white p-3.5">
+                                    <Link key={b.code} href={`/booking/${b.code}`} className="grid grid-cols-[76px_1fr_auto] items-center gap-4 rounded-card border border-black/[.06] bg-white p-3.5 transition hover:border-coral/40 hover:shadow-sm">
                                         <img src={b.image_url} alt="" className="h-[66px] w-[76px] rounded-[10px] object-cover" />
                                         <div>
                                             <h4 className="mb-[3px] font-head text-base font-semibold text-navy">{b.title}</h4>
@@ -194,7 +194,7 @@ export default function Dashboard({ bookings, stats }) {
                                             <span className={`inline-block rounded-full px-[11px] py-[5px] text-xs font-extrabold ${b.status === 'confirmed' ? 'bg-makfol/[.12] text-makfol' : 'bg-vip/[.14] text-vip'}`}>{b.status_label}</span>
                                             <div className="mt-1.5 font-extrabold text-coral-deep">{money(b.total)} ج.م</div>
                                         </div>
-                                    </div>
+                                    </Link>
                                 ))}
                             </div>
                         </div>

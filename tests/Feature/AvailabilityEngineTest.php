@@ -206,4 +206,31 @@ class AvailabilityEngineTest extends TestCase
         $this->post('/checkout', $payload)->assertSessionHas('error'); // الثانية تُرفض
         $this->assertSame(1, Booking::count(), 'لا يُنشأ حجز ثانٍ عند نفاد السعة');
     }
+
+    /**
+     * الحجز المؤقّت المنتهي لازم ما يشغّلش مخزون — من غير ما ننتظر الكرون.
+     * (قبل الإصلاح: scopeActive كان بيفحص released_at بس، فالمنتهي يفضل شاغل للأبد.)
+     */
+    public function test_expired_hold_frees_inventory_without_the_cron(): void
+    {
+        $holds = app(HoldService::class);
+        $avail = app(AvailabilityService::class);
+        $roomType = RoomType::where('hotel_id', $this->hotel(1)->id)->firstOrFail();
+        $date = now()->addDays(20)->toDateString();
+        $slot = $roomType->defaultSlot();
+
+        $holds->reserve('room_type', $roomType->id, 1, [$date], $slot, 1, 30);
+        $this->assertSame(0, $avail->remainingForRange('room_type', $roomType->id, $slot, 1, [$date]),
+            'المحجوز مؤقتاً يشغّل المخزون');
+
+        // خلّي الحجز المؤقّت منتهي — من غير ما نشغّل الكرون
+        BookingItem::query()->update(['expires_at' => now()->subMinute()]);
+
+        $this->assertSame(1, $avail->remainingForRange('room_type', $roomType->id, $slot, 1, [$date]),
+            'المنتهي لازم يرجّع المخزون فوراً عند القراءة');
+
+        // والأهم: الحجز الجديد لازم ينجح فعلاً (الفهرس الفريد ما يرفضهوش)
+        $res = $holds->reserve('room_type', $roomType->id, 1, [$date], $slot, 1, 30);
+        $this->assertNotEmpty($res['hold_token'], 'إعادة الحجز على وحدة منتهية لازم تنجح');
+    }
 }

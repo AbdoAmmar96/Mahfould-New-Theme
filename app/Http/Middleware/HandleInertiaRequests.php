@@ -37,6 +37,11 @@ class HandleInertiaRequests extends Middleware
                 'name'            => Setting::get('site_title', 'محفول مكفول'),
                 'currency_symbol' => Setting::get('currency_symbol', 'ج.م'),
                 'phone'           => Setting::get('contact_phone', ''),
+                // صفحات التفاصيل كانت بتكتب رسوم الخدمة بالكود (200) وتتجاهل خصم مكفول،
+                // فالسعر اللي عليها بيختلف عن صفحة الدفع — والفرق بيكبر أول ما الأدمن
+                // يغيّر القيمة من الإعدادات.
+                'service_fee'     => (float) Setting::get('service_fee', 200),
+                'makfol_discount' => (float) Setting::get('makfol_discount', 400),
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),

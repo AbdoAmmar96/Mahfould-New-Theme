@@ -42,7 +42,7 @@ function tierFor(age, tiers) {
     return tiers[tiers.length - 1] || { label: 'بالغ', multiplier: 1 };
 }
 
-export default function Checkout({ item, prefill = {}, pricing = {} }) {
+export default function Checkout({ item, prefill = {}, pricing = {}, addons = [] }) {
     const [summaryOpen, setSummaryOpen] = useState(false);
     const pooled = !!item.pooled;
     const isCar = item.type === 'car';
@@ -112,7 +112,17 @@ export default function Checkout({ item, prefill = {}, pricing = {} }) {
         return ageSubtotal > 0 ? ageSubtotal : item.price * data.guests;
     }, [pooled, item.price, data.nights, data.units, data.guests, ageSubtotal]);
 
-    const total = Math.max(0, subtotal + fee - discount);
+    // الفعاليات — لازم تطابق السيرفر: سعر الفعالية × عدد الأفراد
+    const selectedAddons = useMemo(
+        () => addons.filter((a) => (data.activity_ids || []).includes(a.id)),
+        [addons, data.activity_ids],
+    );
+    const addonsSubtotal = useMemo(
+        () => selectedAddons.reduce((s, a) => s + a.price * data.guests, 0),
+        [selectedAddons, data.guests],
+    );
+
+    const total = Math.max(0, subtotal + addonsSubtotal + fee - discount);
 
     // «أكثر من» إلزامي في الفنادق/العربيات
     const countsValid = ! pooled || (nightsValid && unitsValid);
@@ -284,10 +294,16 @@ export default function Checkout({ item, prefill = {}, pricing = {} }) {
                                                 <PartySizeField
                                                     value={data.guests}
                                                     onChange={(n) => {
-                                                        setData('guests', n || 1);
-                                                        // لو نقصنا العدد، اقص الأعمار
-                                                        if (data.guests_ages.length > (n || 1)) {
-                                                            setData('guests_ages', data.guests_ages.slice(0, n || 1));
+                                                        const count = n || 1;
+                                                        setData('guests', count);
+                                                        // لازم نطابق normalizeAges() في السيرفر بالظبط:
+                                                        // نقص → قص، وزيادة → حشو بعمر بالغ (30).
+                                                        // قبل كده كنا بنقص بس، فزيادة العدد بعد إدخال الأعمار
+                                                        // كانت تخلي الشاشة تقول 800 والسيرفر يسجّل 3800.
+                                                        if (data.guests_ages.length > 0 && data.guests_ages.length !== count) {
+                                                            const next = data.guests_ages.slice(0, count);
+                                                            while (next.length < count) next.push(30);
+                                                            setData('guests_ages', next);
                                                         }
                                                     }}
                                                     singular={item.type === 'car' ? 'يوم' : 'فرد'}
@@ -441,6 +457,12 @@ export default function Checkout({ item, prefill = {}, pricing = {} }) {
                                             <span>{money(subtotal)} ج.م</span>
                                         </div>
                                     )}
+                                    {selectedAddons.map((a) => (
+                                        <div key={a.id} className="flex justify-between py-[9px] text-sm">
+                                            <span className="text-muted">+ {a.title} × {data.guests}</span>
+                                            <span>{money(a.price * data.guests)} ج.م</span>
+                                        </div>
+                                    ))}
                                     <div className="flex justify-between py-[9px] text-sm"><span>رسوم الخدمة</span><span>{money(fee)} ج.م</span></div>
                                     {discount > 0 && (
                                         <div className="flex justify-between py-[9px] text-sm"><span>خصم مكفول</span><span className="text-makfol">−{money(discount)} ج.م</span></div>
@@ -520,6 +542,12 @@ export default function Checkout({ item, prefill = {}, pricing = {} }) {
                                 <span>{pooled ? `السعر (${data.nights}×${data.units})` : `السعر (${data.guests} ${item.unit})`}</span>
                                 <span>{money(subtotal)} ج.م</span>
                             </div>
+                            {selectedAddons.map((a) => (
+                                <div key={a.id} className="flex justify-between py-2">
+                                    <span className="text-muted">+ {a.title} × {data.guests}</span>
+                                    <span>{money(a.price * data.guests)} ج.م</span>
+                                </div>
+                            ))}
                             <div className="flex justify-between py-2"><span>رسوم الخدمة</span><span>{money(fee)} ج.م</span></div>
                             {discount > 0 && (
                                 <div className="flex justify-between py-2"><span>خصم مكفول</span><span className="text-makfol">−{money(discount)} ج.م</span></div>

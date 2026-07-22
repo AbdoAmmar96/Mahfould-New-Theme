@@ -1,4 +1,5 @@
 import SiteLayout from '@/Layouts/SiteLayout';
+import Pager from '@/Components/Pager';
 import { ListingCard, Btn } from '@/Components/UI';
 import MobileListing from '@/Components/mobile/MobileListing';
 import { MobileListCard } from '@/Components/mobile/primitives';
@@ -148,6 +149,8 @@ export default function Index({ cars, locations, filters }) {
                             {cars.data.length === 0 && (
                                 <div className="py-[60px] text-center text-muted">مفيش سيارات مطابقة.</div>
                             )}
+
+                            <Pager paginator={cars} />
                         </div>
                     </div>
                 </Wrap>

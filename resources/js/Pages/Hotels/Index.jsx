@@ -1,4 +1,5 @@
 import SiteLayout from '@/Layouts/SiteLayout';
+import Pager from '@/Components/Pager';
 import { ListingCard, Btn } from '@/Components/UI';
 import MobileListing from '@/Components/mobile/MobileListing';
 import { MobileListCard } from '@/Components/mobile/primitives';
@@ -126,6 +127,8 @@ export default function Index({ hotels, locations, filters }) {
                             {hotels.data.length === 0 && (
                                 <div className="py-[60px] text-center text-muted">مفيش فنادق مطابقة.</div>
                             )}
+
+                            <Pager paginator={hotels} />
                         </div>
                     </div>
                 </Wrap>

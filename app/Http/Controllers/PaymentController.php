@@ -39,17 +39,15 @@ class PaymentController extends Controller
             return redirect()->route('home')->with('error', 'لم نتمكن من إيجاد الحجز.');
         }
 
-        // نتحقق من التوقيع — لو فشل نعتبرها غير مؤكّدة
-        $valid = $this->paymob->verifyHmac($data, $hmac);
-
-        if ($valid && $success) {
-            $booking->forceFill(['payment_gateway' => 'paymob', 'payment_ref' => (string) $request->query('id')])->saveQuietly();
-            $this->markPaid($booking);
-        } elseif ($valid && ! $success) {
-            $booking->update(['payment_status' => 'unpaid', 'status' => 'pending']);
-            $this->releaseHold($booking);
-        }
-
+        // ⚠️ أمان: ممنوع نغيّر حالة الدفع من هنا.
+        //
+        // ده redirect في متصفح العميل. حتى لو الـHMAC صحيح، مجموعة الحقول الموقّعة
+        // في Paymob (شوف PaymobService::verifyHmac) **مافيهاش** merchant_order_id —
+        // يعني توقيع صحيح من أي دفعة حقيقية يفضل صالح لو اتبدّل كود الحجز،
+        // فأي حد يقدر يخلّي أي حجز «مدفوع» بتوقيع واحد اتلقّطه.
+        //
+        // المصدر الموثوق الوحيد هو webhook() — POST من سيرفر Paymob،
+        // وبيقارن المبلغ بإجمالي الحجز قبل ما يأكّد.
         return redirect()->route('booking.confirmation', $booking->code);
     }
 
@@ -95,7 +93,21 @@ class PaymentController extends Controller
         $success = filter_var(data_get($obj, 'success'), FILTER_VALIDATE_BOOLEAN);
         $booking = $ref ? Booking::where('code', $ref)->first() : null;
 
+        // المبلغ المدفوع لازم يطابق إجمالي الحجز.
+        // merchant_order_id مش ضمن الحقول اللي التوقيع بيغطّيها، فالمقارنة دي
+        // هي اللي بتمنع إن دفعة صغيرة (أو توقيع متلقّط) تأكّد حجز بمبلغ تاني.
         if ($booking && $success) {
+            $paidCents     = (int) data_get($obj, 'amount_cents');
+            $expectedCents = (int) round((float) $booking->total * 100);
+
+            if ($paidCents !== $expectedCents) {
+                Log::critical('Paymob webhook: المبلغ لا يطابق الحجز', [
+                    'code' => $booking->code, 'paid_cents' => $paidCents, 'expected_cents' => $expectedCents,
+                ]);
+
+                return response()->json(['ok' => false, 'reason' => 'amount_mismatch'], 400);
+            }
+
             $booking->forceFill(['payment_gateway' => 'paymob', 'payment_ref' => (string) data_get($obj, 'id')])->saveQuietly();
             $this->markPaid($booking);
         }
@@ -115,12 +127,10 @@ class PaymentController extends Controller
             return redirect()->route('home')->with('error', 'لم نتمكن من إيجاد الحجز.');
         }
 
-        // الحالة النهائية بتتأكّد من الـ webhook الموثوق — هنا بس نوجّه للتأكيد
-        $status = $request->query('orderStatus');
-        if ($status === 'PAID') {
-            $this->markPaid($booking);
-        }
-
+        // ⚠️ أمان: ده redirect من متصفح العميل — أي حد يقدر يزوّره.
+        // ممنوع منعاً باتاً نغيّر حالة الدفع من هنا. المصدر الموثوق الوحيد هو
+        // fawryWebhook() اللي بيتحقق من messageSignature.
+        // (قبل كده كان بينادي markPaid() على طول: GET مزوّر = حجز مدفوع مجاناً.)
         return redirect()->route('booking.confirmation', $booking->code);
     }
 
@@ -153,15 +163,28 @@ class PaymentController extends Controller
 
     private function markPaid(Booking $booking): void
     {
-        if ($booking->payment_status === 'paid') {
-            return; // idempotent
+        // قفل ذرّي: الكولباك والـwebhook ممكن يوصلوا في نفس اللحظة.
+        // فحص-ثم-كتابة عادي بيسيب نافذة الاتنين يعدّوا منها ويحجزوا المخزون مرتين
+        // لنفس الحجز. الـUPDATE المشروط ده بيضمن إن واحد بس يكمّل.
+        $claimed = Booking::where('id', $booking->id)
+            ->where('payment_status', '!=', 'paid')
+            ->update(['payment_status' => 'paid']);
+
+        if ($claimed === 0) {
+            return; // حد تاني خلّصها بالفعل
         }
+
+        $booking->refresh();
 
         // ثبّت وحدات المخزون (لو الحجز المؤقّت ضاع بيحاول يعيد الحجز)
         $secured = $this->holds->confirmBooking($booking);
 
         if ($secured) {
-            $booking->update(['payment_status' => 'paid', 'status' => 'confirmed']);
+            $booking->update([
+                'payment_status' => 'paid',
+                'status'         => 'confirmed',
+                'amount_paid'    => $booking->total, // كان مابيتكتبش خالص → كل حجز مدفوع يبان إن عليه المبلغ كامل
+            ]);
             $this->notifier->confirmed($booking);
 
             return;
@@ -170,6 +193,7 @@ class PaymentController extends Controller
         // مدفوع لكن الإتاحة اختفت — يتصعّد يدويًا (استرداد/إعادة جدولة)
         $booking->update([
             'payment_status' => 'paid',
+            'amount_paid' => $booking->total,
             'status' => 'processing',
             'notes' => trim(($booking->notes ? $booking->notes."\n" : '').'⚠️ تم الدفع لكن التواريخ لم تعد متاحة — مطلوب تدخّل يدوي.'),
         ]);

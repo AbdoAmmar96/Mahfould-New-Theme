@@ -18,10 +18,13 @@ export default function Show({ car, reviews, review_type, review_id }) {
     const [days, setDays] = useState(''); // مفيش اختيار مسبق
     const [date, setDate] = useState('');
     const unit = car.sale_price || car.price;
-    const fee = 200;
+        // من الإعدادات مش مكتوبة بالكود — لازم تطابق صفحة الدفع
+    const site = usePage().props.site || {};
+    const fee = site.service_fee ?? 200;
+    const discount = car.is_guaranteed ? (site.makfol_discount ?? 400) : 0;
     const daysN = Number(days) || 0;
     // من غير عدد أيام مفيش إجمالي — مش NaN
-    const total = useMemo(() => (daysN ? unit * daysN + fee : 0), [unit, daysN, fee]);
+    const total = useMemo(() => (daysN ? Math.max(0, unit * daysN + fee - discount) : 0), [unit, daysN, fee, discount]);
     const canBook = !!date && daysN > 0;
     const checkoutUrl = () => {
         const q = new URLSearchParams();

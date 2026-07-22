@@ -100,7 +100,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/checkout/{type}/{id}', [BookingController::class, 'create'])->name('booking.create');
     Route::post('/checkout', [BookingController::class, 'store'])->name('booking.store')->middleware('throttle:booking');
 });
-Route::get('/booking/{booking:code}', [BookingController::class, 'confirmation'])->name('booking.confirmation');
+// صفحة التأكيد فيها بيانات العميل + كود دخول QR → auth + ملكية (الفحص في المتحكّم) + throttle
+Route::get('/booking/{booking:code}', [BookingController::class, 'confirmation'])
+    ->middleware(['auth', 'throttle:api'])
+    ->name('booking.confirmation');
 
 // دفع Paymob (callback من صفحة الدفع + webhook موثوق)
 Route::match(['get', 'post'], '/payment/callback', [PaymentController::class, 'callback'])->name('payment.callback');

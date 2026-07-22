@@ -32,7 +32,10 @@ export default function Show({ tour, reviews, review_type, review_id }) {
     );
 
     const unit = tour.sale_price || tour.price;
-    const fee = 200;
+        // من الإعدادات مش مكتوبة بالكود — لازم تطابق صفحة الدفع
+    const site = usePage().props.site || {};
+    const fee = site.service_fee ?? 200;
+    const discount = tour.is_guaranteed ? (site.makfol_discount ?? 400) : 0;
     const pax = Number(guests) || 0;
     const addonsSum = useMemo(
         () => tour.activities
@@ -41,7 +44,7 @@ export default function Show({ tour, reviews, review_type, review_id }) {
         [tour.activities, selectedAddons, pax],
     );
     // الإجمالي بيتحسب بس لما يكون فيه عدد مسافرين
-    const total = useMemo(() => (pax ? unit * pax + addonsSum + fee : 0), [unit, pax, addonsSum, fee]);
+    const total = useMemo(() => (pax ? Math.max(0, unit * pax + addonsSum + fee - discount) : 0), [unit, pax, addonsSum, fee, discount]);
     const canBook = !!date && pax > 0;
 
     const page = usePage();

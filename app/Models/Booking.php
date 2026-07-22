@@ -56,12 +56,28 @@ class Booking extends Model
 
     protected static function booted(): void
     {
+        // حذف الحجز لازم يرجّع وحداته للمخزون.
+        // FK على booking_items.booking_id هو nullOnDelete، فالصفوف كانت بتفضل
+        // released_at=NULL وbooking_id=NULL → مخزون مقفول للأبد ومفيش أي طريقة
+        // نلاقيه بيها (الكرون بيدوّر على expires_at والمثبّت قيمته null).
+        static::deleting(function (Booking $b) {
+            $b->items()->whereNull('released_at')->update(['released_at' => now()]);
+        });
+
         static::creating(function (Booking $b) {
             if ($b->code) {
                 return;
             }
+            // 6 أرقام = مليون احتمال ببادئة معروفة → قابل للتعداد بالكامل.
+            // حروف+أرقام (بدون الملتبس منها) عشان يفضل سهل النطق على التليفون
+            // وفي نفس الوقت مستحيل تخمينه.
+            $alphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'; // بدون 0/O/1/I
             do {
-                $code = 'MM-'.date('Y').'-'.str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+                $rand = '';
+                for ($i = 0; $i < 8; $i++) {
+                    $rand .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+                }
+                $code = 'MM-'.date('Y').'-'.$rand;
             } while (static::where('code', $code)->exists());
             $b->code = $code;
         });

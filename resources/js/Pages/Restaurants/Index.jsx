@@ -1,4 +1,5 @@
 import SiteLayout from '@/Layouts/SiteLayout';
+import Pager from '@/Components/Pager';
 import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import { MapPin, Star, Search, Utensils, Coffee, Navigation, Sparkles } from 'lucide-react';
@@ -221,6 +222,8 @@ export default function Index({ restaurants, filters, user_location }) {
                             <p className="mt-3 text-muted">مافيش نتائج مطابقة.</p>
                         </div>
                     )}
+
+                    <Pager paginator={restaurants} />
                 </div>
             </section>
         </SiteLayout>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Models\Booking;
+use App\Services\Availability\HoldService;
 use App\Services\Payments\PaymentManager;
 use App\Support\Bookables;
 use Illuminate\Database\Eloquent\Model;
@@ -137,7 +138,7 @@ class BookingController extends CrudController
     }
 
     /** استرجاع الحجز عبر البوابة اللي اتدفع بيها */
-    public function refund(int $id, PaymentManager $payments): RedirectResponse
+    public function refund(int $id, PaymentManager $payments, HoldService $holds): RedirectResponse
     {
         $booking = $this->scope(Booking::query())->findOrFail($id);
 
@@ -146,7 +147,19 @@ class BookingController extends CrudController
         }
 
         if ($payments->refund($booking)) {
-            $booking->update(['payment_status' => 'refunded', 'status' => 'cancelled']);
+            $booking->update([
+                'payment_status' => 'refunded',
+                'status'         => 'cancelled',
+                'cancelled_at'   => now(),
+            ]);
+
+            // ⚠️ لازم نرجّع الوحدات للمخزون.
+            // من غير السطر ده صفوف booking_items تفضل state=booked و expires_at=null
+            // فلا scopeActive بيسيبها ولا الكرون بيلمسها — يعني ليالي الغرفة
+            // دي تبقى غير قابلة للبيع **للأبد** بعد كل استرداد.
+            if ($booking->hold_token) {
+                $holds->release($booking->hold_token);
+            }
 
             return back()->with('success', "تم استرجاع الحجز {$booking->code} بنجاح.");
         }

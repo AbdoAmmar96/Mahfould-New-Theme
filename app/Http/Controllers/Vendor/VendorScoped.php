@@ -50,6 +50,12 @@ trait VendorScoped
             $data['reviewed_at']      = null;
             $data['reviewed_by']      = null;
             $data['rejection_reason'] = null;
+
+            // ⚠️ status كمان لازم يتجبر.
+            // كان سايب للمزوّد، والقوائم بتفلتر بـpublish_state لكن صفحات
+            // التفاصيل بتفلتر بـstatus — فالمزوّد كان يبعت status=publish
+            // وخدمته تفضل مخفية من /tours وشغّالة على /tours/{slug} من غير مراجعة.
+            $data['status'] = 'pending';
         }
 
         return $data;
