@@ -122,7 +122,18 @@ export default function Checkout({ item, prefill = {}, pricing = {}, addons = []
         [selectedAddons, data.guests],
     );
 
-    const total = Math.max(0, subtotal + addonsSubtotal + fee - discount);
+    // بند 17 — خصم المجموعات. لازم يطابق PricingService::quote() بالظبط:
+    // نسبة على (الأساس = الخدمة + الفعاليات)، قبل خصم مكفول الثابت.
+    const groupRule = pricing.group_discount || { min_guests: 5, pct: 10 };
+    const base = subtotal + addonsSubtotal;
+    // round2 = مرآة round($x, 2) في PHP — مهمة عشان لو الأدمن غيّر النسبة
+    // لرقم عشري (7.5%) الواجهة والسيرفر يفضلوا متطابقين للقرش
+    const round2 = (n) => Math.round(n * 100) / 100;
+    const groupDiscount = data.guests >= groupRule.min_guests
+        ? round2(base * groupRule.pct / 100)
+        : 0;
+
+    const total = Math.max(0, base - groupDiscount - discount + fee);
 
     // «أكثر من» إلزامي في الفنادق/العربيات
     const countsValid = ! pooled || (nightsValid && unitsValid);
@@ -464,6 +475,12 @@ export default function Checkout({ item, prefill = {}, pricing = {}, addons = []
                                         </div>
                                     ))}
                                     <div className="flex justify-between py-[9px] text-sm"><span>رسوم الخدمة</span><span>{money(fee)} ج.م</span></div>
+                                    {groupDiscount > 0 && (
+                                        <div className="flex justify-between py-[9px] text-sm">
+                                            <span>خصم المجموعات ({groupRule.pct}%)</span>
+                                            <span className="text-makfol">−{money(groupDiscount)} ج.م</span>
+                                        </div>
+                                    )}
                                     {discount > 0 && (
                                         <div className="flex justify-between py-[9px] text-sm"><span>خصم مكفول</span><span className="text-makfol">−{money(discount)} ج.م</span></div>
                                     )}
@@ -549,6 +566,12 @@ export default function Checkout({ item, prefill = {}, pricing = {}, addons = []
                                 </div>
                             ))}
                             <div className="flex justify-between py-2"><span>رسوم الخدمة</span><span>{money(fee)} ج.م</span></div>
+                            {groupDiscount > 0 && (
+                                <div className="flex justify-between py-2">
+                                    <span>خصم المجموعات ({groupRule.pct}%)</span>
+                                    <span className="text-makfol">−{money(groupDiscount)} ج.م</span>
+                                </div>
+                            )}
                             {discount > 0 && (
                                 <div className="flex justify-between py-2"><span>خصم مكفول</span><span className="text-makfol">−{money(discount)} ج.م</span></div>
                             )}

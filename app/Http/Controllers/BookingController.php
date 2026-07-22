@@ -17,6 +17,7 @@ use App\Services\Booking\AgePricingService;
 use App\Services\Booking\CancellationPolicyService;
 use App\Services\Booking\EntryPassService;
 use App\Services\Booking\PaymentTimingService;
+use App\Services\Booking\PricingService;
 use App\Services\BookingNotifier;
 use App\Services\Payments\PaymentManager;
 use App\Support\Bookables;
@@ -61,7 +62,7 @@ class BookingController extends Controller
             ->all();
     }
 
-    public function create(Request $request, string $type, int $id, AgePricingService $agePricing, PaymentTimingService $paymentTiming): Response
+    public function create(Request $request, string $type, int $id, AgePricingService $agePricing, PaymentTimingService $paymentTiming, PricingService $pricing): Response
     {
         $model = Bookables::resolve($type, $id);
         abort_unless($model !== null, 404);
@@ -134,6 +135,11 @@ class BookingController extends Controller
                 'fee' => (float) Setting::get('service_fee', 200),
                 'discount' => $isGuaranteed ? (float) Setting::get('makfol_discount', 400) : 0,
                 'is_guaranteed' => $isGuaranteed,
+                // بند 17 — الواجهة بتعرض القاعدة دي وتحفّز العميل يكمّل العدد
+                'group_discount' => [
+                    'min_guests' => $pricing->groupDiscountThreshold(),
+                    'pct' => $pricing->groupDiscountPct(),
+                ],
                 'age_tiers' => $agePricing->tiersFor($model)->values(),
                 'payment' => [
                     'default_timing_self' => $paymentTiming->resolve($type, 'self'),
@@ -154,6 +160,7 @@ class BookingController extends Controller
         PaymentTimingService $paymentTiming,
         CancellationPolicyService $cancellation,
         EntryPassService $entryPasses,
+        PricingService $pricing,
     ): SymfonyResponse {
         $data = $request->validate([
             'type' => ['required', Rule::in(Bookables::types())],
@@ -344,11 +351,16 @@ class BookingController extends Controller
         // §8: ضم add-ons للـsubtotal
         $subtotal += $addonsSubtotal;
 
-        $fee = (float) Setting::get('service_fee', 200);
-        $discount = $model->is_guaranteed ? (float) Setting::get('makfol_discount', 400) : 0;
-        $total = max(0, $subtotal + $fee - $discount);
-        $rate = (float) Setting::get('commission_rate', 15);
-        $commission = round($total * $rate / 100, 2);
+        // كل التسعير من PricingService — مصدر حقيقة واحد للسيرفر والواجهة
+        $quote = $pricing->quote(
+            base: $subtotal,
+            guests: $guests,
+            isGuaranteed: (bool) ($model->is_guaranteed ?? false),
+        );
+        $fee = $quote['service_fee'];
+        $discount = $quote['discount_total'];
+        $total = $quote['total'];
+        $commission = $quote['commission'];
 
         // §7: snapshots (سعر + سياسة إلغاء) — snapshot لنوع الغرفة أيضاً لو موجود
         $itemsSnapshot = [
@@ -360,6 +372,9 @@ class BookingController extends Controller
             'service_fee' => $fee,
             'discount' => $discount,
             'total' => $total,
+            // تفصيل الخصومات وقت الحجز — الإعدادات ممكن تتغيّر بعدين،
+            // والفاتورة لازم تفضل تشرح نفسها.
+            'discounts_breakdown' => $quote['discounts'],
             'is_guaranteed' => (bool) ($model->is_guaranteed ?? false),
             'age_pricing_applied' => $agePricingRows,
             'room_type' => $roomType ? [
@@ -371,7 +386,9 @@ class BookingController extends Controller
             ] : null,
         ];
         $policySnapshot = $cancellation->snapshot($model);
-        $serviceDate = $data['start_date'] ? Carbon::parse($data['start_date']) : null;
+        // start_date اختياري في الـvalidator، فلو مابعتوش المفتاح مش موجود أصلاً.
+        // من غير ?? كان بيرمي «Undefined array key» → 500 على أي حجز رحلة بلا تاريخ.
+        $serviceDate = ! empty($data['start_date']) ? Carbon::parse($data['start_date']) : null;
         $deadline = $cancellation->freeCancellationDeadline($serviceDate);
 
         $isPrepay = in_array($timing, [PaymentTimingService::PREPAID], true)

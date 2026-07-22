@@ -43,6 +43,11 @@ class DatabaseSeeder extends Seeder
         Setting::set('commission_rate', '15'); // عمولة المنصة %
         Setting::set('service_fee', '200');    // رسوم الخدمة الثابتة
         Setting::set('makfol_discount', '400'); // خصم مكفول للخدمات المضمونة
+        // بند 17 — خصم المجموعات: «أكتر من 4 أفراد» يعني الحد الأدنى 5
+        Setting::set('group_discount_min_guests', '5');
+        Setting::set('group_discount_pct', '10');
+        // بند 1 — كوبون التعليق بعد استخدام الخدمة
+        Setting::set('review_coupon_pct', '5');
 
         // ── الوجهات ──
         $dests = [
