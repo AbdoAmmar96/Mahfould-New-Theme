@@ -3,6 +3,8 @@ import { Link, usePage } from '@inertiajs/react';
 import { useEffect } from 'react';
 import { Button } from '@/Components/ui/button';
 import { Toaster, toast } from '@/Components/ui/sonner';
+import MobileHeader from '@/Components/MobileHeader';
+import MobileTabBar from '@/Components/MobileTabBar';
 import { cn } from '@/lib/utils';
 
 const NAV = [
@@ -22,7 +24,19 @@ const FOOTER = {
     'الدعم': [['/p/help', 'مركز المساعدة'], ['/p/refund', 'سياسة الاسترداد'], ['/p/terms', 'الشروط والأحكام'], ['/p/privacy', 'الخصوصية']],
 };
 
-export default function SiteLayout({ children, active = '' }) {
+// حركة الدخول لكل نوع صفحة — التفاصيل غير القوائم غير مسار الحجز
+const ANIM = {
+    home: 'mk-anim-home',
+    list: 'mk-anim-list',
+    detail: 'mk-anim-detail',
+    flow: 'mk-anim-flow',
+    fade: 'mk-anim-fade',
+    success: 'mk-anim-success',
+};
+
+// bare = صفحات التفاصيل على الموبايل: بتستخدم آب-بار عايم فوق الصورة
+// (جوّه MobileDetailShell) بدل الآب-بار الأبيض العادي.
+export default function SiteLayout({ children, active = '', anim = 'fade', bare = false }) {
     const { auth, flash } = usePage().props;
     const url = usePage().url;
 
@@ -32,8 +46,11 @@ export default function SiteLayout({ children, active = '' }) {
     }, [flash]);
 
     return (
-        <div className="mk min-h-screen bg-cream font-body text-navy">
+        <div className="mk mk-app min-h-screen bg-cream font-body text-navy">
             <Toaster />
+
+            {/* وضع الموبايل — آب-بار + هامبرجر + تبويب سفلي */}
+            {!bare && <MobileHeader />}
 
             {/* شريط علوي — دخول الشركاء */}
             {!auth?.user && (
@@ -50,7 +67,7 @@ export default function SiteLayout({ children, active = '' }) {
                 </div>
             )}
 
-            <header className="sticky top-0 z-40 border-b border-black/[.07] bg-white/95 backdrop-blur">
+            <header className="sticky top-0 z-40 hidden border-b border-black/[.07] bg-white/95 backdrop-blur lg:block">
                 <div className="mx-auto flex h-[74px] max-w-[1200px] items-center px-5 2xl:max-w-[1600px]">
                     <Link href="/" className="shrink-0">
                         <img src="/assets/img/logo.png" alt="محفول مكفول" className="h-9 w-auto" />
@@ -86,9 +103,16 @@ export default function SiteLayout({ children, active = '' }) {
                 </div>
             </header>
 
-            <main>{children}</main>
+            {/* key={url} بيعيد تركيب الغلاف مع كل تنقّل عشان الحركة تشتغل من أول */}
+            <main
+                key={url}
+                className={cn('mk-page pb-[calc(62px+env(safe-area-inset-bottom))] lg:pb-0', ANIM[anim] ?? ANIM.fade)}
+            >
+                {children}
+            </main>
 
-            <footer className="mt-10 bg-navy-deep pt-16 text-white/70">
+            {/* الفوتر ويب-only — على الموبايل روابطه كلها جوّه الدروار */}
+            <footer className="mt-10 hidden bg-navy-deep pt-16 text-white/70 lg:block">
                 <div className="mx-auto max-w-[1200px] px-5 2xl:max-w-[1600px]">
                     <div className="grid grid-cols-1 gap-8 pb-10 md:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr]">
                         <div>
@@ -115,6 +139,8 @@ export default function SiteLayout({ children, active = '' }) {
                     </div>
                 </div>
             </footer>
+
+            <MobileTabBar />
         </div>
     );
 }

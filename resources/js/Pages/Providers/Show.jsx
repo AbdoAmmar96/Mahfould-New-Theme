@@ -12,14 +12,14 @@ const TYPE_LABELS = {
 
 export default function Show({ provider, stats, services, reviews }) {
     return (
-        <SiteLayout>
+        <SiteLayout anim="detail">
             <Head title={provider.name} />
 
             {/* Header بلوجو */}
-            <section className="relative overflow-hidden bg-gradient-to-br from-navy to-navy-light py-14 text-white">
+            <section className="relative overflow-hidden bg-gradient-to-br from-navy to-navy-light py-6 text-white lg:py-14">
                 <div className="pointer-events-none absolute -end-20 -top-32 h-[360px] w-[360px] rounded-full bg-royal opacity-30 blur-[110px]" />
                 <div className="relative z-[1] mx-auto w-full max-w-[1200px] px-5">
-                    <div className="mb-3 text-[13.5px] text-white/70">
+                    <div className="mb-3 hidden text-[13.5px] text-white/70 lg:block">
                         <Link href="/" className="hover:text-white">الرئيسية</Link> › مزوّدون › {provider.name}
                     </div>
                     <div className="flex flex-wrap items-center gap-5">

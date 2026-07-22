@@ -74,6 +74,6 @@ class RoomType extends Model
             return asset('storage/' . $this->image);
         }
         // fallback على صورة الفندق
-        return $this->hotel?->image_url ?? "https://loremflickr.com/600/450/hotel-room?lock={$this->id}";
+        return $this->hotel?->image_url ?? "https://picsum.photos/seed/room{$this->id}/600/450";
     }
 }

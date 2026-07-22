@@ -3,12 +3,73 @@ import { Check } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 import { Badge } from '@/Components/ui/badge';
 import { Input, Field } from '@/Components/ui/input';
+import MobileAuth from '@/Components/mobile/MobileAuth';
+import { useIsMobile } from '@/lib/useIsMobile';
 
 export default function Register() {
+    const isMobile = useIsMobile();
     const { data, setData, post, processing, errors } = useForm({
         name: '', phone: '', email: '', password: '', password_confirmation: '',
     });
     const submit = (e) => { e.preventDefault(); post('/register'); };
+
+    if (isMobile) {
+        return (
+            <>
+                <Head title="حساب جديد" />
+                <MobileAuth
+                    title="ابدأ رحلتك معانا"
+                    sub="سجّل في دقيقة — مجاني تماماً"
+                    badge={<Badge variant="makfol"><Check className="h-3 w-3" /> انضم لمحفول مكفول</Badge>}
+                >
+                    <form onSubmit={submit} className="flex flex-1 flex-col">
+                        <div className="space-y-4">
+                            <Field label="الاسم بالكامل">
+                                <Input value={data.name} onChange={(e) => setData('name', e.target.value)} placeholder="عمرو شلبي"
+                                    className={errors.name ? 'border-danger focus:border-danger focus:ring-danger/20' : ''} />
+                            </Field>
+                            {errors.name && <p className="-mt-2 text-[13px] text-danger">{errors.name}</p>}
+
+                            <Field label="رقم الموبايل">
+                                <Input value={data.phone} onChange={(e) => setData('phone', e.target.value)} placeholder="010xxxxxxxx"
+                                    inputMode="tel"
+                                    className={errors.phone ? 'border-danger focus:border-danger focus:ring-danger/20' : ''} />
+                            </Field>
+                            {errors.phone && <p className="-mt-2 text-[13px] text-danger">{errors.phone}</p>}
+
+                            <Field label="البريد الإلكتروني">
+                                <Input type="email" inputMode="email" value={data.email} onChange={(e) => setData('email', e.target.value)} placeholder="you@email.com"
+                                    className={errors.email ? 'border-danger focus:border-danger focus:ring-danger/20' : ''} />
+                            </Field>
+                            {errors.email && <p className="-mt-2 text-[13px] text-danger">{errors.email}</p>}
+
+                            <Field label="كلمة المرور">
+                                <Input type="password" value={data.password} onChange={(e) => setData('password', e.target.value)} placeholder="••••••••" />
+                            </Field>
+                            {errors.password && <p className="-mt-2 text-[13px] text-danger">{errors.password}</p>}
+
+                            <Field label="تأكيد كلمة المرور">
+                                <Input type="password" value={data.password_confirmation} onChange={(e) => setData('password_confirmation', e.target.value)} placeholder="••••••••" />
+                            </Field>
+                        </div>
+
+                        <div className="mt-auto space-y-4 pt-8">
+                            <button
+                                type="submit"
+                                disabled={processing}
+                                className="mk-press flex min-h-[52px] w-full items-center justify-center rounded-input bg-gradient-to-l from-coral to-coral-deep text-[16px] font-extrabold text-white shadow-mk disabled:opacity-50"
+                            >
+                                {processing ? 'جاري التسجيل…' : 'إنشاء الحساب'}
+                            </button>
+                            <p className="text-center text-[14px] text-navy">
+                                عندك حساب؟ <Link href="/login" className="font-extrabold text-coral-deep">سجّل دخول</Link>
+                            </p>
+                        </div>
+                    </form>
+                </MobileAuth>
+            </>
+        );
+    }
 
     return (
         <>

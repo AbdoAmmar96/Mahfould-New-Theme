@@ -8,12 +8,18 @@ import { Button } from '@/Components/ui/button';
 import { Input, Field } from '@/Components/ui/input';
 import { PartySizeField } from '@/Components/ui/party-size';
 import { Separator } from '@/Components/ui/separator';
+import {
+    MobileGallery, MobileDetailHead, MobileSection, MobileStickyBar, MobileSheet, MobileCTA,
+} from '@/Components/mobile/primitives';
+import { useIsMobile } from '@/lib/useIsMobile';
 import { cn } from '@/lib/utils';
 
 export default function Show({ restaurant, reviews, review_type, review_id, query_date }) {
-    const [guests, setGuests] = useState(2);
+    const isMobile = useIsMobile();
+    const [bookOpen, setBookOpen] = useState(false);
+    const [guests, setGuests] = useState('');
     const [date, setDate] = useState(query_date || '');
-    const [time, setTime] = useState('20:00');
+    const [time, setTime] = useState('');
     const [tableId, setTableId] = useState(null);
     const [activeMenuTab, setActiveMenuTab] = useState(restaurant.menu[0]?.id || null);
 
@@ -21,9 +27,11 @@ export default function Show({ restaurant, reviews, review_type, review_id, quer
         restaurant.image_url, ...[2, 3, 4, 5].map((n) => `https://picsum.photos/seed/rg${restaurant.id}${n}/400/400`),
     ];
 
-    const availableTables = useMemo(() => restaurant.tables.filter(t => !t.booked && t.capacity >= guests), [restaurant.tables, guests]);
+    const pax = Number(guests) || 0;
+    const canReserve = !!date && !!time && pax > 0;
+    const availableTables = useMemo(() => restaurant.tables.filter(t => !t.booked && t.capacity >= pax), [restaurant.tables, pax]);
     const bookedTables = useMemo(() => restaurant.tables.filter(t => t.booked), [restaurant.tables]);
-    const smallTables = useMemo(() => restaurant.tables.filter(t => !t.booked && t.capacity < guests), [restaurant.tables, guests]);
+    const smallTables = useMemo(() => restaurant.tables.filter(t => !t.booked && t.capacity < pax), [restaurant.tables, pax]);
 
     const checkoutUrl = () => {
         const q = new URLSearchParams();
@@ -37,8 +45,137 @@ export default function Show({ restaurant, reviews, review_type, review_id, quer
     const activeSection = restaurant.menu.find(s => s.id === activeMenuTab);
     const isCafe = restaurant.venue_type === 'cafe';
 
+    if (isMobile) {
+        return (
+            <SiteLayout active="restaurants" anim="detail">
+                <Head title={restaurant.title} />
+
+                <MobileGallery
+                    images={gallery}
+                    badges={restaurant.instant && <Badge type="soft">حجز فوري</Badge>}
+                />
+
+                <MobileDetailHead
+                    title={restaurant.title}
+                    location={restaurant.address || restaurant.location}
+                    score={restaurant.review_score}
+                    count={restaurant.review_count}
+                    sub={[isCafe ? 'كافيه' : 'مطعم', restaurant.cuisines?.join(' · '), restaurant.price_range].filter(Boolean).join(' · ')}
+                />
+
+                {restaurant.content && (
+                    <MobileSection title="عن المكان">
+                        <p className="text-[14px] leading-relaxed text-muted">{restaurant.content}</p>
+                    </MobileSection>
+                )}
+
+                {restaurant.menu.length > 0 && (
+                    <MobileSection title="المنيو" icon={Utensils} collapsible defaultOpen={false}>
+                        <div className="mk-hscroll -mx-1 mb-3 flex gap-2 overflow-x-auto px-1">
+                            {restaurant.menu.map((s) => (
+                                <button key={s.id} type="button" onClick={() => setActiveMenuTab(s.id)}
+                                    className={cn(
+                                        'mk-press shrink-0 rounded-full px-4 text-[13.5px] font-bold',
+                                        activeMenuTab === s.id ? 'bg-navy text-white' : 'bg-beige text-navy',
+                                    )}>
+                                    {s.name ?? s.title}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="space-y-2.5">
+                            {(activeSection?.items ?? []).map((it, i) => (
+                                <div key={i} className="flex items-start justify-between gap-3 border-b border-black/[.05] pb-2.5 last:border-0">
+                                    <div className="min-w-0">
+                                        <div className="text-[14px] font-bold text-navy">{it.name ?? it.title}</div>
+                                        {it.description && <p className="line-clamp-2 text-[12px] text-muted">{it.description}</p>}
+                                    </div>
+                                    {it.price > 0 && <b className="shrink-0 font-head text-[14.5px] text-coral-deep">{it.price} ج.م</b>}
+                                </div>
+                            ))}
+                        </div>
+                    </MobileSection>
+                )}
+
+                <MobileSection title="التقييمات">
+                    <Reviews reviews={reviews} type={review_type} id={review_id} />
+                </MobileSection>
+
+                <div className="h-[120px]" />
+
+                <MobileStickyBar>
+                    <div className="flex items-center gap-3">
+                        <div className="min-w-0 flex-1">
+                            <p className="text-[14px] font-extrabold text-navy">احجز ترابيزتك</p>
+                            <p className="truncate text-[11.5px] text-muted">
+                                {restaurant.instant ? 'تأكيد فوري' : 'تأكيد خلال دقائق'}
+                            </p>
+                        </div>
+                        <div className="w-[52%] shrink-0">
+                            <MobileCTA onClick={() => setBookOpen(true)}>اختار ميعاد</MobileCTA>
+                        </div>
+                    </div>
+                </MobileStickyBar>
+
+                <MobileSheet
+                    open={bookOpen}
+                    onOpenChange={setBookOpen}
+                    title="حجز ترابيزة"
+                    footer={
+                        <MobileCTA href={canReserve ? checkoutUrl() : undefined} disabled={!canReserve}>
+                            {!date ? 'اختار التاريخ' : !time ? 'اختار الوقت' : !pax ? 'اختار عدد الأفراد' : 'تأكيد الحجز'}
+                        </MobileCTA>
+                    }
+                >
+                    <div className="space-y-4">
+                        <Field label="التاريخ">
+                            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                        </Field>
+                        <Field label="الوقت">
+                            <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+                        </Field>
+                        <Field label="عدد الأفراد">
+                            <PartySizeField
+                                value={guests}
+                                onChange={(n) => setGuests(n || '')}
+                                placeholder="اختار العدد"
+                                options={[1, 2, 3, 4, 5, 6, 8, 10].map((n) => ({ value: n, label: `${n} فرد` }))}
+                            />
+                        </Field>
+
+                        {restaurant.tables.length > 0 && (
+                            <div>
+                                <p className="mb-2 text-[12.5px] font-extrabold text-muted">اختار ترابيزة (اختياري)</p>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {availableTables.map((t) => (
+                                        <button key={t.id} type="button"
+                                            onClick={() => setTableId(tableId === t.id ? null : t.id)}
+                                            className={cn(
+                                                'mk-press rounded-input border py-2 text-[12.5px] font-bold',
+                                                tableId === t.id ? 'border-coral bg-coral/10 text-coral-deep' : 'border-black/[.1] text-navy',
+                                            )}>
+                                            {t.name ?? `ترابيزة ${t.number ?? t.id}`}
+                                            <span className="block text-[10.5px] font-semibold text-muted">{t.capacity} أفراد</span>
+                                        </button>
+                                    ))}
+                                </div>
+                                {availableTables.length === 0 && (
+                                    <p className="text-[13px] text-muted">مفيش ترابيزات بالسعة دي — جرّب عدد أقل.</p>
+                                )}
+                                {smallTables.length > 0 && (
+                                    <p className="mt-2 text-[12px] text-muted">
+                                        فيه {smallTables.length} ترابيزة أصغر من العدد اللي اخترته.
+                                    </p>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </MobileSheet>
+            </SiteLayout>
+        );
+    }
+
     return (
-        <SiteLayout active="restaurants">
+        <SiteLayout active="restaurants" anim="detail">
             <Head title={restaurant.title} />
             <section className="pt-[26px]">
                 <div className="mx-auto w-full max-w-[1200px] px-5">

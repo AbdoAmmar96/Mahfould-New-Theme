@@ -1,7 +1,10 @@
 import SiteLayout from '@/Layouts/SiteLayout';
 import { ListingCard, Btn } from '@/Components/UI';
+import MobileListing from '@/Components/mobile/MobileListing';
+import { MobileListCard } from '@/Components/mobile/primitives';
 import { Head, Link, router } from '@inertiajs/react';
 import { Star, Waves, UtensilsCrossed } from 'lucide-react';
+import { useIsMobile } from '@/lib/useIsMobile';
 import { cn } from '@/lib/utils';
 
 // حاوية بعرض ثابت
@@ -19,9 +22,50 @@ const Stars = ({ n }) => (
 );
 
 export default function Index({ hotels, locations, filters }) {
+    const isMobile = useIsMobile();
     const byLoc = (slug) => router.get('/hotels', { location: slug }, { preserveState: true });
+
+    if (isMobile) {
+        return (
+            <SiteLayout active="hotels" anim="list">
+                <Head title="الفنادق" />
+                <MobileListing
+                    count={hotels.total} countLabel="فندق متاح"
+                    activeCount={filters.location ? 1 : 0}
+                    onClear={() => router.get('/hotels')}
+                    filters={
+                        <div className="space-y-0.5">
+                            <p className="pb-1 text-[12.5px] font-extrabold text-muted">المدينة</p>
+                            {locations.map((l) => (
+                                <label key={l.slug} className="flex cursor-pointer items-center gap-2.5 text-[15px] font-semibold text-navy">
+                                    <input type="checkbox" readOnly checked={filters.location === l.slug} onClick={() => byLoc(l.slug)} className="accent-coral" />
+                                    {l.name}
+                                    <span className="ms-auto text-[12.5px] text-muted">{l.count}</span>
+                                </label>
+                            ))}
+                        </div>
+                    }
+                    items={hotels.data}
+                    renderItem={(h) => (
+                        <MobileListCard
+                            key={h.id}
+                            item={h}
+                            unit="الليلة"
+                            feats={`${h.star_rating} نجوم · حمام سباحة`}
+                            badges={h.is_guaranteed && (
+                                <span className="absolute start-1.5 top-1.5 rounded-full bg-makfol px-1.5 py-0.5 text-[10px] font-bold text-white">مكفول</span>
+                            )}
+                        />
+                    )}
+                    paginator={hotels}
+                    emptyText="مفيش فنادق مطابقة."
+                />
+            </SiteLayout>
+        );
+    }
+
     return (
-        <SiteLayout active="hotels">
+        <SiteLayout active="hotels" anim="list">
             <Head title="الفنادق" />
 
             {/* بانر الصفحة */}

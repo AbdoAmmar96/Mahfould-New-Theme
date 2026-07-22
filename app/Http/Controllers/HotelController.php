@@ -68,6 +68,73 @@ class HotelController extends Controller
         ]);
     }
 
+    /** بيانات شريط الأقسام — لازم تكون واحدة في كل صفحات الفندق */
+    private function navMeta(Hotel $hotel): array
+    {
+        return [
+            'id'          => $hotel->id,
+            'slug'        => $hotel->slug,
+            'title'       => $hotel->title,
+            'rooms_count' => $hotel->activeRoomTypes()->count(),
+        ];
+    }
+
+    /** أنواع الغرف — صفحة اختيار مستقلة */
+    public function rooms(Hotel $hotel): Response
+    {
+        abort_if($hotel->status !== 'publish', 404);
+        $hotel->load('activeRoomTypes');
+
+        return Inertia::render('Hotels/Rooms', [
+            'hotel' => $this->navMeta($hotel),
+            'room_types' => $hotel->activeRoomTypes->map(fn ($r) => [
+                'id' => $r->id,
+                'title' => $r->title,
+                'description' => $r->description,
+                'capacity' => $r->capacity_per_night,
+                'units_total' => $r->units_total,
+                'price' => (float) $r->price_per_night,
+                'sale_price' => $r->sale_price_per_night ? (float) $r->sale_price_per_night : null,
+                'effective_price' => $r->effective_price,
+                'includes_breakfast' => $r->includes_breakfast,
+                'image_url' => $r->image_url,
+            ])->values(),
+        ]);
+    }
+
+    /** المرافق — صفحة مستقلة */
+    public function amenities(Hotel $hotel): Response
+    {
+        abort_if($hotel->status !== 'publish', 404);
+
+        return Inertia::render('Hotels/Amenities', [
+            'hotel' => $this->navMeta($hotel),
+        ]);
+    }
+
+    /** التقييمات — صفحة مستقلة */
+    public function reviews(Hotel $hotel): Response
+    {
+        abort_if($hotel->status !== 'publish', 404);
+
+        return Inertia::render('Hotels/Reviews', [
+            'hotel' => $this->navMeta($hotel) + [
+                'review_score' => (float) $hotel->review_score,
+                'review_count' => $hotel->review_count,
+            ],
+            'reviews' => Review::forReviewable($hotel)->latest()->take(30)->get()
+                ->map(fn ($r) => [
+                    'name' => $r->user?->name ?? 'زائر',
+                    'rating' => $r->rating,
+                    'title' => $r->title,
+                    'content' => $r->content,
+                    'date' => $r->created_at->format('Y-m-d'),
+                ]),
+            'review_type' => 'hotel',
+            'review_id'   => $hotel->id,
+        ]);
+    }
+
     public function show(Hotel $hotel): Response
     {
         abort_if($hotel->status !== 'publish', 404);
@@ -78,6 +145,7 @@ class HotelController extends Controller
                 'id'           => $hotel->id,
                 'slug'         => $hotel->slug,
                 'title'        => $hotel->title,
+                'short_desc'   => $hotel->short_desc,
                 'content'      => $hotel->content,
                 'image_url'    => $hotel->image_url,
                 'gallery'      => $hotel->gallery ?: [],

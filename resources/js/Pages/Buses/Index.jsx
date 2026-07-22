@@ -6,6 +6,8 @@ import { Button } from '@/Components/ui/button';
 import { Badge } from '@/Components/ui/badge';
 import { Input, Select, Field } from '@/Components/ui/input';
 import { money } from '@/Components/ui/service-card';
+import { MobileSheet, MobileCTA, MobileEmpty, MobileFilterBar } from '@/Components/mobile/primitives';
+import { useIsMobile } from '@/lib/useIsMobile';
 import { cn } from '@/lib/utils';
 
 const Wrap = ({ className, children }) => (
@@ -13,6 +15,8 @@ const Wrap = ({ className, children }) => (
 );
 
 export default function Index({ trips, cities = [], filters = {} }) {
+    const isMobile = useIsMobile();
+    const [filterOpen, setFilterOpen] = useState(false);
     const [from, setFrom] = useState(filters.from || '');
     const [to, setTo] = useState(filters.to || '');
     const [date, setDate] = useState(filters.date || '');
@@ -28,8 +32,116 @@ export default function Index({ trips, cities = [], filters = {} }) {
 
     const rows = trips?.data || [];
 
+    if (isMobile) {
+        const activeCount = [filters.from, filters.to, filters.date].filter(Boolean).length;
+        return (
+            <SiteLayout active="buses" anim="list">
+                <Head title="الباصات — رحلات مجدولة" />
+
+                <MobileFilterBar
+                    activeCount={activeCount}
+                    onOpenFilters={() => setFilterOpen(true)}
+                />
+
+                <p className="px-4 py-2.5 text-[13px] font-bold text-navy">
+                    <b className="text-coral-deep">{rows.length}</b> رحلة متاحة
+                </p>
+
+                {rows.length === 0 ? (
+                    <MobileEmpty
+                        text="لا توجد رحلات باصات مجدولة حالياً."
+                        actionLabel={activeCount ? 'مسح الفلاتر' : undefined}
+                        onAction={() => router.get('/buses')}
+                    />
+                ) : (
+                    <div className="space-y-2.5 px-4 pb-4">
+                        {rows.map((t) => (
+                            <article key={t.id} className="overflow-hidden rounded-card bg-white shadow-mk">
+                                <div className="flex flex-wrap items-center gap-1.5 border-b border-black/[.05] px-3.5 py-2">
+                                    {t.provider?.is_first_party && <Badge variant="makfol"><ShieldCheck className="h-3 w-3" /> مكفول</Badge>}
+                                    {t.provider?.verified && !t.provider.is_first_party && <Badge variant="vip">موثّق</Badge>}
+                                    <span className="text-[12px] font-semibold text-muted">{t.route_name}</span>
+                                </div>
+
+                                {/* خط الرحلة — من ← إلى */}
+                                <div className="flex items-center gap-2 px-3.5 py-3">
+                                    <div className="flex-1">
+                                        <div className="font-head text-[16px] font-bold text-navy">{t.from}</div>
+                                        <div className="text-[12px] text-muted">{t.departs_at}</div>
+                                    </div>
+                                    <div className="flex flex-col items-center gap-1">
+                                        <ArrowLeft className="h-4 w-4 text-coral" />
+                                        {t.duration_minutes && (
+                                            <span className="whitespace-nowrap rounded-full bg-beige px-1.5 py-0.5 text-[10.5px] font-bold text-navy">
+                                                {Math.floor(t.duration_minutes / 60)}س {t.duration_minutes % 60}د
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex-1 text-end">
+                                        <div className="font-head text-[16px] font-bold text-navy">{t.to}</div>
+                                        {t.arrives_at && <div className="text-[12px] text-muted">{t.arrives_at}</div>}
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-3 border-t border-dashed border-black/[.08] bg-beige/40 px-3.5 py-2.5">
+                                    <div className="min-w-0 flex-1">
+                                        <div className="font-head text-[18px] font-extrabold text-coral-deep">
+                                            {money(t.price)} <small className="text-[11px] font-semibold text-muted">ج.م / مقعد</small>
+                                        </div>
+                                        <div className="flex items-center gap-1 text-[11.5px] text-muted">
+                                            <Users className="h-3 w-3" /> {t.seats_remaining}/{t.seats_total} متاح
+                                        </div>
+                                    </div>
+                                    <div className="w-[42%] shrink-0">
+                                        <MobileCTA href={t.seats_remaining > 0 ? t.checkout_url : undefined} disabled={t.seats_remaining === 0}>
+                                            {t.seats_remaining > 0 ? 'احجز مقعدك' : 'مكتمل'}
+                                        </MobileCTA>
+                                    </div>
+                                </div>
+                            </article>
+                        ))}
+                    </div>
+                )}
+
+                <MobileSheet
+                    open={filterOpen}
+                    onOpenChange={setFilterOpen}
+                    title="ابحث عن رحلة"
+                    footer={
+                        <MobileCTA onClick={() => {
+                            setFilterOpen(false);
+                            router.get('/buses', {
+                                ...(from && { from }), ...(to && { to }), ...(date && { date }),
+                            });
+                        }}>
+                            عرض الرحلات
+                        </MobileCTA>
+                    }
+                >
+                    <div className="space-y-4">
+                        <Field label="من مدينة">
+                            <Select value={from} onChange={(e) => setFrom(e.target.value)}>
+                                <option value="">— كل المدن —</option>
+                                {cities.map((c) => <option key={c} value={c}>{c}</option>)}
+                            </Select>
+                        </Field>
+                        <Field label="إلى مدينة">
+                            <Select value={to} onChange={(e) => setTo(e.target.value)}>
+                                <option value="">— كل المدن —</option>
+                                {cities.map((c) => <option key={c} value={c}>{c}</option>)}
+                            </Select>
+                        </Field>
+                        <Field label="تاريخ السفر">
+                            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                        </Field>
+                    </div>
+                </MobileSheet>
+            </SiteLayout>
+        );
+    }
+
     return (
-        <SiteLayout active="buses">
+        <SiteLayout active="buses" anim="list">
             <Head title="الباصات — رحلات مجدولة" />
 
             <section className="relative overflow-hidden bg-gradient-to-br from-navy to-navy-light py-12 text-white">

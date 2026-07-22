@@ -59,7 +59,7 @@ class BusTrip extends Model
 
     public function getImageUrlAttribute(): string
     {
-        return "https://loremflickr.com/600/450/bus,egypt?lock={$this->id}";
+        return "https://picsum.photos/seed/bus{$this->id}/600/450";
     }
 
     public function scopeUpcoming(Builder $q): Builder

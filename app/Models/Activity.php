@@ -35,6 +35,6 @@ class Activity extends Model
         }
         return $this->image
             ? asset('storage/' . $this->image)
-            : "https://loremflickr.com/300/200/activity,tour?lock={$this->id}";
+            : "https://picsum.photos/seed/act{$this->id}/300/200";
     }
 }

@@ -5,6 +5,8 @@ import { Truck, Bike, Package, Calculator, MapPin, Navigation, Star, ShieldCheck
 import { Button } from '@/Components/ui/button';
 import { Input, Field } from '@/Components/ui/input';
 import { Badge } from '@/Components/ui/badge';
+import { MobileSheet, MobileCTA, MobileEmpty } from '@/Components/mobile/primitives';
+import { useIsMobile } from '@/lib/useIsMobile';
 import { cn } from '@/lib/utils';
 
 const VEHICLE_ICONS = {
@@ -15,6 +17,8 @@ const VEHICLE_LABELS = {
 };
 
 export default function Index({ services, user_location }) {
+    const isMobile = useIsMobile();
+    const [orderOpen, setOrderOpen] = useState(false);
     const [selected, setSelected] = useState(null);
     const [estimate, setEstimate] = useState(null);
     const [estimating, setEstimating] = useState(false);
@@ -81,8 +85,149 @@ export default function Index({ services, user_location }) {
         setEstimate(null);
     };
 
+    if (isMobile) {
+        const canOrder = !processing && estimate?.within_radius && data.pickup_address && data.dropoff_address;
+        return (
+            <SiteLayout anim="list">
+                <Head title="التوصيل" />
+
+                <div className="bg-navy px-4 pb-5 pt-4 text-white">
+                    <h1 className="font-head text-[20px] font-bold text-white">خدمات التوصيل</h1>
+                    <p className="mt-1 text-[13.5px] text-white/70">
+                        تسعير شفاف بالكيلومتر — الدفع للسائق عند الاستخدام.
+                    </p>
+                </div>
+
+                <p className="px-4 py-2.5 text-[13px] font-bold text-navy">
+                    <b className="text-coral-deep">{services.length}</b> خدمة متاحة
+                </p>
+
+                {services.length === 0 ? (
+                    <MobileEmpty text="مفيش خدمات توصيل نشطة في المنطقة دلوقتي." />
+                ) : (
+                    <div className="space-y-2.5 px-4 pb-4">
+                        {services.map((s) => {
+                            const VIcon = VEHICLE_ICONS[s.vehicle_type] || Package;
+                            return (
+                                <button
+                                    key={s.id}
+                                    type="button"
+                                    onClick={() => { pick(s); setOrderOpen(true); }}
+                                    className="mk-press flex w-full gap-3 rounded-card bg-white p-3 text-start shadow-mk"
+                                >
+                                    <span className="grid h-12 w-12 flex-none place-items-center rounded-[15px] bg-coral/10 text-coral-deep">
+                                        <VIcon className="h-[22px] w-[22px]" />
+                                    </span>
+                                    <span className="min-w-0 flex-1">
+                                        <span className="flex flex-wrap items-center gap-1.5">
+                                            <b className="text-[14.5px] font-extrabold text-navy">{s.title}</b>
+                                            <Badge variant="soft">{VEHICLE_LABELS[s.vehicle_type]}</Badge>
+                                        </span>
+                                        <span className="mt-0.5 block text-[12px] text-muted">
+                                            {s.provider?.name || 'مزوّد مستقل'} · نطاق {s.service_radius_km} كم
+                                            {s.distance_km !== null && ` · ${s.distance_km} كم منك`}
+                                        </span>
+                                        <span className="mt-1.5 flex flex-wrap items-center gap-2 text-[12px]">
+                                            <span className="inline-flex items-center gap-0.5 font-bold text-vip">
+                                                <Star className="h-3 w-3 fill-vip text-vip" /> {s.review_score.toFixed(1)}
+                                            </span>
+                                            <span className="text-navy">
+                                                <b className="text-coral-deep">{s.base_fare}</b> + <b className="text-coral-deep">{s.price_per_km}</b>/كم
+                                            </span>
+                                        </span>
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
+
+                {/* شيت الطلب — شاشة كاملة */}
+                <MobileSheet
+                    open={orderOpen && !!selected}
+                    onOpenChange={setOrderOpen}
+                    title="اطلب توصيلة"
+                    full
+                    footer={
+                        <>
+                            <MobileCTA onClick={submit} disabled={!canOrder}>
+                                {processing ? 'جاري…' : !estimate ? 'قدّر الأجرة الأول' : 'اطلب التوصيل'}
+                            </MobileCTA>
+                            <p className="mt-2 flex items-center justify-center gap-1 text-center text-[11.5px] text-muted">
+                                <ShieldCheck className="h-3 w-3" /> الدفع للسائق عند الاستخدام
+                            </p>
+                        </>
+                    }
+                >
+                    {selected && (
+                        <div className="space-y-4">
+                            <div className="rounded-input border border-royal/25 bg-royal/[.04] p-3 text-[13px] text-navy">
+                                <b>{selected.title}</b> — {VEHICLE_LABELS[selected.vehicle_type]}
+                            </div>
+
+                            <Field label="نقطة الاستلام">
+                                <Input value={data.pickup_address} onChange={(e) => setData('pickup_address', e.target.value)} placeholder="العنوان بالتفصيل" />
+                            </Field>
+                            <button type="button" onClick={useCurrentLocationForPickup}
+                                className="mk-press -mt-2 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-input border border-black/[.1] text-[13.5px] font-bold text-navy">
+                                <Navigation className="h-4 w-4 text-coral-deep" /> استخدم موقعي الحالي
+                            </button>
+                            {data.pickup_lat && (
+                                <p className="-mt-2 text-[11.5px] text-muted">
+                                    <MapPin className="me-0.5 inline h-3 w-3" />
+                                    {(+data.pickup_lat).toFixed(4)}, {(+data.pickup_lng).toFixed(4)}
+                                </p>
+                            )}
+
+                            <Field label="نقطة التسليم">
+                                <Input value={data.dropoff_address} onChange={(e) => setData('dropoff_address', e.target.value)} placeholder="العنوان بالتفصيل" />
+                            </Field>
+                            <div className="-mt-2 grid grid-cols-2 gap-2">
+                                <Input type="number" step="any" inputMode="decimal" placeholder="Lat"
+                                    value={data.dropoff_lat} onChange={(e) => setData('dropoff_lat', e.target.value)} />
+                                <Input type="number" step="any" inputMode="decimal" placeholder="Lng"
+                                    value={data.dropoff_lng} onChange={(e) => setData('dropoff_lng', e.target.value)} />
+                            </div>
+
+                            <button type="button" onClick={doEstimate} disabled={estimating || !data.dropoff_lat}
+                                className="mk-press flex min-h-[46px] w-full items-center justify-center gap-2 rounded-input border border-black/[.1] text-[14px] font-bold text-navy disabled:opacity-50">
+                                <Calculator className="h-4 w-4" /> {estimating ? 'جاري…' : 'قدّر الأجرة'}
+                            </button>
+
+                            {estimate && (
+                                <div className={cn(
+                                    'rounded-input border-[1.5px] p-3 text-[13.5px]',
+                                    estimate.within_radius ? 'border-makfol/30 bg-makfol/[.06] text-navy' : 'border-danger/30 bg-danger/[.06] text-danger',
+                                )}>
+                                    <div className="mb-1 flex items-center justify-between"><span>المسافة</span><b>{estimate.distance_km} كم</b></div>
+                                    <div className="flex items-center justify-between">
+                                        <span>الأجرة التقديرية</span>
+                                        <b className="font-head text-[19px] text-coral-deep">{estimate.estimated_fare} ج.م</b>
+                                    </div>
+                                    {!estimate.within_radius && (
+                                        <p className="mt-2 text-[12px]">خارج نطاق الخدمة ({estimate.service_radius_km} كم).</p>
+                                    )}
+                                </div>
+                            )}
+
+                            <Field label="اسم المستلم (اختياري)">
+                                <Input value={data.recipient_name} onChange={(e) => setData('recipient_name', e.target.value)} />
+                            </Field>
+                            <Field label="موبايل المستلم">
+                                <Input inputMode="tel" value={data.recipient_phone} onChange={(e) => setData('recipient_phone', e.target.value)} placeholder="010xxxxxxxx" />
+                            </Field>
+                            <Field label="ملاحظات">
+                                <Input value={data.notes} onChange={(e) => setData('notes', e.target.value)} placeholder="مثال: طابق 3 · اتصل قبل الوصول" />
+                            </Field>
+                        </div>
+                    )}
+                </MobileSheet>
+            </SiteLayout>
+        );
+    }
+
     return (
-        <SiteLayout>
+        <SiteLayout anim="list">
             <Head title="التوصيل" />
             <section className="relative overflow-hidden bg-gradient-to-br from-navy to-navy-light py-12 text-white">
                 <div className="pointer-events-none absolute -end-20 -top-32 h-[360px] w-[360px] rounded-full bg-royal opacity-30 blur-[110px]" />

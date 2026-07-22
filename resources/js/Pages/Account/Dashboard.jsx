@@ -3,13 +3,114 @@ import { money } from '@/Components/UI';
 import { Head, Link, usePage, router } from '@inertiajs/react';
 import { Star, Calendar, Ticket, Heart, Crown, LogOut, ArrowLeft, MapPin, Headphones } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
+import { MobileSection, MobileEmpty } from '@/Components/mobile/primitives';
+import PushToggle from '@/Components/mobile/PushToggle';
+import { useIsMobile } from '@/lib/useIsMobile';
+import { cn } from '@/lib/utils';
 
 export default function Dashboard({ bookings, stats }) {
     const { auth } = usePage().props;
+    const isMobile = useIsMobile();
     const logout = (e) => { e.preventDefault(); router.post('/logout'); };
 
+    if (isMobile) {
+        return (
+            <SiteLayout anim="fade">
+                <Head title="حسابي" />
+
+                {/* رأس الحساب — navy زي الهوم */}
+                <div className="bg-navy px-4 pb-5 pt-4">
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-coral to-coral-deep font-head text-xl font-extrabold text-white">
+                            {auth.user.initials}
+                        </div>
+                        <div className="min-w-0">
+                            <p className="truncate font-head text-[18px] font-bold text-white">{auth.user.name}</p>
+                            <p className="truncate text-[13px] text-white/70">{auth.user.email ?? auth.user.phone}</p>
+                        </div>
+                    </div>
+
+                    {/* إحصائيات — 3 كروت */}
+                    <div className="mt-4 grid grid-cols-3 gap-2">
+                        {[
+                            [stats.total, 'رحلة محجوزة'],
+                            [stats.upcoming, 'رحلة قادمة'],
+                            [money(stats.spent), 'ج.م إنفاق'],
+                        ].map(([v, label], i) => (
+                            <div key={i} className="rounded-card bg-white/10 px-2 py-3 text-center backdrop-blur">
+                                <div className="font-head text-[19px] font-extrabold text-white">{v}</div>
+                                <div className="text-[11px] font-semibold text-white/70">{label}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* اختصارات سريعة */}
+                <div className="grid grid-cols-4 gap-2 bg-white px-4 py-4">
+                    {[
+                        [Heart, 'المفضلة', '/wishlist'],
+                        [MapPin, 'عناويني', '/account/addresses'],
+                        [Headphones, 'الدعم', '/account/support'],
+                        [Crown, 'صاحب السعادة', '/sahb-elsaada'],
+                    ].map(([Icon, label, href]) => (
+                        <Link key={href} href={href} className="mk-press flex flex-col items-center gap-1.5">
+                            <span className="flex h-12 w-12 items-center justify-center rounded-[15px] bg-beige">
+                                <Icon className="h-[21px] w-[21px] text-navy" />
+                            </span>
+                            <span className="text-center text-[11px] font-bold leading-tight text-navy">{label}</span>
+                        </Link>
+                    ))}
+                </div>
+
+                <PushToggle />
+
+                <MobileSection
+                    title="حجوزاتي"
+                    icon={Ticket}
+                    action={<Link href="/tours" className="mk-press text-[12.5px] font-bold text-coral-deep">احجز جديد</Link>}
+                >
+                    {bookings.length === 0 ? (
+                        <MobileEmpty text="لسه محجزتش أي رحلة." actionLabel="ابدأ دلوقتي" onAction={() => router.visit('/tours')} />
+                    ) : (
+                        <div className="space-y-2.5">
+                            {bookings.map((b) => (
+                                <div key={b.code} className="flex gap-3 rounded-card border border-black/[.06] bg-white p-2.5">
+                                    <img src={b.image_url} alt="" className="h-[70px] w-[70px] shrink-0 rounded-[10px] object-cover" />
+                                    <div className="flex min-w-0 flex-1 flex-col">
+                                        <h4 className="line-clamp-1 text-[14px] font-extrabold text-navy">{b.title}</h4>
+                                        <p className="mt-0.5 text-[12px] text-muted">
+                                            {b.start_date && <><Calendar className="inline h-3 w-3" /> {b.start_date} · </>}
+                                            {b.guests} فرد
+                                        </p>
+                                        <p className="text-[11.5px] text-muted">{b.code}</p>
+                                        <div className="mt-auto flex items-center justify-between pt-1">
+                                            <span className={cn(
+                                                'rounded-full px-2 py-0.5 text-[11px] font-extrabold',
+                                                b.status === 'confirmed' ? 'bg-makfol/10 text-makfol' : 'bg-vip/10 text-vip',
+                                            )}>
+                                                {b.status_label}
+                                            </span>
+                                            <b className="font-head text-[15px] text-coral-deep">{money(b.total)} ج.م</b>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </MobileSection>
+
+                <div className="bg-white px-4 pb-6">
+                    <button type="button" onClick={logout}
+                        className="mk-press flex min-h-[48px] w-full items-center justify-center gap-2 rounded-input bg-danger/10 text-[15px] font-extrabold text-danger">
+                        <LogOut className="h-[18px] w-[18px]" /> تسجيل الخروج
+                    </button>
+                </div>
+            </SiteLayout>
+        );
+    }
+
     return (
-        <SiteLayout>
+        <SiteLayout anim="fade">
             <Head title="حسابي" />
             <section className="bg-gradient-to-br from-navy to-navy-light py-12 text-white">
                 <div className="mx-auto w-full max-w-[1200px] px-5">

@@ -4,7 +4,7 @@ import { Head, Link } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 import {
     MapPin, Star, Check, Waves, UtensilsCrossed, Umbrella, Sparkles, Wifi, Car,
-    Banknote, ShieldCheck, TriangleAlert, Coffee, Users, BedDouble,
+    Banknote, ShieldCheck, TriangleAlert, Coffee, Users, BedDouble, Info, Headphones,
 } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 import { Badge } from '@/Components/ui/badge';
@@ -13,6 +13,12 @@ import { PartySizeField } from '@/Components/ui/party-size';
 import { Separator } from '@/Components/ui/separator';
 import { money } from '@/Components/ui/service-card';
 import { useAvailability, remainingForRange, ymd } from '@/lib/useAvailability';
+import { MobileStickyBar, MobileSheet, MobileCTA } from '@/Components/mobile/primitives';
+import MobileDetailShell from '@/Components/mobile/MobileDetailShell';
+import { Heading, FactGrid, NoteList, PeekRow } from '@/Components/mobile/InfoBlocks';
+import { useIsMobile } from '@/lib/useIsMobile';
+import { hotelNav } from '@/lib/detailNav';
+import { readId, writeId } from '@/lib/pick';
 import { cn } from '@/lib/utils';
 
 const AMENITIES = [
@@ -25,24 +31,40 @@ const AMENITIES = [
 ];
 
 export default function Show({ hotel, room_types = [], reviews, review_type, review_id }) {
-    // §7: نوع الغرفة المختار (أول نوع نشط افتراضياً)
-    const [selectedId, setSelectedId] = useState(room_types[0]?.id);
+    const isMobile = useIsMobile();
+    const [bookOpen, setBookOpen] = useState(false);
+    // §7: نوع الغرفة — مفيش اختيار مسبق، العميل هو اللي يحدّد.
+    // الاختيار بيتعمل في /hotels/{slug}/rooms وبيرجع محفوظ للجلسة.
+    const [selectedId, setSelectedId] = useState(() => readId(`mk:hotel:${hotel.slug}:room`, 'room'));
     const selected = useMemo(
-        () => room_types.find((r) => r.id === selectedId) || room_types[0],
+        () => room_types.find((r) => r.id === selectedId) || null,
         [selectedId, room_types],
     );
 
-    const [nights, setNights] = useState(2);
-    const [rooms, setRooms] = useState(1);
-    const [guests, setGuests] = useState(2);
+    const [nights, setNights] = useState('');
+    const [rooms, setRooms] = useState('');
+    const [guests, setGuests] = useState('');
     const [date, setDate] = useState('');
     // إدخال «أكثر من» إلزامي — الحجز يتقفل لحد ما يتكتب العدد
     const [nightsValid, setNightsValid] = useState(true);
     const [roomsValid, setRoomsValid] = useState(true);
 
-    const unit = selected?.effective_price ?? hotel.sale_price ?? hotel.price;
+    // «يبدأ من» — أرخص نوع غرفة، للعرض قبل ما يختار
+    const fromPrice = useMemo(
+        () => (room_types.length
+            ? Math.min(...room_types.map((r) => r.effective_price))
+            : (hotel.sale_price ?? hotel.price)),
+        [room_types, hotel.sale_price, hotel.price],
+    );
+
+    const unit = selected?.effective_price ?? fromPrice;
     const fee = 200;
-    const total = useMemo(() => unit * nights * rooms + fee, [unit, nights, rooms]);
+    const nightsN = Number(nights) || 0;
+    const roomsN = Number(rooms) || 0;
+    const total = useMemo(
+        () => (selected && nightsN && roomsN ? unit * nightsN * roomsN + fee : 0),
+        [selected, unit, nightsN, roomsN, fee],
+    );
 
     const today = ymd(new Date());
     const unitsTotal = selected?.units_total ?? 1;
@@ -53,13 +75,26 @@ export default function Show({ hotel, room_types = [], reviews, review_type, rev
         : hotel.availability_url;
     const availability = useAvailability(availUrl);
     const rangeRemaining = useMemo(
-        () => remainingForRange(availability, date, nights),
-        [availability, date, nights],
+        () => remainingForRange(availability, date, nightsN),
+        [availability, date, nightsN],
     );
     const soldOut = date && rangeRemaining === 0;
-    const notEnough = date && rangeRemaining !== null && rooms > rangeRemaining && rangeRemaining > 0;
-    const canBook = selected && date && nightsValid && roomsValid
-        && rangeRemaining !== null && rooms <= rangeRemaining && rangeRemaining > 0;
+    const notEnough = date && rangeRemaining !== null && roomsN > rangeRemaining && rangeRemaining > 0;
+    // بيجمع الشرطين: التحقق من إدخال «أكثر من» (nightsValid/roomsValid)
+    // مع التأكد إن العميل اختار فعلاً عدد ليالي وغرف.
+    const canBook = !!selected && !!date && nightsN > 0 && roomsN > 0
+        && nightsValid && roomsValid
+        && rangeRemaining !== null && roomsN <= rangeRemaining && rangeRemaining > 0;
+
+    // أول حاجة ناقصة — عشان نقول للعميل يعمل إيه بالظبط
+    const missing = !selected ? 'اختار نوع الغرفة'
+        : !date ? 'اختار تاريخ الوصول'
+        : !nightsN ? 'اختار عدد الليالي'
+        : !roomsN ? 'اختار عدد الغرف'
+        : !nightsValid || !roomsValid ? 'اكتب العدد صح'
+        : soldOut ? 'مفيش إتاحة'
+        : notEnough ? `المتاح ${rangeRemaining} غرفة بس`
+        : null;
 
     const checkoutUrl = () => {
         const q = new URLSearchParams();
@@ -75,8 +110,205 @@ export default function Show({ hotel, room_types = [], reviews, review_type, rev
         hotel.image_url, ...[2, 3, 4, 5].map((n) => `https://picsum.photos/seed/hg${hotel.id}${n}/400/400`),
     ];
 
+    if (isMobile) {
+        return (
+            <SiteLayout active="hotels" anim="detail" bare>
+                <Head title={hotel.title} />
+
+                <MobileDetailShell
+                    title={hotel.title}
+                    location={hotel.location}
+                    score={hotel.review_score}
+                    count={hotel.review_count}
+                    images={gallery}
+                    badges={<Badge variant="makfol"><Check className="h-3 w-3" /> مكفول</Badge>}
+                    facts={[
+                        hotel.star_rating && <><Star className="h-[15px] w-[15px] fill-vip text-vip" /> {hotel.star_rating} نجوم</>,
+                        <><Waves className="h-[15px] w-[15px] text-coral-deep" /> حمام سباحة</>,
+                        <><ShieldCheck className="h-[15px] w-[15px] text-makfol" /> تأكيد لحظي</>,
+                    ]}
+                    nav={hotelNav(hotel.slug, 'overview', {
+                        rooms: room_types.length,
+                        selected: !!selectedId,
+                    })}
+                >
+                    <div className="space-y-6 px-4">
+                        <div>
+                            {hotel.short_desc && (
+                                <p className="mb-2.5 text-[15px] font-bold leading-relaxed text-navy">{hotel.short_desc}</p>
+                            )}
+                            <p className="text-[15px] leading-[1.85] text-navy/75">{hotel.content}</p>
+                        </div>
+
+                        <div>
+                            <Heading icon={Info}>تفاصيل الإقامة</Heading>
+                            <FactGrid
+                                items={[
+                                    hotel.star_rating && {
+                                        icon: Star, value: `${hotel.star_rating} نجوم`, label: 'تصنيف الفندق',
+                                    },
+                                    hotel.location && { icon: MapPin, value: hotel.location, label: 'الموقع' },
+                                    room_types.length > 0 && {
+                                        icon: BedDouble, value: `${room_types.length} نوع`, label: 'أنواع الغرف',
+                                    },
+                                    fromPrice > 0 && {
+                                        icon: Banknote, value: `${money(fromPrice)} ج.م`, label: 'يبدأ من / الليلة',
+                                    },
+                                ]}
+                            />
+                        </div>
+
+                        <div className="space-y-2.5">
+                            <PeekRow
+                                href={`/hotels/${hotel.slug}/rooms`}
+                                icon={BedDouble}
+                                label={selected ? selected.title : 'اختار نوع الغرفة'}
+                                sub={selected
+                                    ? `${money(selected.effective_price)} ج.م / الليلة`
+                                    : `${room_types.length} أنواع متاحة — الأسعار بتختلف حسب النوع`}
+                                cta={selected ? 'تغيير' : 'اختار'}
+                            />
+                            <PeekRow
+                                href={`/hotels/${hotel.slug}/amenities`}
+                                icon={Waves}
+                                label="المرافق والخدمات"
+                                sub="حمام سباحة · مطاعم · سبا · واي فاي وأكتر"
+                            />
+                        </div>
+
+                        <div>
+                            <Heading icon={ShieldCheck}>ليه تحجز من محفول مكفول</Heading>
+                            <NoteList
+                                tone="makfol"
+                                items={[
+                                    {
+                                        icon: ShieldCheck,
+                                        title: 'تأكيد لحظي',
+                                        text: 'الغرفة بتتحجز باسمك على طول، وبيوصلك كود الحجز فوراً.',
+                                    },
+                                    {
+                                        icon: Banknote,
+                                        title: 'سعر واضح من الأول',
+                                        text: `السعر حسب نوع الغرفة وعدد الليالي، ورسوم الخدمة ${fee} ج.م بتبان قبل الدفع.`,
+                                    },
+                                    {
+                                        icon: Headphones,
+                                        title: 'دعم طول الإقامة',
+                                        text: 'أي مشكلة في الفندق كلّمنا وإحنا نتصرّف.',
+                                    },
+                                ]}
+                            />
+                        </div>
+                    </div>
+                </MobileDetailShell>
+
+                {/* لما يبقى في غرفة متحددة نعرض سعرها هي — قبل كده كان بيعرض
+                    أرخص سعر (fromPrice) وتحته اسم الغرفة المختارة، فالرقم كان
+                    بيبان غلط جنب اسم غرفة سعرها مختلف. */}
+                <MobileStickyBar
+                    price={total || unit}
+                    unit={total ? null : 'الليلة'}
+                    note={total ? `${nightsN} ليالي · ${roomsN} غرفة` : selected ? selected.title : 'يبدأ من'}
+                    ctaLabel={total ? 'كمّل الحجز' : 'اختار تواريخك'}
+                    onCta={() => setBookOpen(true)}
+                />
+
+                <MobileSheet
+                    open={bookOpen}
+                    onOpenChange={setBookOpen}
+                    title="تفاصيل الإقامة"
+                    footer={
+                        <MobileCTA href={canBook ? checkoutUrl() : undefined} disabled={!canBook}>
+                            {missing ?? `متابعة الحجز · ${money(total)} ج.م`}
+                        </MobileCTA>
+                    }
+                >
+                    <div className="space-y-4">
+                        {/* نوع الغرفة بقى صفحة لوحده — هنا بنعرض المختار وبس */}
+                        {room_types.length > 0 && (
+                            <div>
+                                <p className="mb-2 text-[12.5px] font-extrabold text-muted">نوع الغرفة</p>
+                                <Link
+                                    href={`/hotels/${hotel.slug}/rooms`}
+                                    className="mk-press flex items-center gap-3 rounded-input border-[1.5px] border-black/[.08] p-3"
+                                >
+                                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-beige">
+                                        <BedDouble className="h-[17px] w-[17px] text-navy" />
+                                    </span>
+                                    <span className="min-w-0 flex-1">
+                                        <span className="block truncate text-[14px] font-bold text-navy">
+                                            {selected ? selected.title : 'اختار نوع الغرفة'}
+                                        </span>
+                                        {selected && (
+                                            <span className="text-[12px] text-muted">
+                                                {money(selected.effective_price)} ج.م / الليلة
+                                            </span>
+                                        )}
+                                    </span>
+                                    <span className="shrink-0 text-[12.5px] font-bold text-coral-deep">
+                                        {selected ? 'تغيير' : 'اختار'}
+                                    </span>
+                                </Link>
+                            </div>
+                        )}
+
+                        <Field label="تاريخ الوصول">
+                            <Input type="date" min={today} value={date} onChange={(e) => setDate(e.target.value)} />
+                        </Field>
+                        <div className="grid grid-cols-2 gap-3">
+                            <Field label="عدد الليالي">
+                                <Select value={nights} onChange={(e) => setNights(e.target.value)}>
+                                    <option value="">اختار</option>
+                                    {[1, 2, 3, 4, 5, 7, 10, 14].map((n) => <option key={n} value={n}>{n} ليلة</option>)}
+                                </Select>
+                            </Field>
+                            <Field label="عدد الغرف">
+                                <Select value={rooms} onChange={(e) => setRooms(e.target.value)}>
+                                    <option value="">اختار</option>
+                                    {Array.from({ length: Math.max(unitsTotal, 1) }, (_, i) => i + 1).map((n) => (
+                                        <option key={n} value={n}>{n} غرفة</option>
+                                    ))}
+                                </Select>
+                            </Field>
+                        </div>
+                        <Field label="عدد الأفراد">
+                            <PartySizeField
+                                value={guests}
+                                onChange={(n) => setGuests(n || '')}
+                                placeholder="اختار العدد"
+                                options={[1, 2, 3, 4, 5, 6].map((n) => ({ value: n, label: `${n} فرد` }))}
+                            />
+                        </Field>
+
+                        {date && rangeRemaining !== null && (
+                            <p className={cn(
+                                'flex items-center gap-1.5 rounded-input px-3 py-2.5 text-[13px] font-semibold',
+                                soldOut || notEnough ? 'bg-danger/10 text-danger' : 'bg-makfol/10 text-makfol',
+                            )}>
+                                {soldOut || notEnough ? <TriangleAlert className="h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />}
+                                {soldOut ? 'مفيش غرف متاحة في التواريخ دي' : `متاح ${rangeRemaining} غرفة`}
+                            </p>
+                        )}
+
+                        <div className="rounded-card bg-beige/50 p-3.5 text-[14px]">
+                            <div className="flex justify-between py-2">
+                                <span>{money(unit)} × {nights} ليلة × {rooms}</span>
+                                <span>{money(unit * nights * rooms)} ج.م</span>
+                            </div>
+                            <div className="flex justify-between py-2"><span>رسوم الخدمة</span><span>{fee} ج.م</span></div>
+                            <div className="mt-1 flex justify-between border-t border-black/[.06] pt-3 font-extrabold">
+                                <span>الإجمالي</span>
+                                <b className="font-head text-[19px] text-coral-deep">{money(total)} ج.م</b>
+                            </div>
+                        </div>
+                    </div>
+                </MobileSheet>
+            </SiteLayout>
+        );
+    }
+
     return (
-        <SiteLayout active="hotels">
+        <SiteLayout active="hotels" anim="detail">
             <Head title={hotel.title} />
             <section className="pt-[26px]">
                 <div className="mx-auto w-full max-w-[1200px] px-5">

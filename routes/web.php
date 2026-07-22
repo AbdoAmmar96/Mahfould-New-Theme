@@ -38,17 +38,27 @@ $crud = function (string $name, string $controller, array $only = ['index', 'cre
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
+// صفحة «مفيش نت» — بيخزّنها الـservice worker ويعرضها لما الشبكة تقع
+Route::view('/offline', 'offline')->name('offline');
+
 // Health check تفصيلي (§Production monitoring) — يستهلكه uptime monitor
 Route::get('/health', \App\Http\Controllers\HealthController::class)->middleware('throttle:api')->name('health');
 
 // الرحلات
 Route::get('/tours', [TourController::class, 'index'])->name('tours.index');
 Route::get('/tours/{tour:slug}', [TourController::class, 'show'])->name('tours.show');
+// أقسام التفاصيل — كل قسم صفحة لوحده بدل ما يتكدّسوا في صفحة واحدة
+Route::get('/tours/{tour:slug}/included', [TourController::class, 'included'])->name('tours.included');
+Route::get('/tours/{tour:slug}/activities', [TourController::class, 'activities'])->name('tours.activities');
+Route::get('/tours/{tour:slug}/reviews', [TourController::class, 'reviews'])->name('tours.reviews');
 Route::get('/tours/{tour:slug}/schedule', [TourController::class, 'schedule'])->name('tours.schedule');
 Route::get('/tours/{tour:slug}/schedule/print', [TourController::class, 'schedulePrint'])->name('tours.schedule.print');
 
 // الفنادق
 Route::get('/hotels', [HotelController::class, 'index'])->name('hotels.index');
+Route::get('/hotels/{hotel:slug}/rooms', [HotelController::class, 'rooms'])->name('hotels.rooms');
+Route::get('/hotels/{hotel:slug}/amenities', [HotelController::class, 'amenities'])->name('hotels.amenities');
+Route::get('/hotels/{hotel:slug}/reviews', [HotelController::class, 'reviews'])->name('hotels.reviews');
 Route::get('/hotels/{hotel:slug}', [HotelController::class, 'show'])->name('hotels.show');
 
 // المطاعم
@@ -119,6 +129,12 @@ Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')-
 // حساب المستخدم
 Route::middleware('auth')->group(function () {
     Route::get('/account', [BookingController::class, 'account'])->name('account.index');
+
+    // اشتراك إشعارات المتصفح (Web Push)
+    Route::post('/push/subscribe', [\App\Http\Controllers\PushSubscriptionController::class, 'store'])
+        ->name('push.subscribe')->middleware('throttle:actions');
+    Route::post('/push/unsubscribe', [\App\Http\Controllers\PushSubscriptionController::class, 'destroy'])
+        ->name('push.unsubscribe')->middleware('throttle:actions');
     Route::post('/reviews', [ReviewController::class, 'store'])->name('reviews.store')->middleware('throttle:actions');
     Route::post('/wishlist/toggle', [WishlistController::class, 'toggle'])->name('wishlist.toggle')->middleware('throttle:actions');
     Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');

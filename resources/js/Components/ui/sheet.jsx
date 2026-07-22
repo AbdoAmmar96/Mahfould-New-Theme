@@ -41,8 +41,12 @@ const SheetContent = React.forwardRef(({ side = 'right', className, children, ..
         <SheetOverlay />
         <SheetPrimitive.Content ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
             {children}
-            <SheetPrimitive.Close className="absolute end-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-beige text-navy transition hover:bg-sandline focus:outline-none focus-visible:ring-2 focus-visible:ring-coral/40">
-                <X className="h-4 w-4" />
+            {/* الدايرة الظاهرة span جوّه الزر مش الزر نفسه — عشان يفضل
+                هدف لمس 44px من غير ما القاعدة العامة تحوّله لبيضاوي */}
+            <SheetPrimitive.Close className="absolute end-3 top-3 grid h-11 w-11 place-items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-coral/40">
+                <span className="mk-close grid h-[28px] w-[28px] place-items-center rounded-full border-[1.5px] border-navy/25 bg-beige text-navy shadow-[0_1px_3px_rgba(54,54,119,.12)] transition-colors hover:border-coral hover:bg-coral/10 hover:text-coral-deep">
+                    <X className="h-[15px] w-[15px]" strokeWidth={2.8} />
+                </span>
                 <span className="sr-only">إغلاق</span>
             </SheetPrimitive.Close>
         </SheetPrimitive.Content>

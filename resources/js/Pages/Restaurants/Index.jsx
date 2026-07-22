@@ -6,9 +6,19 @@ import { Button } from '@/Components/ui/button';
 import { Badge } from '@/Components/ui/badge';
 import { Card, CardMedia, CardBody, CardTitle, CardMeta, CardFooter } from '@/Components/ui/card';
 import { Input } from '@/Components/ui/input';
+import MobileListing from '@/Components/mobile/MobileListing';
+import { MobileListCard } from '@/Components/mobile/primitives';
+import { useIsMobile } from '@/lib/useIsMobile';
 import { cn } from '@/lib/utils';
 
+const R_SORT = [
+    { value: 'nearest', label: 'الأقرب ليك' },
+    { value: 'rating', label: 'الأعلى تقييماً' },
+    { value: 'price_asc', label: 'الأرخص' },
+];
+
 export default function Index({ restaurants, filters, user_location }) {
+    const isMobile = useIsMobile();
     const [q, setQ] = useState(filters?.q || '');
     const [venue, setVenue] = useState(filters?.venue || '');
     const [sort, setSort] = useState(filters?.sort || 'nearest');
@@ -38,8 +48,60 @@ export default function Index({ restaurants, filters, user_location }) {
         return () => clearTimeout(t);
     }, [q]); // eslint-disable-line
 
+    if (isMobile) {
+        const list = restaurants.data ?? restaurants;
+        return (
+            <SiteLayout active="restaurants" anim="list">
+                <Head title="المطاعم" />
+                <MobileListing
+                    q={q} onQ={setQ}
+                    searchPlaceholder="مطعم أو نوع مطبخ…"
+                    count={restaurants.total ?? list.length} countLabel="مطعم متاح"
+                    activeCount={venue ? 1 : 0}
+                    onClear={() => router.get('/restaurants')}
+                    sort={sort} onSort={(v) => { setSort(v); push({ sort: v }); }} sortOptions={R_SORT}
+                    filters={
+                        <>
+                            <p className="pb-2 text-[12.5px] font-extrabold text-muted">نوع المكان</p>
+                            <div className="grid grid-cols-2 gap-2">
+                                {[['', 'الكل'], ['restaurant', 'مطاعم'], ['cafe', 'كافيهات']].map(([v, label]) => (
+                                    <button key={v || 'all'} type="button"
+                                        onClick={() => { setVenue(v); push({ venue: v || undefined }); }}
+                                        className={cn(
+                                            'mk-press rounded-input border text-[14px] font-bold',
+                                            venue === v ? 'border-coral bg-coral/10 text-coral-deep' : 'border-black/[.1] text-navy',
+                                        )}>
+                                        {label}
+                                    </button>
+                                ))}
+                            </div>
+                            <button type="button" onClick={useLiveLocation}
+                                className="mk-press mt-4 flex min-h-[46px] w-full items-center justify-center gap-2 rounded-input border border-black/[.1] text-[14px] font-bold text-navy">
+                                <Navigation className="h-4 w-4 text-coral-deep" />
+                                {gpsLoading ? 'بنحدّد موقعك…' : 'رتّب حسب الأقرب ليا'}
+                            </button>
+                        </>
+                    }
+                    items={list}
+                    renderItem={(r) => (
+                        <MobileListCard
+                            key={r.id}
+                            item={r}
+                            feats={[r.cuisines?.join(' · '), r.price_range].filter(Boolean).join(' · ')}
+                            badges={r.instant && (
+                                <span className="absolute start-1.5 top-1.5 rounded-full bg-coral-deep px-1.5 py-0.5 text-[10px] font-bold text-white">فوري</span>
+                            )}
+                        />
+                    )}
+                    paginator={restaurants}
+                    emptyText={q ? `مفيش مطاعم مطابقة لـ "${q}"` : 'مفيش مطاعم مطابقة.'}
+                />
+            </SiteLayout>
+        );
+    }
+
     return (
-        <SiteLayout active="restaurants">
+        <SiteLayout active="restaurants" anim="list">
             <Head title="المطاعم" />
 
             <section className="relative overflow-hidden bg-gradient-to-br from-navy to-navy-light py-12 text-white">

@@ -1,7 +1,10 @@
 import SiteLayout from '@/Layouts/SiteLayout';
 import { ListingCard, Btn } from '@/Components/UI';
+import MobileListing from '@/Components/mobile/MobileListing';
+import { MobileListCard } from '@/Components/mobile/primitives';
 import { Head, Link, router } from '@inertiajs/react';
 import { Cog, Users, UserRound, KeyRound } from 'lucide-react';
+import { useIsMobile } from '@/lib/useIsMobile';
 import { cn } from '@/lib/utils';
 
 // حاوية بعرض ثابت
@@ -10,11 +13,64 @@ const Wrap = ({ className, children }) => (
 );
 
 export default function Index({ cars, locations, filters }) {
+    const isMobile = useIsMobile();
     const byLoc = (slug) => router.get('/cars', { ...filters, location: slug }, { preserveState: true });
     const byTrans = (t) => router.get('/cars', { ...filters, transmission: t }, { preserveState: true });
 
+    if (isMobile) {
+        return (
+            <SiteLayout active="cars" anim="list">
+                <Head title="السيارات" />
+                <MobileListing
+                    count={cars.total ?? cars.data.length} countLabel="سيارة متاحة"
+                    activeCount={[filters.location, filters.transmission].filter(Boolean).length}
+                    onClear={() => router.get('/cars')}
+                    filters={
+                        <>
+                            <div className="border-b border-black/[.06] pb-4">
+                                <p className="pb-1.5 text-[12.5px] font-extrabold text-muted">المدينة</p>
+                                {locations.map((l) => (
+                                    <label key={l.slug} className="flex cursor-pointer items-center gap-2.5 text-[15px] font-semibold text-navy">
+                                        <input type="checkbox" readOnly checked={filters.location === l.slug} onClick={() => byLoc(l.slug)} className="accent-coral" />
+                                        {l.name}
+                                        <span className="ms-auto text-[12.5px] text-muted">{l.count}</span>
+                                    </label>
+                                ))}
+                            </div>
+                            <div className="pt-4">
+                                <p className="pb-2 text-[12.5px] font-extrabold text-muted">ناقل الحركة</p>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {[['automatic', 'أوتوماتيك'], ['manual', 'مانيوال']].map(([v, label]) => (
+                                        <button key={v} type="button" onClick={() => byTrans(filters.transmission === v ? undefined : v)}
+                                            className={cn(
+                                                'mk-press rounded-input border text-[14px] font-bold',
+                                                filters.transmission === v ? 'border-coral bg-coral/10 text-coral-deep' : 'border-black/[.1] text-navy',
+                                            )}>
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </>
+                    }
+                    items={cars.data}
+                    renderItem={(c) => (
+                        <MobileListCard
+                            key={c.id}
+                            item={c}
+                            unit="اليوم"
+                            feats={`${c.transmission === 'manual' ? 'مانيوال' : 'أوتوماتيك'} · ${c.seats ?? 4} راكب`}
+                        />
+                    )}
+                    paginator={cars}
+                    emptyText="مفيش سيارات مطابقة."
+                />
+            </SiteLayout>
+        );
+    }
+
     return (
-        <SiteLayout active="cars">
+        <SiteLayout active="cars" anim="list">
             <Head title="السيارات" />
 
             {/* بانر الصفحة */}

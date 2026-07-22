@@ -71,3 +71,264 @@
 
 /* toast (sonner) — يظهر فوق العناصر الطافية */
 [data-sonner-toaster] { z-index: 9999; }
+
+/* ============================================================
+   وضع الموبايل — إحساس أبليكشن مش صفحة ويب
+   ============================================================ */
+
+/* غلاف الأبليكشن — بيلغي إشارات «دي صفحة ويب» */
+.mk-app {
+    /* مفيش وميض أزرق وقت اللمس */
+    -webkit-tap-highlight-color: transparent;
+    /* الأندرويد/iOS ميكبّرش الخط لوحده في اللاندسكيب */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+/* مفيش سحب-للتحديث ولا مطاطية في نهاية الصفحة */
+html, body {
+    overscroll-behavior-y: none;
+}
+
+/* عناصر الواجهة (آب-بار/تبويب/دروار) مش قابلة للتحديد بالضغط المطوّل */
+.mk-appbar, .mk-tabbar, .mk-drawer, .mk-sheet {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
+/* شريط التبويب السفلي — بيحترم الـhome indicator */
+.mk-tabbar {
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* الآب-بار — بيحترم الـnotch وقت الـstandalone (PWA) */
+@media (display-mode: standalone) {
+    .mk-appbar { padding-top: env(safe-area-inset-top); }
+}
+
+/* ردّ فعل الضغط — الحاجة اللي بتفرّق بين «زر ويب» و«زر أبليكشن» */
+.mk-press {
+    transition: transform .13s cubic-bezier(.4, 0, .2, 1), opacity .13s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+.mk-press:active {
+    transform: scale(.94);
+    opacity: .72;
+}
+
+/* سكرول أفقي بإحساس أبليكشن — بدون سكرول-بار ومع توقّف عند الكروت */
+.mk-hscroll {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+}
+.mk-hscroll::-webkit-scrollbar { display: none; }
+.mk-hscroll > * { scroll-snap-align: start; }
+
+/* ============================================================
+   أحجام اللمس — 44px على الأجهزة اللمسية
+   بنعمله global هنا بدل ما نعدّل كل صفحة فلاتر لوحدها.
+   ============================================================ */
+@media (pointer: coarse) {
+    /* الـlabel هو هدف اللمس الحقيقي للشيك-بوكس/الراديو */
+    .mk label:has(input[type='checkbox']),
+    .mk label:has(input[type='radio']) {
+        min-height: 44px;
+    }
+
+    /* المربّع نفسه أكبر شوية — 16px مستحيل تلمسه بالصباع */
+    .mk input[type='checkbox'],
+    .mk input[type='radio'] {
+        min-width: 21px;
+        min-height: 21px;
+    }
+
+    /* أزرار الفلاتر الصغيرة (مدة الرحلة، ناقل الحركة…) */
+    .mk button {
+        min-height: 44px;
+    }
+
+    /* حقول الإدخال — الأندرويد بيزوّم لو الخط أقل من 16px */
+    .mk input:not([type='checkbox']):not([type='radio']),
+    .mk select,
+    .mk textarea {
+        font-size: max(16px, 1em);
+        min-height: 44px;
+    }
+}
+
+/* ============================================================
+   هيكل تحميل الصور (shimmer)
+   ============================================================ */
+.mk-shimmer {
+    background: linear-gradient(
+        100deg,
+        rgba(234, 223, 201, .55) 20%,
+        rgba(251, 247, 240, .95) 45%,
+        rgba(234, 223, 201, .55) 70%
+    );
+    background-size: 220% 100%;
+    animation: mk-shimmer 1.35s ease-in-out infinite;
+}
+@keyframes mk-shimmer {
+    from { background-position: 180% 0; }
+    to   { background-position: -60% 0; }
+}
+
+/* ============================================================
+   انتقالات الصفحات — لكل نوع صفحة حركتها
+   بتتطبّق على غلاف بيعيد التركيب مع كل تغيير مسار.
+   ============================================================ */
+.mk-page { animation-duration: .34s; animation-fill-mode: both; animation-timing-function: cubic-bezier(.22, .61, .36, 1); }
+
+/* الرئيسية — ظهور هادي من تحت */
+.mk-anim-home  { animation-name: mk-fade-up; }
+/* القوائم — انزلاق خفيف من تحت */
+.mk-anim-list  { animation-name: mk-fade-up-sm; }
+/* التفاصيل — بتكبر شوية كإنك فتحت الكارت */
+.mk-anim-detail{ animation-name: mk-zoom-in; }
+/* المسار للأمام (حجز/دفع) — بيدخل من جنب (RTL: من الشمال) */
+.mk-anim-flow  { animation-name: mk-slide-forward; }
+/* الحساب والمحتوى — تلاشي بسيط */
+.mk-anim-fade  { animation-name: mk-fade; }
+/* شاشة النجاح — تكبير مرتد */
+.mk-anim-success { animation-name: mk-pop; animation-duration: .45s; }
+
+@keyframes mk-fade      { from { opacity: 0 } to { opacity: 1 } }
+@keyframes mk-fade-up   { from { opacity: 0; transform: translate3d(0, 18px, 0) } to { opacity: 1; transform: none } }
+@keyframes mk-fade-up-sm{ from { opacity: 0; transform: translate3d(0, 10px, 0) } to { opacity: 1; transform: none } }
+@keyframes mk-zoom-in   { from { opacity: 0; transform: scale(.975) } to { opacity: 1; transform: none } }
+/* RTL: «للأمام» يعني جاي من الشمال */
+@keyframes mk-slide-forward { from { opacity: 0; transform: translate3d(-26px, 0, 0) } to { opacity: 1; transform: none } }
+@keyframes mk-pop {
+    0%   { opacity: 0; transform: scale(.9) }
+    60%  { opacity: 1; transform: scale(1.02) }
+    100% { opacity: 1; transform: none }
+}
+
+/* ============================================================
+   دروار الهامبرجر — من الشمال
+   المشكلة اللي كانت: التثبيت منطقي (end-0 = شمال في RTL) بس الحركة
+   في tailwindcss-animate فيزيائية (slide-in-from-right)، فالقايمة كانت
+   بتطير من اليمين وتعدّي الشاشة كلها لحد ما تستقر على الشمال.
+   هنا بنثبّت الاتنين على الشمال فيزيائياً عشان مايبقاش فيه تعارض.
+   ============================================================ */
+.mk-drawer {
+    inset-inline: auto;
+    left: 0;
+    right: auto;
+}
+.mk-drawer[data-state='open']   { animation: mk-drawer-in .32s cubic-bezier(.22, .61, .36, 1) both; }
+.mk-drawer[data-state='closed'] { animation: mk-drawer-out .24s ease-in both; }
+
+@keyframes mk-drawer-in  { from { transform: translateX(-100%) } to { transform: none } }
+@keyframes mk-drawer-out { from { transform: none } to { transform: translateX(-100%) } }
+
+/* ============================================================
+   زر الإغلاق — بيدخل بلفة خفيفة، وبيلف تاني وقت الضغط
+   ============================================================ */
+.mk-close {
+    animation: mk-close-in .28s cubic-bezier(.22, .61, .36, 1) both;
+    transition: transform .18s cubic-bezier(.4, 0, .2, 1);
+}
+button:active > .mk-close,
+button:hover > .mk-close { transform: rotate(90deg); }
+
+@keyframes mk-close-in {
+    from { opacity: 0; transform: rotate(-90deg) scale(.6) }
+    to   { opacity: 1; transform: none }
+}
+
+/* ============================================================
+   شاشة الانتقال بين الأقسام (RouteSplash)
+   لكل قسم حركة مختلفة للأيقونة — الطيارة بتطير، العربية بتجري…
+   ============================================================ */
+.mk-splash { animation: mk-fade .16s ease-out both; }
+
+/* دخول الأيقونة — مشترك بين كل الأقسام */
+.mk-sp-fly, .mk-sp-drop, .mk-sp-swing, .mk-sp-drive, .mk-sp-shine, .mk-sp-beat {
+    animation-fill-mode: both;
+    animation-timing-function: cubic-bezier(.22, .61, .36, 1);
+}
+
+/* الرحلات — الطيارة داخلة طايرة من تحت اليمين وبتستقر */
+.mk-sp-fly    { animation: mk-sp-fly .62s; }
+/* الفنادق والحساب — نازلة من فوق باستقرار مرتد */
+.mk-sp-drop   { animation: mk-sp-drop .55s; }
+/* المطاعم — الشوكة والسكينة بتتمايل */
+.mk-sp-swing  { animation: mk-sp-swing .7s; }
+/* المواصلات — داخلة من الشمال بسرعة (RTL: اتجاه الحركة) */
+.mk-sp-drive  { animation: mk-sp-drive .55s; }
+/* صاحب السعادة والدعم — بتلمع وتكبر */
+.mk-sp-shine  { animation: mk-sp-shine .8s; }
+/* المفضلة — نبضة قلب */
+.mk-sp-beat   { animation: mk-sp-beat .9s; }
+
+@keyframes mk-sp-fly {
+    0%   { opacity: 0; transform: translate3d(46px, 34px, 0) rotate(-22deg) scale(.7) }
+    65%  { opacity: 1; transform: translate3d(0, -6px, 0) rotate(3deg) scale(1.04) }
+    100% { opacity: 1; transform: none }
+}
+@keyframes mk-sp-drop {
+    0%   { opacity: 0; transform: translate3d(0, -40px, 0) scale(.8) }
+    62%  { opacity: 1; transform: translate3d(0, 6px, 0) scale(1.05) }
+    100% { opacity: 1; transform: none }
+}
+@keyframes mk-sp-swing {
+    0%   { opacity: 0; transform: rotate(-26deg) scale(.75) }
+    45%  { opacity: 1; transform: rotate(14deg) scale(1.05) }
+    72%  { transform: rotate(-7deg) }
+    100% { opacity: 1; transform: none }
+}
+@keyframes mk-sp-drive {
+    0%   { opacity: 0; transform: translate3d(-70px, 0, 0) scale(.85) }
+    70%  { opacity: 1; transform: translate3d(7px, 0, 0) scale(1.03) }
+    100% { opacity: 1; transform: none }
+}
+@keyframes mk-sp-shine {
+    0%   { opacity: 0; transform: scale(.62) rotate(-14deg); filter: brightness(1) }
+    50%  { opacity: 1; transform: scale(1.08) rotate(4deg); filter: brightness(1.45) }
+    100% { opacity: 1; transform: none; filter: brightness(1) }
+}
+@keyframes mk-sp-beat {
+    0%   { opacity: 0; transform: scale(.7) }
+    35%  { opacity: 1; transform: scale(1.12) }
+    52%  { transform: scale(.98) }
+    70%  { transform: scale(1.07) }
+    100% { opacity: 1; transform: none }
+}
+
+/* النص — بيطلع بعد الأيقونة بشوية */
+.mk-sp-text { animation: mk-fade-up-sm .42s cubic-bezier(.22,.61,.36,1) both; animation-delay: .05s; }
+
+/* حلقات بتتوسّع وتختفي — عمق خلف الأيقونة */
+.mk-sp-ring { animation: mk-sp-ring 1.6s ease-out infinite; }
+@keyframes mk-sp-ring {
+    0%   { opacity: .55; transform: scale(.55) }
+    100% { opacity: 0;   transform: scale(1.5) }
+}
+
+/* شريط تقدّم غير محدّد — رايح جاي */
+.mk-sp-bar { animation: mk-sp-bar 1.05s ease-in-out infinite; }
+@keyframes mk-sp-bar {
+    0%   { transform: translateX(-120%) }
+    100% { transform: translateX(320%) }
+}
+
+/* اللي بيفضّل حركة أقل — نحترم الإعداد */
+@media (prefers-reduced-motion: reduce) {
+    .mk-press:active { transform: none; }
+    .mk-shimmer { animation: none; }
+    .mk-page { animation: none !important; }
+    .mk-splash, .mk-sp-ring, .mk-sp-bar, .mk-sp-text, .mk-close,
+    .mk-sp-fly, .mk-sp-drop, .mk-sp-swing, .mk-sp-drive, .mk-sp-shine, .mk-sp-beat {
+        animation: none !important;
+    }
+    button:active > .mk-close, button:hover > .mk-close { transform: none; }
+    .mk-press, [data-radix-popper-content-wrapper] * {
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
+    }
+}

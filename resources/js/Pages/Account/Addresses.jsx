@@ -26,9 +26,9 @@ export default function Addresses({ addresses }) {
     };
 
     return (
-        <SiteLayout>
+        <SiteLayout anim="fade">
             <Head title="عناويني" />
-            <section className="bg-gradient-to-br from-navy to-navy-light py-12 text-white">
+            <section className="hidden bg-gradient-to-br from-navy to-navy-light py-12 text-white lg:block">
                 <div className="mx-auto w-full max-w-[1200px] px-5">
                     <div className="text-[13.5px] font-semibold text-white/70">
                         <Link href="/" className="hover:text-white">الرئيسية</Link> ›{' '}
@@ -41,7 +41,7 @@ export default function Addresses({ addresses }) {
             <section className="pb-14 pt-[34px]">
                 <div className="mx-auto w-full max-w-[1200px] px-5">
                     <div className="grid grid-cols-1 items-start gap-7 lg:grid-cols-[250px_1fr]">
-                        <aside className="rounded-card border border-black/[.06] bg-white p-4 lg:sticky lg:top-[92px]">
+                        <aside className="hidden rounded-card border border-black/[.06] bg-white p-4 lg:sticky lg:top-[92px] lg:block">
                             <div className="mb-3 flex items-center gap-3 border-b border-black/[.06] px-2 pb-[18px] pt-2">
                                 <div className="flex h-[46px] w-[46px] items-center justify-center rounded-full bg-gradient-to-br from-coral to-coral-deep font-head text-lg font-extrabold text-white">{auth.user.initials}</div>
                                 <div>

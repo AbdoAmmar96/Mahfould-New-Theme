@@ -34,9 +34,9 @@ export default function Create({ bookings, preset_booking_id }) {
     };
 
     return (
-        <SiteLayout>
+        <SiteLayout anim="fade">
             <Head title="فتح تذكرة" />
-            <section className="bg-gradient-to-br from-navy to-navy-light py-12 text-white">
+            <section className="hidden bg-gradient-to-br from-navy to-navy-light py-12 text-white lg:block">
                 <div className="mx-auto w-full max-w-[1200px] px-5">
                     <div className="text-[13.5px] font-semibold text-white/70">
                         <Link href="/" className="hover:text-white">الرئيسية</Link> ›{' '}

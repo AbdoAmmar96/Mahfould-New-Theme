@@ -1,38 +1,48 @@
 import SiteLayout from '@/Layouts/SiteLayout';
 import Reviews from '@/Components/Reviews';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { useEffect, useMemo, useState } from 'react';
-import { MapPin, Star, Heart, Check, ShieldCheck, Sparkles, CalendarDays, Download, FileText } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import {
+    MapPin, Star, Heart, Check, ShieldCheck, Sparkles, CalendarDays, Users, Download, FileText,
+    Info, ListChecks, Banknote, Headphones,
+} from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 import { Badge } from '@/Components/ui/badge';
 import { Input, Field } from '@/Components/ui/input';
 import { PartySizeField } from '@/Components/ui/party-size';
 import { money } from '@/Components/ui/service-card';
+import { MobileStickyBar, MobileSheet, MobileCTA } from '@/Components/mobile/primitives';
+import MobileDetailShell from '@/Components/mobile/MobileDetailShell';
+import { Heading, FactGrid, NoteList, PeekRow } from '@/Components/mobile/InfoBlocks';
+import { useIsMobile } from '@/lib/useIsMobile';
+import { tourNav } from '@/lib/detailNav';
+import { readIds } from '@/lib/pick';
 import { cn } from '@/lib/utils';
 
 export default function Show({ tour, reviews, review_type, review_id }) {
-    const [guests, setGuests] = useState(2);
+    const isMobile = useIsMobile();
+    const [bookOpen, setBookOpen] = useState(false);
+    // مفيش أي حاجة متحدّدة مسبقاً — العميل هو اللي يختار
+    const [guests, setGuests] = useState('');
     const [date, setDate] = useState('');
-
-    // فعاليات مختارة — تُبدأ بالـdefault
-    const defaultAddonIds = useMemo(
-        () => tour.activities.filter(a => a.is_default).map(a => a.id),
-        [tour.activities],
+    // الفعاليات بقت صفحة لوحدها — الاختيار بيتحفظ للجلسة عشان يفضل موجود
+    // وإنت بتتنقّل بين أقسام الرحلة، والرابط بيغلب لو فيه اختيار.
+    const [selectedAddons, setSelectedAddons] = useState(
+        () => readIds(`mk:tour:${tour.slug}:activities`, 'activities'),
     );
-    const [selectedAddons, setSelectedAddons] = useState(defaultAddonIds);
-
-    // لو الرحلة اتغيّرت (route change) يترجع للـdefaults
-    useEffect(() => { setSelectedAddons(defaultAddonIds); }, [defaultAddonIds]);
 
     const unit = tour.sale_price || tour.price;
     const fee = 200;
+    const pax = Number(guests) || 0;
     const addonsSum = useMemo(
         () => tour.activities
             .filter(a => selectedAddons.includes(a.id))
-            .reduce((s, a) => s + a.price * guests, 0),
-        [tour.activities, selectedAddons, guests],
+            .reduce((s, a) => s + a.price * pax, 0),
+        [tour.activities, selectedAddons, pax],
     );
-    const total = useMemo(() => unit * guests + addonsSum + fee, [unit, guests, addonsSum]);
+    // الإجمالي بيتحسب بس لما يكون فيه عدد مسافرين
+    const total = useMemo(() => (pax ? unit * pax + addonsSum + fee : 0), [unit, pax, addonsSum, fee]);
+    const canBook = !!date && pax > 0;
 
     const page = usePage();
     const authed = !!page.props.auth?.user;
@@ -43,6 +53,18 @@ export default function Show({ tour, reviews, review_type, review_id }) {
     };
 
     const toggleAddon = (id) => setSelectedAddons(a => a.includes(id) ? a.filter(x => x !== id) : [...a, id]);
+
+    // سعر الفعاليات للفرد الواحد — مستقل عن عدد المسافرين (addonsSum مضروب في العدد)
+    const addonsPerPerson = useMemo(
+        () => tour.activities.filter(a => selectedAddons.includes(a.id)).reduce((s, a) => s + a.price, 0),
+        [tour.activities, selectedAddons],
+    );
+
+    // بنمرّر الاختيار الحالي لصفحة الفعاليات عشان تفتح وهي فاكراه
+    const activitiesUrl = useMemo(
+        () => `/tours/${tour.slug}/activities${selectedAddons.length ? `?selected=${selectedAddons.join(',')}` : ''}`,
+        [tour.slug, selectedAddons],
+    );
 
     const checkoutUrl = () => {
         const q = new URLSearchParams();
@@ -61,8 +83,213 @@ export default function Show({ tour, reviews, review_type, review_id }) {
         ? tour.itineraries
         : tour.itinerary.map((d, i) => ({ day: i + 1, title: d.title, description: d.desc, highlights: [] }));
 
+    /* ─────────── ملخّص السعر — مشترك بين الشيت وصندوق الويب ─────────── */
+    const priceBreakdown = (
+        <div className="text-[14px]">
+            <div className="flex justify-between py-2"><span>{money(unit)} × {pax || 0} فرد</span><span>{money(unit * pax)} ج.م</span></div>
+            {addonsSum > 0 && (
+                <div className="flex justify-between py-2">
+                    <span>فعاليات ({selectedAddons.length})</span>
+                    <span className="text-vip">+{money(addonsSum)} ج.م</span>
+                </div>
+            )}
+            <div className="flex justify-between py-2"><span>رسوم الخدمة</span><span>{fee} ج.م</span></div>
+            <div className="mt-1 flex justify-between border-t border-black/[.06] pt-3 font-extrabold">
+                <span>الإجمالي</span>
+                <b className="font-head text-[19px] text-coral-deep">{money(total)} ج.م</b>
+            </div>
+        </div>
+    );
+
+    if (isMobile) {
+        return (
+            <SiteLayout active="tours" anim="detail" bare>
+                <Head title={tour.title} />
+
+                <MobileDetailShell
+                    title={tour.title}
+                    location={tour.location}
+                    score={tour.review_score}
+                    count={tour.review_count}
+                    images={gallery}
+                    saved={saved}
+                    onToggleSave={toggleSave}
+                    badges={
+                        <>
+                            {tour.is_guaranteed && <Badge variant="makfol"><Check className="h-3 w-3" /> مكفول</Badge>}
+                            {tour.sale_price && <Badge variant="best">أفضل سعر</Badge>}
+                        </>
+                    }
+                    facts={[
+                        tour.duration_days && <><CalendarDays className="h-[15px] w-[15px] text-coral-deep" /> {tour.duration_days} أيام</>,
+                        tour.max_people && <><Users className="h-[15px] w-[15px] text-coral-deep" /> حتى {tour.max_people} فرد</>,
+                        tour.is_guaranteed && <><ShieldCheck className="h-[15px] w-[15px] text-makfol" /> إلغاء مجاني</>,
+                    ]}
+                    nav={tourNav(tour.slug, 'overview', {
+                        included: tour.included.length,
+                        activities: tour.activities.length,
+                        days: days.length,
+                        selected: selectedAddons.length,
+                    })}
+                >
+                    <div className="space-y-6 px-4">
+                        {/* نبذة + الوصف */}
+                        <div>
+                            {tour.short_desc && (
+                                <p className="mb-2.5 text-[15px] font-bold leading-relaxed text-navy">{tour.short_desc}</p>
+                            )}
+                            <p className="text-[15px] leading-[1.85] text-navy/75">{tour.content}</p>
+                        </div>
+
+                        {/* حقائق سريعة */}
+                        <div>
+                            <Heading icon={Info}>تفاصيل الرحلة</Heading>
+                            <FactGrid
+                                items={[
+                                    tour.duration_days && {
+                                        icon: CalendarDays, value: `${tour.duration_days} أيام`, label: 'مدة الرحلة',
+                                    },
+                                    tour.max_people && {
+                                        icon: Users, value: `حتى ${tour.max_people}`, label: 'أقصى عدد للمجموعة',
+                                    },
+                                    tour.location && { icon: MapPin, value: tour.location, label: 'الوجهة' },
+                                    days.length > 0 && {
+                                        icon: ListChecks, value: `${days.length} محطة`, label: 'محطات البرنامج',
+                                    },
+                                ]}
+                            />
+                        </div>
+
+                        {/* أبرز المحطات — من برنامج الرحلة الحقيقي */}
+                        {days.length > 0 && (
+                            <div>
+                                <Heading
+                                    icon={CalendarDays}
+                                    action={
+                                        <Link href={`/tours/${tour.slug}/schedule`} className="mk-press text-[12.5px] font-bold text-coral-deep">
+                                            البرنامج كامل
+                                        </Link>
+                                    }
+                                >
+                                    أبرز المحطات
+                                </Heading>
+                                <div className="relative ps-[26px]">
+                                    <div className="absolute bottom-2 start-[8px] top-2 w-0.5 bg-coral/20" />
+                                    {days.slice(0, 3).map((d, i) => (
+                                        <div key={i} className="relative pb-4 last:pb-0">
+                                            <span className="absolute -start-[26px] top-0 grid h-[26px] w-[26px] place-items-center rounded-full bg-gradient-to-br from-coral to-coral-deep text-[11px] font-extrabold text-white shadow-[0_0_0_4px_theme(colors.cream)]">
+                                                {d.day}
+                                            </span>
+                                            <b className="block font-head text-[14.5px] text-navy">{d.title}</b>
+                                            {d.description && (
+                                                <p className="mt-0.5 line-clamp-2 text-[13px] leading-relaxed text-muted">{d.description}</p>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                                {days.length > 3 && (
+                                    <Link
+                                        href={`/tours/${tour.slug}/schedule`}
+                                        className="mk-press mt-1 block text-[13px] font-bold text-coral-deep"
+                                    >
+                                        + {days.length - 3} يوم كمان في البرنامج
+                                    </Link>
+                                )}
+                            </div>
+                        )}
+
+                        {/* روابط للأقسام التانية */}
+                        <div className="space-y-2.5">
+                            {tour.included.length > 0 && (
+                                <PeekRow
+                                    href={`/tours/${tour.slug}/included`}
+                                    icon={Check}
+                                    label="الرحلة بتشمل إيه"
+                                    sub={tour.included.slice(0, 3).join(' · ')}
+                                />
+                            )}
+                            {tour.activities.length > 0 && (
+                                <PeekRow
+                                    href={activitiesUrl}
+                                    icon={Sparkles}
+                                    label={selectedAddons.length ? `${selectedAddons.length} فعالية مضافة` : 'فعاليات إضافية'}
+                                    sub={selectedAddons.length
+                                        ? `+${money(addonsPerPerson)} ج.م للفرد`
+                                        : `${tour.activities.length} فعالية تقدر تضيفها لرحلتك`}
+                                    cta={selectedAddons.length ? 'تعديل' : 'اختار'}
+                                />
+                            )}
+                        </div>
+
+                        {/* ضمانات المنصة */}
+                        <div>
+                            <Heading icon={ShieldCheck}>ليه تحجز من محفول مكفول</Heading>
+                            <NoteList
+                                tone="makfol"
+                                items={[
+                                    tour.is_guaranteed && {
+                                        icon: ShieldCheck,
+                                        title: 'رحلة مكفولة',
+                                        text: 'إلغاء مجاني حتى 48 ساعة قبل الرحلة — من غير أي خصومات.',
+                                    },
+                                    {
+                                        icon: Banknote,
+                                        title: 'سعر واضح من الأول',
+                                        text: `السعر شامل كل الخدمات، ورسوم الخدمة ${fee} ج.م بتبان قبل الدفع مباشرة.`,
+                                    },
+                                    {
+                                        icon: Headphones,
+                                        title: 'دعم طول الرحلة',
+                                        text: 'فريق الدعم معاك من ساعة الحجز لحد ما ترجع.',
+                                    },
+                                ]}
+                            />
+                        </div>
+                    </div>
+                </MobileDetailShell>
+
+                <MobileStickyBar
+                    price={total || unit}
+                    unit={total ? null : 'الفرد'}
+                    note={total ? `${pax} فرد · ${date || 'اختار التاريخ'}` : 'ابدأ من هنا'}
+                    ctaLabel={total ? 'كمّل الحجز' : 'احجز دلوقتي'}
+                    onCta={() => setBookOpen(true)}
+                />
+
+                <MobileSheet
+                    open={bookOpen}
+                    onOpenChange={setBookOpen}
+                    title="تفاصيل الحجز"
+                    footer={
+                        <MobileCTA href={canBook ? checkoutUrl() : undefined} disabled={!canBook}>
+                            {!date ? 'اختار تاريخ الرحلة' : !pax ? 'اختار عدد المسافرين' : `متابعة الحجز · ${money(total)} ج.م`}
+                        </MobileCTA>
+                    }
+                >
+                    <div className="space-y-4">
+                        <Field label="تاريخ الرحلة">
+                            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                        </Field>
+                        <Field label="عدد المسافرين">
+                            <PartySizeField
+                                value={guests}
+                                onChange={(n) => setGuests(n || '')}
+                                placeholder="اختار العدد"
+                                options={[1, 2, 3, 4, 5, 6].map((n) => ({ value: n, label: `${n} فرد` }))}
+                            />
+                        </Field>
+                        {pax > 0 && <div className="rounded-card bg-beige/50 p-3.5">{priceBreakdown}</div>}
+                        <p className="flex items-center justify-center gap-1.5 text-center text-[12.5px] text-muted">
+                            <ShieldCheck className="h-4 w-4" /> حجز مكفول — إلغاء مجاني حتى 48 ساعة
+                        </p>
+                    </div>
+                </MobileSheet>
+            </SiteLayout>
+        );
+    }
+
     return (
-        <SiteLayout active="tours">
+        <SiteLayout active="tours" anim="detail">
             <Head title={tour.title} />
 
             <section className="pt-[26px]">

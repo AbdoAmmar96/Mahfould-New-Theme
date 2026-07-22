@@ -3,12 +3,57 @@ import { KeyRound, ArrowLeft } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 import { Badge } from '@/Components/ui/badge';
 import { Input, Field } from '@/Components/ui/input';
+import MobileAuth from '@/Components/mobile/MobileAuth';
+import { useIsMobile } from '@/lib/useIsMobile';
 
 export default function ResetPassword({ token, email }) {
+    const isMobile = useIsMobile();
     const { data, setData, post, processing, errors } = useForm({
         token, email: email || '', password: '', password_confirmation: '',
     });
     const submit = (e) => { e.preventDefault(); post('/reset-password'); };
+
+    if (isMobile) {
+        return (
+            <>
+                <Head title="إعادة تعيين كلمة المرور" />
+                <MobileAuth
+                    title="كلمة مرور جديدة"
+                    sub="اختار كلمة مرور قوية"
+                    badge={<Badge variant="makfol"><KeyRound className="h-3 w-3" /> تأمين الحساب</Badge>}
+                >
+                    <form onSubmit={submit} className="flex flex-1 flex-col">
+                        <div className="space-y-4">
+                            <Field label="البريد الإلكتروني">
+                                <Input type="email" inputMode="email" value={data.email} onChange={(e) => setData('email', e.target.value)}
+                                    className={errors.email ? 'border-danger focus:border-danger focus:ring-danger/20' : ''} />
+                            </Field>
+                            {errors.email && <p className="-mt-2 text-[13px] text-danger">{errors.email}</p>}
+
+                            <Field label="كلمة المرور الجديدة">
+                                <Input type="password" value={data.password} onChange={(e) => setData('password', e.target.value)} placeholder="••••••••" />
+                            </Field>
+                            {errors.password && <p className="-mt-2 text-[13px] text-danger">{errors.password}</p>}
+
+                            <Field label="تأكيد كلمة المرور">
+                                <Input type="password" value={data.password_confirmation} onChange={(e) => setData('password_confirmation', e.target.value)} placeholder="••••••••" />
+                            </Field>
+                        </div>
+
+                        <div className="mt-auto space-y-4 pt-8">
+                            <button type="submit" disabled={processing}
+                                className="mk-press flex min-h-[52px] w-full items-center justify-center rounded-input bg-gradient-to-l from-coral to-coral-deep text-[16px] font-extrabold text-white shadow-mk disabled:opacity-50">
+                                {processing ? 'جاري الحفظ…' : 'حفظ كلمة المرور'}
+                            </button>
+                            <p className="text-center text-[14px] text-navy">
+                                <Link href="/login" className="font-extrabold text-coral-deep">رجوع لتسجيل الدخول</Link>
+                            </p>
+                        </div>
+                    </form>
+                </MobileAuth>
+            </>
+        );
+    }
 
     return (
         <div dir="rtl" className="min-h-screen bg-cream font-body text-navy">

@@ -6,7 +6,7 @@
         "build": "vite build"
     },
     "devDependencies": {
-        "@inertiajs/react": "^1.0.0",
+        "@inertiajs/react": "^2.3.27",
         "@radix-ui/react-dialog": "^1.1.19",
         "@radix-ui/react-label": "^2.1.11",
         "@radix-ui/react-popover": "^1.1.19",

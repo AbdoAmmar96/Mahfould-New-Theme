@@ -37,6 +37,6 @@ class RestaurantMenuItem extends Model
         }
         return $this->image
             ? asset('storage/' . $this->image)
-            : "https://loremflickr.com/300/200/food?lock={$this->id}";
+            : "https://picsum.photos/seed/menu{$this->id}/300/200";
     }
 }

@@ -71,7 +71,7 @@ class Hotel extends Model
 
         return $this->image
             ? asset('storage/' . $this->image)
-            : "https://loremflickr.com/600/450/hotel,resort?lock={$this->id}";
+            : "https://picsum.photos/seed/htl{$this->id}/600/450";
     }
 
     public function getUrlAttribute(): string

@@ -4,8 +4,22 @@ import { Calendar, Users, MapPin, ShieldCheck, Download, Printer, ArrowLeft, Che
 import { Button } from '@/Components/ui/button';
 import { Badge } from '@/Components/ui/badge';
 import { money } from '@/Components/ui/service-card';
+import MobileSectionNav from '@/Components/mobile/MobileSectionNav';
+import { tourNav } from '@/lib/detailNav';
+import { readIds } from '@/lib/pick';
+import { cn } from '@/lib/utils';
 
 export default function Schedule({ tour }) {
+    // صور الشريط: أيام البرنامج اللي ليها صورة الأول (وده الأفيد لإن كل صورة
+    // مربوطة بيوم)، وإلا معرض الرحلة. مفيش صور مولّدة — لو مفيش حاجة مرفوعة
+    // الشريط مبيظهرش أصلاً بدل ما نحط صور عشوائية جنب أسماء أيام حقيقية.
+    const dayShots = (tour.itineraries ?? [])
+        .filter((d) => d.image)
+        .map((d) => ({ src: d.image, label: `يوم ${d.day} · ${d.title}` }));
+    const heroShots = dayShots.length
+        ? dayShots
+        : (tour.gallery ?? []).map((src) => ({ src }));
+
     // تحميل PDF = فتح صفحة الطباعة مع autoprint
     const downloadPdf = () => {
         const url = `${tour.print_url}?autoprint=1`;
@@ -14,14 +28,45 @@ export default function Schedule({ tour }) {
     const printOnly = () => window.open(tour.print_url, '_blank');
 
     return (
-        <SiteLayout>
+        <SiteLayout active="tours">
             <Head title={`برنامج ${tour.title}`} />
 
-            {/* Hero */}
-            <section className="relative overflow-hidden bg-gradient-to-br from-navy to-navy-light py-14 text-white">
-                <div className="pointer-events-none absolute -bottom-40 -start-24 h-[400px] w-[400px] rounded-full bg-coral opacity-30 blur-[110px]" />
+            {/* شريط أقسام الرحلة — موبايل بس */}
+            <MobileSectionNav
+                items={tourNav(tour.slug, 'schedule', {
+                    included: tour.included_count,
+                    activities: tour.activities_count,
+                    days: tour.days_count,
+                    selected: readIds(`mk:tour:${tour.slug}:activities`, 'activities').length,
+                })}
+                className="!top-[56px]"
+            />
+
+            {/* Hero — صورة الرحلة خلفية، وفوقها تدرّج غامق عشان النص يفضل مقروء */}
+            <section className="relative overflow-hidden bg-gradient-to-br from-navy to-navy-light py-6 text-white lg:py-14">
+                {tour.image_url && (
+                    <>
+                        <img
+                            src={tour.image_url}
+                            alt=""
+                            aria-hidden="true"
+                            fetchPriority="high"
+                            className="absolute inset-0 h-full w-full object-cover"
+                        />
+                        {/* تدرّج من جهة النص بس — الصورة لازم تفضل باينة.
+                            الطبقة الموحّدة الأولى كانت بتغطّي الصورة تقريباً بالكامل. */}
+                        <div className="absolute inset-0 bg-gradient-to-l from-navy via-navy/80 to-navy/35" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-navy/70 to-transparent" />
+                    </>
+                )}
+                <div
+                    className={cn(
+                        'pointer-events-none absolute -bottom-40 -start-24 h-[400px] w-[400px] rounded-full bg-coral blur-[110px]',
+                        tour.image_url ? 'opacity-15' : 'opacity-30',
+                    )}
+                />
                 <div className="relative z-[1] mx-auto max-w-[1200px] px-5 2xl:max-w-[1600px]">
-                    <div className="mb-3 text-[13.5px] font-semibold text-white/70">
+                    <div className="mb-3 hidden text-[13.5px] font-semibold text-white/70 lg:block">
                         <Link href="/" className="hover:text-white">الرئيسية</Link> ›{' '}
                         <Link href="/tours" className="hover:text-white">الرحلات</Link> ›{' '}
                         <Link href={`/tours/${tour.slug}`} className="hover:text-white">{tour.title}</Link> ›
@@ -51,6 +96,30 @@ export default function Schedule({ tour }) {
                             </Button>
                         </div>
                     </div>
+
+                    {/* شريط صور — صور أيام البرنامج، وإلا معرض الرحلة.
+                        بيظهر بس لما يكون فيه صور حقيقية مرفوعة. */}
+                    {heroShots.length > 0 && (
+                        <div className="mk-hscroll mt-5 flex gap-2.5 overflow-x-auto pb-1">
+                            {heroShots.map((s, i) => (
+                                <figure
+                                    key={i}
+                                    className="relative h-[92px] w-[124px] shrink-0 overflow-hidden rounded-[14px] ring-1 ring-white/25 lg:h-[104px] lg:w-[142px]"
+                                >
+                                    <img src={s.src} alt={s.label ?? ''} loading="lazy" className="h-full w-full object-cover" />
+                                    {s.label && (
+                                        <>
+                                            <span className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/75 to-transparent" />
+                                            <figcaption className="absolute inset-x-0 bottom-0 truncate px-2 pb-1.5 text-[11.5px] font-bold text-white">
+                                                {s.label}
+                                            </figcaption>
+                                        </>
+                                    )}
+                                </figure>
+                            ))}
+                            <span className="w-1 shrink-0" />
+                        </div>
+                    )}
                 </div>
             </section>
 
