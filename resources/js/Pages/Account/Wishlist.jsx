@@ -5,17 +5,58 @@ import { Heart, MapPin, ArrowLeft } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 import { Badge } from '@/Components/ui/badge';
 import { Card, CardMedia, CardBody, CardTitle, CardMeta, CardFooter } from '@/Components/ui/card';
+import { MobileListCard, MobileEmpty } from '@/Components/mobile/primitives';
+import { useIsMobile } from '@/lib/useIsMobile';
 
 const typeLabel = { tour: 'رحلة', hotel: 'فندق', restaurant: 'مطعم', car: 'سيارة', sahb: 'صاحب السعادة' };
 
 export default function Wishlist({ items }) {
+    const isMobile = useIsMobile();
     const remove = (type, id, e) => {
         e.preventDefault();
         router.post('/wishlist/toggle', { type, id }, { preserveScroll: true });
     };
 
+    if (isMobile) {
+        return (
+            <SiteLayout anim="fade">
+                <Head title="المفضلة" />
+                {items.length === 0 ? (
+                    <MobileEmpty text="لسه مضفتش حاجة للمفضلة." actionLabel="اكتشف الرحلات" onAction={() => router.visit('/tours')} />
+                ) : (
+                    <div className="pt-1">
+                        <p className="px-4 py-2.5 text-[13px] font-bold text-navy">
+                            <b className="text-coral-deep">{items.length}</b> عنصر محفوظ
+                        </p>
+                        {items.map((it, i) => (
+                            <div key={i} className="relative">
+                                <MobileListCard
+                                    item={it}
+                                    badges={
+                                        <span className="absolute start-1.5 top-1.5 rounded-full bg-navy/80 px-1.5 py-0.5 text-[10px] font-bold text-white backdrop-blur">
+                                            {typeLabel[it.type] || it.type}
+                                        </span>
+                                    }
+                                />
+                                <button
+                                    type="button"
+                                    onClick={(e) => remove(it.type, it.id, e)}
+                                    aria-label="إزالة من المفضلة"
+                                    className="mk-press absolute end-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white text-coral-deep shadow-mk"
+                                >
+                                    <Heart className="h-[17px] w-[17px]" fill="currentColor" />
+                                </button>
+                            </div>
+                        ))}
+                        <div className="h-4" />
+                    </div>
+                )}
+            </SiteLayout>
+        );
+    }
+
     return (
-        <SiteLayout>
+        <SiteLayout anim="fade">
             <Head title="المفضلة" />
 
             {/* بانر الصفحة */}

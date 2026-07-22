@@ -3,6 +3,7 @@ import { Head, Link } from '@inertiajs/react';
 import { MessageCircleQuestion, Plus, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 import { Badge } from '@/Components/ui/badge';
+import { MobileCTA, MobileStickyBar } from '@/Components/mobile/primitives';
 
 const STATUS_VARIANT = {
     open: 'best',
@@ -21,9 +22,9 @@ const STATUS_ICON = {
 
 export default function Index({ tickets }) {
     return (
-        <SiteLayout>
+        <SiteLayout anim="fade">
             <Head title="الدعم الفني" />
-            <section className="bg-gradient-to-br from-navy to-navy-light py-12 text-white">
+            <section className="hidden bg-gradient-to-br from-navy to-navy-light py-12 text-white lg:block">
                 <div className="mx-auto w-full max-w-[1200px] px-5">
                     <div className="text-[13.5px] font-semibold text-white/70">
                         <Link href="/" className="hover:text-white">الرئيسية</Link> ›{' '}
@@ -34,12 +35,13 @@ export default function Index({ tickets }) {
             </section>
 
             <section className="py-14">
-                <div className="mx-auto w-full max-w-[900px] px-5">
-                    <div className="mb-6 flex items-center justify-between">
-                        <h2 className="font-head text-xl font-semibold text-navy">
+                <div className="mx-auto w-full max-w-[900px] px-4 lg:px-5">
+                    <div className="mb-4 flex items-center justify-between lg:mb-6">
+                        <h2 className="font-head text-[19px] font-semibold text-navy lg:text-xl">
                             تذاكري <span className="text-sm font-normal text-muted">({tickets.total})</span>
                         </h2>
-                        <Button asChild>
+                        {/* على الموبايل الزر بيبقى تحت ثابت — هنا للويب بس */}
+                        <Button asChild className="hidden lg:inline-flex">
                             <Link href="/account/support/create"><Plus className="h-4 w-4" /> فتح تذكرة جديدة</Link>
                         </Button>
                     </div>
@@ -79,8 +81,18 @@ export default function Index({ tickets }) {
                             })}
                         </div>
                     )}
+
+                    {/* مساحة تحت الزر الثابت */}
+                    <div className="h-[86px] lg:hidden" />
                 </div>
             </section>
+
+            {/* زر «تذكرة جديدة» ثابت — موبايل */}
+            <MobileStickyBar>
+                <MobileCTA href="/account/support/create">
+                    <Plus className="h-[18px] w-[18px]" /> فتح تذكرة جديدة
+                </MobileCTA>
+            </MobileStickyBar>
         </SiteLayout>
     );
 }

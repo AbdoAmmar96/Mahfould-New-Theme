@@ -6,9 +6,9 @@ import { Badge } from '@/Components/ui/badge';
 
 export default function Confirmation({ order }) {
     return (
-        <SiteLayout>
+        <SiteLayout anim="flow">
             <Head title={`طلب توصيل ${order.code}`} />
-            <section className="py-14">
+            <section className="py-6 lg:py-14">
                 <div className="mx-auto w-full max-w-[720px] px-5">
                     <div className="text-center">
                         <div className="mx-auto mb-4 grid h-20 w-20 place-items-center rounded-full bg-makfol text-white shadow-lg">

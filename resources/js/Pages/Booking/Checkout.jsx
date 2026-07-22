@@ -13,15 +13,18 @@ import { Head, useForm } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
 import {
     Check, Lock, CreditCard, Wallet, Banknote,
-    User, UserPlus, Users, AlertTriangle, ShieldCheck, ChevronDown, Info,
+    User, UserPlus, Users, AlertTriangle, ShieldCheck, ChevronDown, ChevronUp, Info,
     Car, Bus, Truck,
 } from 'lucide-react';
+import { MobileSheet, MobileStickyBar } from '@/Components/mobile/primitives';
 
 const PAY = [
     { key: 'card', label: 'بطاقة ائتمان', Icon: CreditCard },
     { key: 'wallet', label: 'محفظة إلكترونية', Icon: Wallet },
     { key: 'on_arrival', label: 'دفع عند الوصول/الاستخدام', Icon: Banknote },
 ];
+
+const FORM_ID = 'mk-checkout-form';
 
 const TIMING_LABEL = {
     on_arrival: 'الدفع عند الوصول',
@@ -40,6 +43,7 @@ function tierFor(age, tiers) {
 }
 
 export default function Checkout({ item, prefill = {}, pricing = {} }) {
+    const [summaryOpen, setSummaryOpen] = useState(false);
     const pooled = !!item.pooled;
     const ageTiers = pricing.age_tiers || [];
     const payment = pricing.payment || { default_timing_self: 'on_arrival', timing_other: 'prepaid' };
@@ -105,11 +109,12 @@ export default function Checkout({ item, prefill = {}, pricing = {} }) {
     const submit = (e) => { e.preventDefault(); post('/checkout'); };
 
     return (
-        <SiteLayout>
+        <SiteLayout anim="flow">
             <Head title="إتمام الحجز" />
             <section className="py-[34px]">
                 <div className="mx-auto w-full max-w-[1080px] px-5">
-                    <h1 className="mb-[22px] font-head text-[28px] font-bold text-navy md:text-3xl">إتمام الحجز</h1>
+                    {/* على الموبايل العنوان بيبان في الآب-بار — منكرّروش */}
+                    <h1 className="mb-[22px] hidden font-head text-[28px] font-bold text-navy md:text-3xl lg:block">إتمام الحجز</h1>
 
                     {/* الخطوات */}
                     <div className="mb-[30px] flex items-center">
@@ -131,7 +136,7 @@ export default function Checkout({ item, prefill = {}, pricing = {} }) {
                         </div>
                     </div>
 
-                    <form onSubmit={submit}>
+                    <form id={FORM_ID} onSubmit={submit}>
                         <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[1fr_380px]">
                             <div>
                                 {/* ── §4: الحجز لمين ── */}
@@ -374,8 +379,8 @@ export default function Checkout({ item, prefill = {}, pricing = {} }) {
                                 </div>
                             </div>
 
-                            {/* ── الملخص الجانبي ── */}
-                            <div>
+                            {/* ── الملخص الجانبي (ويب) — على الموبايل بيتحوّل لشريط ثابت تحت ── */}
+                            <div className="hidden lg:block">
                                 <div className="rounded-card border border-black/[.06] bg-white p-[22px] shadow-mk lg:sticky lg:top-[92px]">
                                     <div className="mb-4 flex items-center gap-3 border-b border-black/[.06] pb-4">
                                         <img src={item.image_url} className="h-16 w-16 rounded-xl object-cover" alt="" />
@@ -438,7 +443,78 @@ export default function Checkout({ item, prefill = {}, pricing = {} }) {
                                 </div>
                             </div>
                         </div>
+
+                        {/* مساحة تحت الشريط الثابت (موبايل) */}
+                        <div className="h-[130px] lg:hidden" />
                     </form>
+
+                    {/* ── شريط التأكيد الثابت — موبايل فقط.
+                        بره الـform (portal لـbody) عشان الـanimation على <main>
+                        مش تكسر الـposition:fixed — والزر مربوط بالفورم بـform="…" ── */}
+                    <MobileStickyBar>
+                        <div className="flex items-center gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setSummaryOpen(true)}
+                                className="mk-press min-w-0 flex-1 text-start"
+                            >
+                                <div className="flex items-baseline gap-1">
+                                    <span className="font-head text-[21px] font-extrabold text-coral-deep">{money(total)}</span>
+                                    <span className="text-[12px] font-semibold text-muted">ج.م</span>
+                                    <ChevronUp className="h-3.5 w-3.5 text-muted" />
+                                </div>
+                                <p className="truncate text-[11.5px] text-muted">اعرض التفاصيل</p>
+                            </button>
+                            <div className="w-[52%] shrink-0">
+                                <button
+                                    type="submit"
+                                    form={FORM_ID}
+                                    disabled={processing}
+                                    className="mk-press flex min-h-[52px] w-full items-center justify-center gap-2 rounded-input bg-gradient-to-l from-coral to-coral-deep text-[16px] font-extrabold text-white shadow-mk disabled:opacity-50"
+                                >
+                                    {processing ? 'جاري التأكيد…' : (timing === 'prepaid' ? 'أكّد وادفع' : 'أكّد الحجز')}
+                                </button>
+                            </div>
+                        </div>
+                    </MobileStickyBar>
+
+                    {/* تفاصيل السعر — شيت الموبايل */}
+                    <MobileSheet open={summaryOpen} onOpenChange={setSummaryOpen} title="ملخص الحجز">
+                        <div className="flex items-center gap-3 border-b border-black/[.06] pb-4">
+                            <img src={item.image_url} className="h-16 w-16 rounded-xl object-cover" alt="" />
+                            <div className="min-w-0">
+                                <b className="font-head text-[15px] text-navy">{item.title}</b>
+                                {item.room_type && (
+                                    <div className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-coral/10 px-2 py-0.5 text-[11.5px] font-bold text-coral-deep">
+                                        {item.room_type.title}
+                                    </div>
+                                )}
+                                <div className="mt-1 text-[12.5px] font-semibold text-muted">
+                                    {pooled ? `${data.nights} ليالي · ${data.units} غرفة · ${data.guests} ضيوف` : `${data.guests} ${item.unit}`}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="pt-3 text-[14px]">
+                            <div className="flex justify-between py-2">
+                                <span>{pooled ? `السعر (${data.nights}×${data.units})` : `السعر (${data.guests} ${item.unit})`}</span>
+                                <span>{money(subtotal)} ج.م</span>
+                            </div>
+                            <div className="flex justify-between py-2"><span>رسوم الخدمة</span><span>{money(fee)} ج.م</span></div>
+                            {discount > 0 && (
+                                <div className="flex justify-between py-2"><span>خصم مكفول</span><span className="text-makfol">−{money(discount)} ج.م</span></div>
+                            )}
+                            <div className="mt-1 flex justify-between border-t border-black/[.06] pt-3 font-extrabold">
+                                <span>الإجمالي</span>
+                                <b className="font-head text-[19px] text-coral-deep">{money(total)} ج.م</b>
+                            </div>
+                        </div>
+
+                        <p className="mt-3 flex items-center gap-2 rounded-input bg-beige/50 px-3 py-2.5 text-[12.5px] text-muted">
+                            <ShieldCheck className="h-4 w-4 shrink-0 text-makfol" />
+                            {TIMING_LABEL[timing]} — سياسة إلغاء ٤٨س قبل الميعاد
+                        </p>
+                    </MobileSheet>
                 </div>
             </section>
         </SiteLayout>

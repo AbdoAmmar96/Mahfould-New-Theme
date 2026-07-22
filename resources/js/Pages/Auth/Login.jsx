@@ -3,14 +3,95 @@ import { ShieldCheck, Star, Info, Store, ArrowLeft } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 import { Badge } from '@/Components/ui/badge';
 import { Input, Field } from '@/Components/ui/input';
+import MobileAuth from '@/Components/mobile/MobileAuth';
+import { MobileCTA } from '@/Components/mobile/primitives';
+import { useIsMobile } from '@/lib/useIsMobile';
 
 export default function Login() {
+    const isMobile = useIsMobile();
     const { data, setData, post, processing, errors } = useForm({ login: '', password: '', remember: false });
     const submit = (e) => { e.preventDefault(); post('/login'); };
     const page = usePage();
     // لو جاي من صفحة محمية (زي checkout) بيبيّن رسالة توضيحية
     const referrer = typeof window !== 'undefined' ? document.referrer : '';
     const cameFromCheckout = referrer.includes('/checkout');
+
+    if (isMobile) {
+        return (
+            <>
+                <Head title="تسجيل الدخول" />
+                <MobileAuth
+                    title="أهلاً بيك تاني"
+                    sub="سجّل دخولك وكمّل رحلتك"
+                    badge={<Badge variant="makfol"><ShieldCheck className="h-3 w-3" /> رحلتك محفولة مكفولة</Badge>}
+                >
+                    <form onSubmit={submit} className="flex flex-1 flex-col">
+                        {cameFromCheckout && (
+                            <div className="mb-4 flex items-start gap-2 rounded-input border border-royal/25 bg-royal/[.06] p-3 text-[13px] text-navy">
+                                <Info className="mt-0.5 h-4 w-4 flex-none text-royal" />
+                                <span>لازم تسجّل دخولك قبل ما تكمل الحجز — بنحفظ خطواتك تلقائياً.</span>
+                            </div>
+                        )}
+
+                        <div className="space-y-4">
+                            <Field label="رقم الموبايل أو الإيميل">
+                                <Input
+                                    value={data.login}
+                                    onChange={(e) => setData('login', e.target.value)}
+                                    placeholder="010xxxxxxxx"
+                                    inputMode="email"
+                                    className={errors.login ? 'border-danger focus:border-danger focus:ring-danger/20' : ''}
+                                />
+                            </Field>
+                            {errors.login && <p className="-mt-2 text-[13px] text-danger">{errors.login}</p>}
+
+                            <Field label="كلمة المرور">
+                                <Input
+                                    type="password"
+                                    value={data.password}
+                                    onChange={(e) => setData('password', e.target.value)}
+                                    placeholder="••••••••"
+                                />
+                            </Field>
+
+                            <div className="flex items-center justify-between gap-4">
+                                <label className="flex cursor-pointer items-center gap-2 text-[13.5px] font-semibold text-navy">
+                                    <input
+                                        type="checkbox"
+                                        checked={data.remember}
+                                        onChange={(e) => setData('remember', e.target.checked)}
+                                        className="accent-coral"
+                                    /> تذكرني
+                                </label>
+                                <Link href="/forgot-password" className="mk-press text-[13.5px] font-bold text-coral-deep">
+                                    نسيت كلمة المرور؟
+                                </Link>
+                            </div>
+                        </div>
+
+                        {/* الأكشن تحت — زي أبليكشن */}
+                        <div className="mt-auto space-y-4 pt-8">
+                            <button
+                                type="submit"
+                                disabled={processing}
+                                className="mk-press flex min-h-[52px] w-full items-center justify-center rounded-input bg-gradient-to-l from-coral to-coral-deep text-[16px] font-extrabold text-white shadow-mk disabled:opacity-50"
+                            >
+                                {processing ? 'جاري الدخول…' : 'دخول'}
+                            </button>
+                            <p className="text-center text-[14px] text-navy">
+                                لسه معندكش حساب؟ <Link href="/register" className="font-extrabold text-coral-deep">سجّل مجاناً</Link>
+                            </p>
+                            <div className="border-t border-black/[.07] pt-4">
+                                <MobileCTA href="/vendor/login" variant="secondary">
+                                    <Store className="h-4 w-4" /> دخول شريك
+                                </MobileCTA>
+                            </div>
+                        </div>
+                    </form>
+                </MobileAuth>
+            </>
+        );
+    }
 
     return (
         <>

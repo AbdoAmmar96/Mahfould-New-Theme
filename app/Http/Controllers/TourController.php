@@ -109,6 +109,74 @@ class TourController extends Controller
         ]);
     }
 
+    /**
+     * أعداد الأقسام — شريط الأقسام بيتبني منها في كل صفحة.
+     * من غيرها كل صفحة فرعية كانت هتعرض شريط ناقص عن التانية.
+     */
+    private function navMeta(Tour $tour): array
+    {
+        return [
+            'title'            => $tour->title,
+            'slug'             => $tour->slug,
+            'included_count'   => count($tour->included ?: []),
+            'activities_count' => $tour->activeActivities()->count(),
+            'days_count'       => $tour->itineraries()->count() ?: count($tour->itinerary ?: []),
+        ];
+    }
+
+    /** «الرحلة بتشمل إيه» — صفحة مستقلة بدل قائمة طويلة جوّه صفحة الرحلة */
+    public function included(Tour $tour): Response
+    {
+        abort_if($tour->status !== 'publish', 404);
+
+        return Inertia::render('Tours/Included', [
+            'tour' => $this->navMeta($tour) + ['included' => $tour->included ?: []],
+        ]);
+    }
+
+    /** الفعاليات الاختيارية — صفحة اختيار مستقلة */
+    public function activities(Tour $tour): Response
+    {
+        abort_if($tour->status !== 'publish', 404);
+
+        $tour->load('activeActivities');
+
+        return Inertia::render('Tours/Activities', [
+            'tour' => $this->navMeta($tour),
+            'activities' => $tour->activeActivities->map(fn ($a) => [
+                'id'         => $a->id,
+                'title'      => $a->title,
+                'short_desc' => $a->short_desc,
+                'description' => $a->description,
+                'price'      => (float) $a->price,
+                'image_url'  => $a->image_url,
+            ])->values(),
+        ]);
+    }
+
+    /** التقييمات — صفحة مستقلة */
+    public function reviews(Tour $tour): Response
+    {
+        abort_if($tour->status !== 'publish', 404);
+
+        return Inertia::render('Tours/Reviews', [
+            'tour' => $this->navMeta($tour) + [
+                'review_score' => (float) $tour->review_score,
+                'review_count' => $tour->review_count,
+            ],
+            'reviews' => Review::forReviewable($tour)->latest()->take(30)->get()
+                ->map(fn ($r) => [
+                    'name' => $r->user?->name ?? 'زائر',
+                    'rating' => $r->rating,
+                    'title' => $r->title,
+                    'content' => $r->content,
+                    'date' => $r->created_at->format('Y-m-d'),
+                ]),
+            'review_type' => 'tour',
+            'review_id'   => $tour->id,
+        ]);
+    }
+
     public function schedule(Tour $tour)
     {
         abort_if($tour->status !== 'publish', 404);
@@ -120,22 +188,24 @@ class TourController extends Controller
         ]);
 
         return Inertia::render('Tours/Schedule', [
-            'tour' => [
+            'tour' => $this->navMeta($tour) + [
                 'id' => $tour->id,
-                'title' => $tour->title,
-                'slug' => $tour->slug,
                 'location' => $tour->location?->name,
                 'duration_days' => $tour->duration_days,
                 'max_people' => $tour->max_people,
                 'price' => (float) $tour->price,
                 'sale_price' => $tour->sale_price ? (float) $tour->sale_price : null,
                 'image_url' => $tour->image_url,
+                'gallery' => $tour->gallery ?: [],
                 'included' => $tour->included ?: [],
                 'itineraries' => $tour->itineraries->map(fn ($d) => [
                     'day' => $d->day_number,
                     'title' => $d->title,
                     'description' => $d->description,
                     'highlights' => $d->highlights ?: [],
+                    // بيفضل null لحد ما المزوّد يرفع صورة لليوم — الواجهة
+                    // بتتجاهل الفاضي وما بتحطّش صورة عشوائية مكانها
+                    'image' => $d->image ? asset('storage/' . $d->image) : null,
                 ])->values(),
                 'activities' => $tour->activeActivities->map(fn ($a) => [
                     'title' => $a->title,

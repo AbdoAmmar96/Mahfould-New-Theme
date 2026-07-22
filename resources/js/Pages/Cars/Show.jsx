@@ -7,13 +7,22 @@ import { Button } from '@/Components/ui/button';
 import { Badge } from '@/Components/ui/badge';
 import { Input, Select, Field } from '@/Components/ui/input';
 import { money } from '@/Components/ui/service-card';
+import {
+    MobileGallery, MobileDetailHead, MobileSection, MobileStickyBar, MobileSheet, MobileCTA,
+} from '@/Components/mobile/primitives';
+import { useIsMobile } from '@/lib/useIsMobile';
 
 export default function Show({ car, reviews, review_type, review_id }) {
-    const [days, setDays] = useState(3);
+    const isMobile = useIsMobile();
+    const [bookOpen, setBookOpen] = useState(false);
+    const [days, setDays] = useState(''); // مفيش اختيار مسبق
     const [date, setDate] = useState('');
     const unit = car.sale_price || car.price;
     const fee = 200;
-    const total = useMemo(() => unit * days + fee, [unit, days]);
+    const daysN = Number(days) || 0;
+    // من غير عدد أيام مفيش إجمالي — مش NaN
+    const total = useMemo(() => (daysN ? unit * daysN + fee : 0), [unit, daysN, fee]);
+    const canBook = !!date && daysN > 0;
     const checkoutUrl = () => {
         const q = new URLSearchParams();
         if (date) q.set('start_date', date);
@@ -24,8 +33,113 @@ export default function Show({ car, reviews, review_type, review_id }) {
         car.image_url, ...[2, 3, 4, 5].map((n) => `https://picsum.photos/seed/cg${car.id}${n}/400/400`),
     ];
 
+    const SPECS = [
+        [Settings, car.transmission === 'automatic' ? 'أوتوماتيك' : 'مانيوال'],
+        [Users, `${car.seats} ركاب`],
+        [car.with_driver ? UserRound : KeyRound, car.with_driver ? 'مع سائق' : 'بدون سائق'],
+        [Fuel, 'بنزين'],
+        [Snowflake, 'تكييف'],
+        [Luggage, 'شنطة كبيرة'],
+    ];
+
+    if (isMobile) {
+        return (
+            <SiteLayout active="cars" anim="detail">
+                <Head title={car.title} />
+
+                <MobileGallery
+                    images={gallery}
+                    badges={
+                        <>
+                            {car.is_guaranteed && <Badge variant="makfol"><Check className="h-3 w-3" /> مكفول</Badge>}
+                            {car.with_driver && <Badge variant="royal">مع سائق</Badge>}
+                        </>
+                    }
+                />
+
+                <MobileDetailHead
+                    title={car.title}
+                    location={car.location}
+                    score={car.review_score}
+                    count={car.review_count}
+                    price={unit}
+                    unit="اليوم"
+                    facts={[
+                        <><Settings className="h-[15px] w-[15px] text-coral-deep" /> {car.transmission === 'automatic' ? 'أوتوماتيك' : 'مانيوال'}</>,
+                        <><Users className="h-[15px] w-[15px] text-coral-deep" /> {car.seats} ركاب</>,
+                        car.with_driver && <><UserRound className="h-[15px] w-[15px] text-makfol" /> مع سائق</>,
+                    ]}
+                />
+
+                <MobileSection title="عن السيارة">
+                    <p className="text-[14px] leading-relaxed text-muted">{car.content}</p>
+                </MobileSection>
+
+                <MobileSection title="المواصفات">
+                    <div className="grid grid-cols-2 gap-3">
+                        {SPECS.map(([Icon, label], i) => (
+                            <div key={i} className="flex items-center gap-2.5 text-[13.5px] font-semibold text-navy">
+                                <span className="flex h-9 w-9 flex-none items-center justify-center rounded-[10px] bg-beige">
+                                    <Icon className="h-[17px] w-[17px] text-navy" />
+                                </span>
+                                {label}
+                            </div>
+                        ))}
+                    </div>
+                </MobileSection>
+
+                <MobileSection title="التقييمات">
+                    <Reviews reviews={reviews} type={review_type} id={review_id} />
+                </MobileSection>
+
+                <div className="h-[120px]" />
+
+                <MobileStickyBar
+                    price={total || unit}
+                    unit={total ? null : 'اليوم'}
+                    note={total ? `${daysN} يوم` : (car.with_driver ? 'شامل السائق' : 'بدون سائق')}
+                    ctaLabel={total ? 'كمّل الحجز' : 'احجز دلوقتي'}
+                    onCta={() => setBookOpen(true)}
+                />
+
+                <MobileSheet
+                    open={bookOpen}
+                    onOpenChange={setBookOpen}
+                    title="تفاصيل الحجز"
+                    footer={
+                        <MobileCTA href={canBook ? checkoutUrl() : undefined} disabled={!canBook}>
+                            {!date ? 'اختار تاريخ الاستلام' : !daysN ? 'اختار عدد الأيام' : `متابعة الحجز · ${money(total)} ج.م`}
+                        </MobileCTA>
+                    }
+                >
+                    <div className="space-y-4">
+                        <Field label="تاريخ الاستلام">
+                            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                        </Field>
+                        <Field label="عدد الأيام">
+                            <Select value={days} onChange={(e) => setDays(e.target.value)}>
+                                <option value="">اختار عدد الأيام</option>
+                                {[1, 2, 3, 5, 7, 14].map((n) => <option key={n} value={n}>{n} أيام</option>)}
+                            </Select>
+                        </Field>
+                        {daysN > 0 && (
+                            <div className="rounded-card bg-beige/50 p-3.5 text-[14px]">
+                                <div className="flex justify-between py-2"><span>{money(unit)} × {daysN} يوم</span><span>{money(unit * daysN)} ج.م</span></div>
+                                <div className="flex justify-between py-2"><span>رسوم الخدمة</span><span>{fee} ج.م</span></div>
+                                <div className="mt-1 flex justify-between border-t border-black/[.06] pt-3 font-extrabold">
+                                    <span>الإجمالي</span>
+                                    <b className="font-head text-[19px] text-coral-deep">{money(total)} ج.م</b>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </MobileSheet>
+            </SiteLayout>
+        );
+    }
+
     return (
-        <SiteLayout active="cars">
+        <SiteLayout active="cars" anim="detail">
             <Head title={car.title} />
             <section className="pt-[26px]">
                 <div className="mx-auto w-full max-w-[1200px] px-5">

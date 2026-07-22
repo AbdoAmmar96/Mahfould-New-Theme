@@ -2,12 +2,23 @@ import SiteLayout from '@/Layouts/SiteLayout';
 import { ListingCard } from '@/Components/UI';
 import { Button } from '@/Components/ui/button';
 import { Select, Input } from '@/Components/ui/input';
+import MobileListing from '@/Components/mobile/MobileListing';
+import { MobileListCard } from '@/Components/mobile/primitives';
 import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import { Calendar, BedDouble, Plane, Search, Filter, Sparkles, ShieldCheck } from 'lucide-react';
+import { useIsMobile } from '@/lib/useIsMobile';
 import { cn } from '@/lib/utils';
 
+const SORT_OPTIONS = [
+    { value: '', label: 'الأنسب' },
+    { value: 'value', label: 'أفضل قيمة ⭐' },
+    { value: 'price_asc', label: 'الأرخص سعراً' },
+    { value: 'rating', label: 'الأعلى تقييماً' },
+];
+
 export default function Index({ tours, locations, filters }) {
+    const isMobile = useIsMobile();
     const [q, setQ] = useState(filters?.q || '');
     const [sort, setSort] = useState(filters?.sort || '');
     const [minPrice, setMinPrice] = useState(filters?.min_price || '');
@@ -39,8 +50,96 @@ export default function Index({ tours, locations, filters }) {
     const clear = () => router.get('/tours');
     const hasActive = q || filters.location || minPrice || maxPrice !== 15000 || duration || guaranteed || withActivities || sort;
 
+    // فلاتر الموبايل — نفس منطق الويب بالظبط، بس جوّه شيت
+    const mobileFilters = (
+        <>
+            <FilterSection title="الوجهة">
+                <div className="space-y-0.5">
+                    {locations.map((l) => (
+                        <label key={l.slug} className="flex cursor-pointer items-center gap-2.5 text-[15px] font-semibold text-navy">
+                            <input type="checkbox" checked={filters.location === l.slug} onChange={() => byLoc(l.slug)} className="accent-coral" />
+                            {l.name}
+                            <span className="ms-auto text-[12.5px] text-muted">{l.count}</span>
+                        </label>
+                    ))}
+                </div>
+            </FilterSection>
+
+            <FilterSection title="نطاق السعر (ج.م)">
+                <div className="grid grid-cols-2 gap-2.5">
+                    <Input type="number" placeholder="من" min={0} value={minPrice} onChange={(e) => setMinPrice(e.target.value)} onBlur={() => push()} />
+                    <Input type="number" placeholder="إلى" min={0} value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} onBlur={() => push()} />
+                </div>
+            </FilterSection>
+
+            <FilterSection title="مدة الرحلة">
+                <div className="grid grid-cols-3 gap-2">
+                    {[2, 3, 4, 5, 7].map((d) => (
+                        <button key={d} type="button"
+                            onClick={() => { setDuration(duration === String(d) ? '' : String(d)); push({ duration_days: duration === String(d) ? undefined : d }); }}
+                            className={cn(
+                                'mk-press rounded-input border text-[13.5px] font-bold',
+                                +duration === d ? 'border-coral bg-coral/10 text-coral-deep' : 'border-black/[.1] text-navy',
+                            )}>
+                            {d} {d > 2 ? 'أيام' : 'يوم'}
+                        </button>
+                    ))}
+                </div>
+            </FilterSection>
+
+            <FilterSection title="ميّزات">
+                <label className="flex cursor-pointer items-center gap-2.5 text-[15px] font-semibold text-navy">
+                    <input type="checkbox" checked={guaranteed}
+                        onChange={(e) => { setGuaranteed(e.target.checked); push({ guaranteed: e.target.checked || undefined }); }}
+                        className="accent-coral" />
+                    <ShieldCheck className="h-4 w-4 text-makfol" /> مكفول فقط
+                </label>
+                <label className="flex cursor-pointer items-center gap-2.5 text-[15px] font-semibold text-navy">
+                    <input type="checkbox" checked={withActivities}
+                        onChange={(e) => { setWithActivities(e.target.checked); push({ with_activities: e.target.checked || undefined }); }}
+                        className="accent-coral" />
+                    <Sparkles className="h-4 w-4 text-vip" /> بفعاليات إضافية
+                </label>
+            </FilterSection>
+        </>
+    );
+
+    const activeCount = [
+        filters.location, minPrice, maxPrice && maxPrice !== 15000 ? maxPrice : null,
+        duration, guaranteed || null, withActivities || null,
+    ].filter(Boolean).length;
+
+    if (isMobile) {
+        return (
+            <SiteLayout active="tours" anim="list">
+                <Head title="الرحلات" />
+                <MobileListing
+                    q={q} onQ={setQ}
+                    searchPlaceholder="ابحث بالاسم أو الوجهة…"
+                    count={tours.total} countLabel="رحلة متاحة"
+                    activeCount={activeCount} onClear={clear}
+                    filters={mobileFilters}
+                    sort={sort} onSort={changeSort} sortOptions={SORT_OPTIONS}
+                    items={tours.data}
+                    renderItem={(t) => (
+                        <MobileListCard
+                            key={t.id}
+                            item={t}
+                            feats={`${t.duration_days} أيام · شامل الانتقالات`}
+                            badges={t.is_guaranteed && (
+                                <span className="absolute start-1.5 top-1.5 rounded-full bg-makfol px-1.5 py-0.5 text-[10px] font-bold text-white">مكفول</span>
+                            )}
+                        />
+                    )}
+                    paginator={tours}
+                    emptyText={q ? `مفيش رحلات مطابقة لـ "${q}"` : 'مفيش رحلات مطابقة للفلتر.'}
+                />
+            </SiteLayout>
+        );
+    }
+
     return (
-        <SiteLayout active="tours">
+        <SiteLayout active="tours" anim="list">
             <Head title="الرحلات" />
 
             <section className="relative overflow-hidden bg-gradient-to-br from-navy to-navy-light py-12 text-white">

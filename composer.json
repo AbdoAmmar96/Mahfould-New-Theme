@@ -6,9 +6,10 @@
     "license": "proprietary",
     "require": {
         "php": "^8.2",
-        "inertiajs/inertia-laravel": "^1.0",
+        "inertiajs/inertia-laravel": "2.0",
         "laravel/framework": "^11.0",
         "laravel/tinker": "^2.9",
+        "minishlink/web-push": "^10.1",
         "tightenco/ziggy": "^2.0"
     },
     "require-dev": {

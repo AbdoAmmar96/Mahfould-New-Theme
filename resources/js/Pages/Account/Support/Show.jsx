@@ -14,11 +14,11 @@ export default function Show({ ticket }) {
     };
 
     return (
-        <SiteLayout>
+        <SiteLayout anim="fade">
             <Head title={`${ticket.code} — ${ticket.subject}`} />
-            <section className="bg-gradient-to-br from-navy to-navy-light py-10 text-white">
-                <div className="mx-auto w-full max-w-[900px] px-5">
-                    <div className="text-[13.5px] font-semibold text-white/70">
+            <section className="bg-gradient-to-br from-navy to-navy-light py-5 text-white lg:py-10">
+                <div className="mx-auto w-full max-w-[900px] px-4 lg:px-5">
+                    <div className="hidden text-[13.5px] font-semibold text-white/70 lg:block">
                         <Link href="/account/support" className="hover:text-white">الدعم الفني</Link> › {ticket.code}
                     </div>
                     <div className="mt-1.5 flex flex-wrap items-center justify-between gap-3">
@@ -35,8 +35,8 @@ export default function Show({ ticket }) {
                 </div>
             </section>
 
-            <section className="py-10">
-                <div className="mx-auto w-full max-w-[900px] px-5">
+            <section className="py-5 lg:py-10">
+                <div className="mx-auto w-full max-w-[900px] px-4 lg:px-5">
                     {/* الرسالة الأصلية */}
                     <div className="mb-4 rounded-card border border-black/[.06] bg-white p-5">
                         <p className="whitespace-pre-wrap text-navy">{ticket.description}</p>

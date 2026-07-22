@@ -10,11 +10,17 @@ const Wrap = ({ className, children }) => (
 
 export default function Page({ page }) {
     return (
-        <SiteLayout>
+        <SiteLayout anim="fade">
             <Head title={page.title} />
 
-            {/* بانر الصفحة */}
-            <section className="relative overflow-hidden bg-gradient-to-br from-navy to-navy-light py-12 text-white">
+            {/* عنوان مضغوط — موبايل (الآب-بار فوقه شايل زر الرجوع) */}
+            <div className="border-b border-black/[.06] bg-white px-4 pb-4 pt-3 lg:hidden">
+                <h1 className="font-head text-[21px] font-bold text-navy">{page.title}</h1>
+                {page.excerpt && <p className="mt-1 text-[13.5px] text-muted">{page.excerpt}</p>}
+            </div>
+
+            {/* بانر الصفحة — ويب */}
+            <section className="relative hidden overflow-hidden bg-gradient-to-br from-navy to-navy-light py-12 text-white lg:block">
                 <div className="pointer-events-none absolute -top-40 -start-20 h-[360px] w-[360px] rounded-full bg-coral opacity-30 blur-[100px]" />
                 <Wrap className="relative z-[1]">
                     <div className="text-[13.5px] font-semibold text-white/70">
@@ -26,8 +32,8 @@ export default function Page({ page }) {
             </section>
 
             {/* المحتوى */}
-            <Wrap>
-                <article className="mx-auto max-w-[820px] pb-16 pt-11">
+            <Wrap className="px-4 lg:px-5">
+                <article className="mx-auto max-w-[820px] pb-10 pt-5 lg:pb-16 lg:pt-11">
                     <div
                         className={cn(
                             'text-base leading-[2] text-[#444]',

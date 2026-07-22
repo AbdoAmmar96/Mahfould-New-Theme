@@ -5,6 +5,8 @@ import { Check, Car, Bus, ShieldCheck, User, UserPlus, BedDouble, Coffee } from 
 import { Button } from '@/Components/ui/button';
 import { Badge } from '@/Components/ui/badge';
 import { Separator } from '@/Components/ui/separator';
+import { MobileSection, MobileCTA } from '@/Components/mobile/primitives';
+import { useIsMobile } from '@/lib/useIsMobile';
 
 const TRANSPORT_LABELS = {
     own_car: 'بعربيتي',
@@ -18,11 +20,92 @@ const TIMING_LABELS = {
 };
 
 export default function Confirmation({ booking }) {
+    const isMobile = useIsMobile();
     const bookingQr = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(booking.code)}`;
     const entry = booking.entry_pass;
 
+    if (isMobile) {
+        return (
+            <SiteLayout anim="success">
+                <Head title="تم تأكيد الحجز" />
+
+                {/* شاشة نجاح — زي ما التطبيقات بتعمل */}
+                <div className="bg-makfol px-5 pb-7 pt-8 text-center text-white">
+                    <div className="mx-auto mb-4 flex h-[72px] w-[72px] items-center justify-center rounded-full bg-white/20 backdrop-blur duration-500 animate-in fade-in zoom-in">
+                        <Check className="h-10 w-10" strokeWidth={3} />
+                    </div>
+                    <h1 className="font-head text-[24px] font-bold text-white">تم تأكيد حجزك!</h1>
+                    <p className="mt-1.5 text-[14px] text-white/85">
+                        كل التفاصيل وصلتك على الموبايل والإيميل.
+                    </p>
+                </div>
+
+                {/* تذكرة الحجز — QR في النص زي بطاقة الصعود */}
+                <div className="px-4 pt-4">
+                    <div className="overflow-hidden rounded-card bg-white shadow-mk">
+                        <div className="flex items-center justify-between bg-navy px-4 py-3.5 text-white">
+                            <div>
+                                <div className="text-[11px] opacity-70">رقم الحجز</div>
+                                <div className="font-head text-[18px]">{booking.code}</div>
+                            </div>
+                            <Badge variant={booking.status === 'confirmed' ? 'makfol' : 'soft'}>{booking.status_label}</Badge>
+                        </div>
+
+                        <div className="flex justify-center border-b border-dashed border-black/[.1] p-4">
+                            <img className="h-[150px] w-[150px] rounded-xl border border-black/[.06]" src={bookingQr} alt="QR" />
+                        </div>
+
+                        <div className="space-y-2.5 p-4 text-[13.5px]">
+                            <MRow label="الباقة" value={booking.title} />
+                            {booking.room_type && <MRow label="نوع الغرفة" value={booking.room_type.title} />}
+                            {booking.location && <MRow label="الوجهة" value={booking.location} />}
+                            {booking.start_date && (
+                                <MRow label="الموعد" value={`${booking.start_date}${booking.end_date ? ` → ${booking.end_date}` : ''}`} />
+                            )}
+                            <MRow label="المسافرون" value={`${booking.guests} فرد`} />
+                            <MRow
+                                label="لمن الحجز"
+                                value={booking.booking_for === 'other' ? (booking.beneficiary_name || 'طرف آخر') : 'ليّا شخصياً'}
+                            />
+                            {booking.transport_mode && (
+                                <MRow label="طريقة الوصول" value={TRANSPORT_LABELS[booking.transport_mode]} />
+                            )}
+                            <div className="flex items-center justify-between border-t border-black/[.06] pt-3">
+                                <span className="text-[13px] font-semibold text-muted">الإجمالي</span>
+                                <b className="font-head text-[19px] text-coral-deep">{money(booking.total)} ج.م</b>
+                            </div>
+                            <p className="text-end text-[11.5px] text-muted">
+                                {TIMING_LABELS[booking.payment_timing] || booking.payment_timing}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* تصريح الدخول QR */}
+                {entry && (
+                    <MobileSection title="تصريح دخول QR" icon={ShieldCheck}>
+                        <p className="mb-3 text-[13px] text-muted">اعرضه للمنشأة عند الوصول — يعمل مرة واحدة بس.</p>
+                        <div className="rounded-card border-2 border-royal/40 bg-royal/[.04] p-4 text-center">
+                            <img src={entry.qr_image_url} alt="QR" className="mx-auto h-[170px] w-[170px] rounded-xl border-2 border-royal/20 bg-white p-2" />
+                            <div className="mt-3 space-y-1.5 text-start text-[13px]">
+                                <MRow label="صالح من" value={entry.valid_from} />
+                                <MRow label="صالح حتى" value={entry.valid_until} />
+                                <MRow label="الكود" value={entry.code} />
+                            </div>
+                        </div>
+                    </MobileSection>
+                )}
+
+                <div className="space-y-2.5 p-4">
+                    <MobileCTA href="/account">عرض حجوزاتي</MobileCTA>
+                    <MobileCTA href="/" variant="secondary">الرئيسية</MobileCTA>
+                </div>
+            </SiteLayout>
+        );
+    }
+
     return (
-        <SiteLayout>
+        <SiteLayout anim="success">
             <Head title="تم تأكيد الحجز" />
             <section className="py-14">
                 <div className="mx-auto w-full max-w-[860px] px-5">
@@ -131,6 +214,16 @@ export default function Confirmation({ booking }) {
                 </div>
             </section>
         </SiteLayout>
+    );
+}
+
+// صف label/value مضغوط لبطاقة الموبايل
+function MRow({ label, value }) {
+    return (
+        <div className="flex items-start justify-between gap-3">
+            <span className="shrink-0 text-[12.5px] font-semibold text-muted">{label}</span>
+            <b className="text-end text-[13.5px] font-bold text-navy">{value}</b>
+        </div>
     );
 }
 

@@ -3,10 +3,47 @@ import { ShieldCheck, ArrowLeft } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 import { Badge } from '@/Components/ui/badge';
 import { Input, Field } from '@/Components/ui/input';
+import MobileAuth from '@/Components/mobile/MobileAuth';
+import { useIsMobile } from '@/lib/useIsMobile';
 
 export default function ForgotPassword({ status }) {
+    const isMobile = useIsMobile();
     const { data, setData, post, processing, errors } = useForm({ email: '' });
     const submit = (e) => { e.preventDefault(); post('/forgot-password'); };
+
+    if (isMobile) {
+        return (
+            <>
+                <Head title="نسيت كلمة المرور" />
+                <MobileAuth
+                    title="استرجاع كلمة المرور"
+                    sub="هنبعتلك رابط على إيميلك"
+                    badge={<Badge variant="makfol"><ShieldCheck className="h-3 w-3" /> استرجاع آمن</Badge>}
+                >
+                    <form onSubmit={submit} className="flex flex-1 flex-col">
+                        {status && (
+                            <div className="mb-4 rounded-input bg-makfol px-3.5 py-2.5 text-[13.5px] font-semibold text-white">{status}</div>
+                        )}
+                        <Field label="البريد الإلكتروني">
+                            <Input type="email" inputMode="email" value={data.email} onChange={(e) => setData('email', e.target.value)} placeholder="you@email.com"
+                                className={errors.email ? 'border-danger focus:border-danger focus:ring-danger/20' : ''} />
+                        </Field>
+                        {errors.email && <p className="mt-2 text-[13px] text-danger">{errors.email}</p>}
+
+                        <div className="mt-auto space-y-4 pt-8">
+                            <button type="submit" disabled={processing}
+                                className="mk-press flex min-h-[52px] w-full items-center justify-center rounded-input bg-gradient-to-l from-coral to-coral-deep text-[16px] font-extrabold text-white shadow-mk disabled:opacity-50">
+                                {processing ? 'جاري الإرسال…' : 'ابعتلي الرابط'}
+                            </button>
+                            <p className="text-center text-[14px] text-navy">
+                                فاكرها؟ <Link href="/login" className="font-extrabold text-coral-deep">سجّل دخول</Link>
+                            </p>
+                        </div>
+                    </form>
+                </MobileAuth>
+            </>
+        );
+    }
 
     return (
         <div className="mk min-h-screen bg-cream font-body text-navy">

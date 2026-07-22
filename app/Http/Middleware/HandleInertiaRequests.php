@@ -42,6 +42,9 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $request->session()->get('success'),
                 'error'   => fn () => $request->session()->get('error'),
             ],
+            // مفتاح VAPID العام — الفرونت محتاجه عشان يعمل subscribe.
+            // null لو الإشعارات مش مضبوطة، والواجهة بتخفي الزر ساعتها.
+            'vapid_public_key' => config('services.webpush.public_key'),
         ]);
     }
 }

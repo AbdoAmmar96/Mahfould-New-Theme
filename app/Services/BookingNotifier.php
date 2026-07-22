@@ -13,7 +13,10 @@ use Illuminate\Support\Facades\Mail;
  */
 class BookingNotifier
 {
-    public function __construct(private WhatsAppService $whatsapp) {}
+    public function __construct(
+        private WhatsAppService $whatsapp,
+        private WebPushService $webpush,
+    ) {}
 
     public function confirmed(Booking $booking): void
     {
@@ -31,5 +34,8 @@ class BookingNotifier
 
         // واتساب
         $this->whatsapp->sendBookingConfirmation($booking);
+
+        // إشعار المتصفح (بيتجاهل نفسه لو مفاتيح VAPID مش مضبوطة)
+        $this->webpush->bookingConfirmed($booking);
     }
 }

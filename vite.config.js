@@ -16,4 +16,12 @@ export default defineConfig({
             '@': path.resolve(__dirname, 'resources/js'),
         },
     },
+    // من غير ده Vite بيربط على IPv6 بس، وLaravel بيكتب في public/hot
+    // عنوان زي http://[::1]:5173 — واللي بيفشل في أي متصفح مش شايف IPv6،
+    // فالصفحة بتطلع بيضا من غير CSS ولا JS.
+    server: {
+        host: '127.0.0.1',
+        port: 5173,
+        strictPort: true,
+    },
 });

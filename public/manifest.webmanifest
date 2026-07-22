@@ -1,0 +1,25 @@
+{
+  "id": "/",
+  "name": "محفول مكفول",
+  "short_name": "محفول مكفول",
+  "description": "رحلتك محفولة مكفولة — سياحة داخلية موثوقة في مصر",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FBF7F0",
+  "theme_color": "#363677",
+  "categories": ["travel", "lifestyle"],
+  "icons": [
+    { "src": "/assets/img/logo.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/img/logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/img/logo-t.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "الرحلات", "url": "/tours" },
+    { "name": "الفنادق", "url": "/hotels" },
+    { "name": "حجوزاتي", "url": "/account" }
+  ]
+}

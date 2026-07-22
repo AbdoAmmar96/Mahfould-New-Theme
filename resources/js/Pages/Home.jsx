@@ -1,4 +1,5 @@
 import SiteLayout from '@/Layouts/SiteLayout';
+import MobileHome from '@/Components/MobileHome';
 import Modal from '@/Components/Modal';
 import { TRUST } from '@/data/trust';
 import { Head, Link, router } from '@inertiajs/react';
@@ -14,6 +15,7 @@ import { Input, Field } from '@/Components/ui/input';
 import { PartySizeField } from '@/Components/ui/party-size';
 import { Tabs, TabsList, TabsTrigger } from '@/Components/ui/tabs';
 import { ServiceCard, money } from '@/Components/ui/service-card';
+import { useIsMobile } from '@/lib/useIsMobile';
 import { cn } from '@/lib/utils';
 
 const TABS = [
@@ -92,6 +94,7 @@ function RestaurantCard({ r }) {
 }
 
 export default function Home({ locations, featured, hotels, restaurants, cars, packages, testimonials, stats }) {
+    const isMobile = useIsMobile();
     const [tab, setTab] = useState(0);
     const [loc, setLoc] = useState('');
     const [date, setDate] = useState('');
@@ -109,8 +112,24 @@ export default function Home({ locations, featured, hotels, restaurants, cars, p
     };
 
     return (
-        <SiteLayout active="home">
+        <SiteLayout active="home" anim="home">
             <Head title="رحلتك محفولة مكفولة" />
+
+            {/* الموبايل — تخطيط أبليكشن مستقل تماماً.
+                بنرندر شجرة واحدة بس (مش hidden lg:block) عشان منحمّلش DOM وصور مرتين. */}
+            {isMobile && (
+                <MobileHome
+                    locations={locations}
+                    featured={featured}
+                    hotels={hotels}
+                    restaurants={restaurants}
+                    cars={cars}
+                />
+            )}
+
+            {/* ↓↓↓ الويب (lg فأعلى) ↓↓↓ */}
+            {!isMobile && (
+            <div>
 
             {/* الهيرو */}
             <section className="relative overflow-hidden bg-gradient-to-br from-navy to-navy-light pt-16 pb-28 md:pt-20">
@@ -273,7 +292,7 @@ export default function Home({ locations, featured, hotels, restaurants, cars, p
 
             {/* بوستر صاحب السعادة */}
             <section className="relative min-h-[340px] overflow-hidden">
-                <img src="https://loremflickr.com/1600/520/celebration,gift,party?lock=77" alt="صاحب السعادة" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+                <img src="https://picsum.photos/seed/sahbhero/1600/520" alt="صاحب السعادة" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-l from-royal/95 via-royal/85 to-navy-deep/75" />
                 <div className="pointer-events-none absolute -top-24 -start-16 h-[280px] w-[280px] rounded-full bg-vip opacity-30 blur-[100px]" />
                 <div className="relative z-10 mx-auto flex min-h-[340px] max-w-[1200px] flex-col items-start justify-center gap-4 px-5 py-16 text-white">
@@ -369,6 +388,10 @@ export default function Home({ locations, featured, hotels, restaurants, cars, p
                     </div>
                 </Wrap>
             </section>
+
+            </div>
+            )}
+            {/* ↑↑↑ نهاية الويب ↑↑↑ */}
         </SiteLayout>
     );
 }

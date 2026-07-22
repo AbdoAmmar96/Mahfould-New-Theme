@@ -20,9 +20,9 @@ export default function Register() {
     const isIndividual = data.provider_type === 'individual';
 
     return (
-        <SiteLayout>
+        <SiteLayout anim="fade">
             <Head title="تسجيل مزوّد خدمة" />
-            <section className="py-10 md:py-16">
+            <section className="py-5 lg:py-16">
                 <div className="mx-auto w-full max-w-[860px] px-5">
                     <div className="mb-8 text-center">
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-royal/10 px-4 py-1.5 text-[13px] font-bold text-royal">

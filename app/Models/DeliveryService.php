@@ -62,6 +62,6 @@ class DeliveryService extends Model
     public function getImageUrlAttribute(): string
     {
         if ($this->image && str_starts_with($this->image, 'http')) return $this->image;
-        return $this->image ? asset('storage/' . $this->image) : "https://loremflickr.com/400/300/delivery,motorbike?lock={$this->id}";
+        return $this->image ? asset('storage/' . $this->image) : "https://picsum.photos/seed/del{$this->id}/400/300";
     }
 }
